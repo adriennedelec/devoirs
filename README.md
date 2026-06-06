@@ -122,7 +122,7 @@ Phase suivante :
 
 ## État actuel
 
-Lots 1 à 4 réalisés : socle React/Vite TypeScript API-ready, shell enfant navigable, module multiplication interactif, puis modules guidés dictée et poésie.
+Lots 1 à 11 réalisés : socle React/Vite TypeScript API-ready, shell enfant navigable, modules multiplication/dictée/poésie, puis validation renforcée de l’interface enfant avec cockpit quotidien, parcours gamifié, récompenses dynamiques, vraie lecture-compréhension, mini-session multiplication, correction dictée mot par mot et mémorisation poésie ligne par ligne.
 
 Le projet contient maintenant :
 
@@ -143,11 +143,15 @@ src/
     ├── api.ts
     ├── child.ts
     ├── language.ts
+    ├── learningPath.ts
     ├── multiplication.ts
+    ├── reading.ts
     └── reward.ts
 
 tests/
 ├── App.test.tsx
+├── child-experience-lots.test.ts
+├── child-interface-lots-ui.test.tsx
 ├── childService.test.ts
 ├── language-modules.test.ts
 ├── language-modules-ui.test.tsx
@@ -191,12 +195,12 @@ npm run build
 ## Architecture API-compatible actuelle
 
 - `src/services/apiClient.ts` contient la couche API simulée.
-- `src/services/childService.ts` expose `getChildDashboard(childId)`, `getMultiplicationSession(childId, table?)`, `submitMultiplicationAnswer(childId, submission)`, `getDictationSession(childId)`, `submitDictationAnswer(childId, submission)`, `getPoetrySession(childId)` et `submitPoetryRecital(childId, submission)`.
-- `src/services/mockData.ts` contient des fixtures structurées comme des réponses API, dont les sessions multiplication, dictée et poésie.
-- `src/types/` contient les contrats métier, dont `multiplication.ts` et `language.ts` pour les modules pédagogiques.
+- `src/services/childService.ts` expose `getChildDashboard(childId)`, `getMultiplicationSession(childId, table?)`, `submitMultiplicationAnswer(childId, submission)`, `getDictationSession(childId)`, `submitDictationAnswer(childId, submission)`, `getPoetrySession(childId)`, `submitPoetryRecital(childId, submission)`, `getReadingSession(childId)` et `submitReadingAnswers(childId, submission)`.
+- `src/services/mockData.ts` contient des fixtures structurées comme des réponses API : cockpit enfant, mondes de parcours, boutique de récompenses, sessions multiplication/dictée/poésie/lecture.
+- `src/types/` contient les contrats métier, dont `multiplication.ts`, `language.ts`, `reading.ts` et `learningPath.ts`.
 - `src/App.tsx` consomme les services asynchrones et gère les états `loading`, `success`, `empty`, `error`.
 
-Prochaine étape recommandée : **Lot 5 — Parent / enseignant** ou consolidation technique des modules dans `features/` avant dashboard adulte.
+Prochaine étape recommandée : **Lot 12 — robustesse UX transversale** (`loading`, `empty`, `error`, `success` harmonisés sur toutes les pages), puis accessibilité/confort et polish final enfant avant parents/enseignants.
 
 ## Lot 2 réalisé
 
@@ -235,3 +239,24 @@ Deux modules guidés ont été ajoutés depuis les cartes de l’accueil :
 - tests service + UI pour verrouiller le comportement enfant-first.
 
 La reconnaissance vocale et l’audio réel restent simulés en V1, conformément au cadrage confidentialité / MVP.
+
+## Lots 5 à 11 réalisés — validation complète interface enfant
+
+Adrien a demandé de finaliser l’expérience enfant avant de passer aux parents/enseignants. Les lots 5 à 11 renforcent donc toute la partie enfant :
+
+- **Lot 5 — Accueil cockpit quotidien** : message du jour, mission principale, CTA `Je commence ma mission`, progression et mascotte.
+- **Lot 6 — Parcours gamifié** : mondes pédagogiques (`Île des calculs`, `Monde des mots`, `Forêt des histoires`, `Scène des poètes`) avec statut, progression et badges.
+- **Lot 7 — Récompenses dynamiques** : boutique magique, objets débloqués/verrouillés et historique récent des étoiles.
+- **Lot 8 — Lecture** : module `Le dragon qui aimait les livres`, histoire courte, audio simulé, 3 questions de compréhension et feedback.
+- **Lot 9 — Multiplication enrichie** : mini-série de 5 questions, progression `Question 1 sur 5`, bouton question suivante et résumé final de série.
+- **Lot 10 — Dictée enrichie** : correction mot par mot, détection accent/ponctuation, bouton `Réessayer doucement`.
+- **Lot 11 — Poésie enrichie** : mémorisation ligne par ligne, modes `Lire`, `Cacher des mots`, `Réciter`.
+
+Tests ajoutés :
+
+```txt
+tests/child-experience-lots.test.ts
+tests/child-interface-lots-ui.test.tsx
+```
+
+Ces lots restent API-compatibles : les nouvelles données sont typées, mockées dans `mockData.ts` et consommées via `childService.ts`.

@@ -14,6 +14,13 @@ export type DictationAnswerSubmission = {
   answerText: string;
 };
 
+export type DictationWordFeedback = {
+  expected: string;
+  actual: string;
+  status: 'correct' | 'missing' | 'accent_or_punctuation' | 'different';
+  hint: string;
+};
+
 export type DictationAnswerResult = {
   sessionId: string;
   answerText: string;
@@ -22,6 +29,8 @@ export type DictationAnswerResult = {
   earnedStars: number;
   feedbackTitle: string;
   feedbackMessage: string;
+  wordFeedback: DictationWordFeedback[];
+  retryLabel: string;
 };
 
 export type PoetryStepStatus = 'completed' | 'current' | 'locked';
@@ -33,6 +42,14 @@ export type PoetryStep = {
   status: PoetryStepStatus;
 };
 
+export type PoetryPracticeLine = {
+  id: string;
+  label: string;
+  text: string;
+  hiddenText: string;
+  status: 'known' | 'practice' | 'locked';
+};
+
 export type PoetrySession = {
   childId: string;
   poemId: string;
@@ -41,6 +58,8 @@ export type PoetrySession = {
   lines: string[];
   steps: PoetryStep[];
   rewardStars: number;
+  practiceLines: PoetryPracticeLine[];
+  memoryModes: string[];
 };
 
 export type PoetryRecitalSubmission = {

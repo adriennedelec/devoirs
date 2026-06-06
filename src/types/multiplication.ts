@@ -25,11 +25,24 @@ export type MultiplicationSession = {
   selectedTable: number;
   availableTables: MultiplicationTableSummary[];
   currentQuestion: MultiplicationQuestion;
+  questions: MultiplicationQuestion[];
+  totalQuestions: number;
 };
 
 export type MultiplicationAnswerSubmission = {
   questionId: string;
   selectedAnswer: number;
+};
+
+export type MultiplicationSessionProgress = {
+  currentIndex: number;
+  totalQuestions: number;
+};
+
+export type MultiplicationSessionSummary = {
+  title: string;
+  message: string;
+  earnedStars: number;
 };
 
 export type MultiplicationAnswerResult = {
@@ -40,4 +53,6 @@ export type MultiplicationAnswerResult = {
   earnedStars: number;
   feedbackTitle: string;
   feedbackMessage: string;
+  sessionProgress: MultiplicationSessionProgress;
+  sessionSummary?: MultiplicationSessionSummary;
 };

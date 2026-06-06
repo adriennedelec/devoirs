@@ -499,21 +499,57 @@ Réalisé :
 - historique des tentatives.
 
 
-### Lot 5 — Parent / enseignant
+### Lot 5 à 11 — Validation complète de l’interface enfant
+
+Statut : réalisé.
+
+Réalisé :
+
+- accueil transformé en cockpit enfant avec message du jour, mission principale et CTA ;
+- parcours par mondes pédagogiques avec états et progression ;
+- récompenses dynamiques : boutique magique, objets débloqués/verrouillés, historique d’étoiles ;
+- module `Lecture` réel avec histoire courte, audio simulé et questions de compréhension ;
+- multiplication enrichie en mini-série de 5 questions avec progression et résumé ;
+- dictée enrichie par correction mot par mot, accent/ponctuation et réessai doux ;
+- poésie enrichie par mémorisation ligne par ligne et modes `Lire` / `Cacher des mots` / `Réciter` ;
+- nouveaux contrats `learningPath.ts`, `reading.ts` et extensions `reward.ts`, `language.ts`, `multiplication.ts` ;
+- tests service + UI pour verrouiller l’expérience enfant.
+
+À approfondir ensuite :
+
+- Lot 12 : robustesse UX transversale loading/empty/error/success ;
+- Lot 13 : accessibilité/confort enfant et premières options DYS ;
+- Lot 14 : polish visuel final enfant avant parent/enseignant.
+
+### Lot 12 — Robustesse UX transversale
+
+- harmoniser les cartes `loading`, `empty`, `error`, `success` ;
+- ajouter des messages enfant compatibles pour les erreurs ;
+- prévoir des boutons `Réessayer` ;
+- standardiser les états verrouillé/terminé/en cours.
+
+### Lot 13 — Accessibilité / confort
+
+- mode police plus grande ;
+- espacement renforcé ;
+- contraste amélioré ;
+- premières options DYS ;
+- réduction des animations.
+
+### Lot 14 — Polish final enfant
+
+- animations étoiles ;
+- cohérence visuelle complète ;
+- responsive mobile/tablette final ;
+- audit navigateur des écrans clés ;
+- captures finales.
+
+### Phase suivante — Parent / enseignant
 
 - analyse des sources parent / enseignant ;
 - cadrage dashboards ;
 - suivi enfant ;
 - préparation devoir.
-
-### Lot 6 — Fonctions avancées
-
-- voix réelle ;
-- lecture orale ;
-- DYS ;
-- défis famille ;
-- missions vraie vie ;
-- univers personnalisable.
 
 ## Décisions ouvertes
 

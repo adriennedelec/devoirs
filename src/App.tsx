@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Bell, BookOpen, Gift, Home, Map, Sparkles, UserRound } from 'lucide-react';
 import type { ApiState, ChildDashboard } from './types/api';
 import type {
@@ -8,14 +8,17 @@ import type {
   PoetrySession,
 } from './types/language';
 import type { MultiplicationAnswerResult, MultiplicationSession } from './types/multiplication';
+import type { ReadingAnswerResult, ReadingSession } from './types/reading';
 import {
   getChildDashboard,
   getDictationSession,
   getMultiplicationSession,
   getPoetrySession,
+  getReadingSession,
   submitDictationAnswer,
   submitMultiplicationAnswer,
   submitPoetryRecital,
+  submitReadingAnswers,
 } from './services/childService';
 import './styles/tokens.css';
 import './styles/base.css';
@@ -37,17 +40,10 @@ const navItems: NavItem[] = [
   { id: 'profile', label: 'Profil', icon: UserRound },
 ];
 
-const learningPathSteps = [
-  { title: 'Additions niveau 1', status: 'Complété', icon: '✅', progress: 100 },
-  { title: 'Tables de multiplication 2 à 5', status: 'En cours', icon: '✖️', progress: 68 },
-  { title: 'Dictée magique', status: 'Disponible', icon: '✍️', progress: 28 },
-  { title: 'Poésie à réciter', status: 'À débloquer', icon: '🎙️', progress: 0 },
-];
-
 function ProgressBar({ value }: { value: number }) {
   return (
     <div className="progress-bar" aria-label={`Progression ${Math.round(value)}%`}>
-      <span style={{ width: `${value}%` }} />
+      <span style={{ width: `${Math.min(100, Math.max(0, value))}%` }} />
     </div>
   );
 }
@@ -68,16 +64,24 @@ function ChildTopBar({ dashboard, title }: { dashboard: ChildDashboard; title?: 
   );
 }
 
+function routeForSubject(subject: string): ChildPage {
+  if (subject === 'reading') return 'reading';
+  if (subject === 'multiplication') return 'multiplication';
+  if (subject === 'dictation') return 'dictation';
+  if (subject === 'poetry') return 'poetry';
+  return 'path';
+}
+
 function HomeView({ dashboard, onNavigate }: { dashboard: ChildDashboard; onNavigate: (page: ChildPage) => void }) {
   return (
     <main className="child-main">
       <ChildTopBar dashboard={dashboard} />
 
-      <section className="hero-card">
+      <section className="hero-card cockpit-hero">
         <div>
-          <p className="eyebrow">Ma progression</p>
-          <h2>{dashboard.progress.percent}% de ton aventure</h2>
-          <p>Prête à apprendre et à progresser ? Choisis une activité et amuse-toi !</p>
+          <p className="eyebrow">Cockpit du jour</p>
+          <h2>{dashboard.welcomeMessage}</h2>
+          <p>Prête à apprendre et à progresser ? La mascotte te propose une mission simple et positive.</p>
         </div>
         <div className="hero-stats">
           <strong>{dashboard.progress.objectivesCompleted}</strong>
@@ -85,12 +89,16 @@ function HomeView({ dashboard, onNavigate }: { dashboard: ChildDashboard; onNavi
         </div>
       </section>
 
-      <section className="daily-goal-card" aria-labelledby="daily-goal-title">
+      <section className="daily-goal-card primary-mission" aria-labelledby="primary-mission-title">
         <div>
-          <p className="eyebrow">{dashboard.dailyGoal.title}</p>
-          <h2 id="daily-goal-title">{dashboard.dailyGoal.description}</h2>
+          <p className="eyebrow">Mon objectif du jour</p>
+          <p className="eyebrow">{dashboard.primaryMission.title}</p>
+          <h2 id="primary-mission-title">{dashboard.primaryMission.description}</h2>
           <ProgressBar value={(dashboard.dailyGoal.currentCount / dashboard.dailyGoal.targetCount) * 100} />
-          <p>{dashboard.dailyGoal.currentCount} / {dashboard.dailyGoal.targetCount} activités · +{dashboard.dailyGoal.rewardStars} étoiles</p>
+          <p>{dashboard.dailyGoal.currentCount} / {dashboard.dailyGoal.targetCount} activités · +{dashboard.primaryMission.rewardStars} étoiles</p>
+          <button className="primary-action" type="button" onClick={() => onNavigate(routeForSubject(dashboard.primaryMission.subject))}>
+            {dashboard.primaryMission.ctaLabel}
+          </button>
         </div>
         <div className="mascot-tip">🦉<span>Encore une mission et ton objectif est réussi !</span></div>
       </section>
@@ -110,13 +118,7 @@ function HomeView({ dashboard, onNavigate }: { dashboard: ChildDashboard; onNavi
                 <ProgressBar value={activity.progressPercent} />
                 <span className="activity-meta">{activity.progressPercent}% · +{activity.rewardStars} étoiles</span>
               </div>
-              <button onClick={() => {
-                if (activity.subject === 'reading') onNavigate('reading');
-                else if (activity.subject === 'multiplication') onNavigate('multiplication');
-                else if (activity.subject === 'dictation') onNavigate('dictation');
-                else if (activity.subject === 'poetry') onNavigate('poetry');
-                else onNavigate('path');
-              }}>Continuer</button>
+              <button onClick={() => onNavigate(routeForSubject(activity.subject))}>Continuer</button>
             </article>
           ))}
         </div>
@@ -152,17 +154,18 @@ function LearningPathView({ dashboard }: { dashboard: ChildDashboard }) {
       <section className="page-card path-hero">
         <p className="eyebrow">Aventure pédagogique</p>
         <h2>Chaque étape te rapproche de la réussite !</h2>
-        <p>Avance mission après mission. Les étapes complétées débloquent de nouveaux défis adaptés à ton niveau.</p>
+        <p>Avance monde après monde. Les étapes complétées débloquent de nouveaux badges adaptés à ton niveau.</p>
         <ProgressBar value={dashboard.progress.percent} />
       </section>
-      <section className="path-grid" aria-label="Étapes du parcours">
-        {learningPathSteps.map((step, index) => (
-          <article className="path-step" key={step.title}>
+      <section className="path-grid world-map" aria-label="Mondes du parcours">
+        {dashboard.learningWorlds.map((world, index) => (
+          <article className={`path-step ${world.status}`} key={world.id}>
             <span className="step-number">{index + 1}</span>
-            <span className="step-icon" aria-hidden="true">{step.icon}</span>
-            <h3>{step.title}</h3>
-            <p>{step.status}</p>
-            <ProgressBar value={step.progress} />
+            <span className="step-icon" aria-hidden="true">{world.icon}</span>
+            <h3>{world.title}</h3>
+            <p>{world.description}</p>
+            <strong>{world.status === 'locked' ? 'À débloquer' : `${world.unlockedBadges} badge(s)`}</strong>
+            <ProgressBar value={world.progressPercent} />
           </article>
         ))}
       </section>
@@ -177,77 +180,150 @@ function RewardsView({ dashboard }: { dashboard: ChildDashboard }) {
       <section className="page-card rewards-hero">
         <p className="eyebrow">Niveau {dashboard.child.level}</p>
         <h2>{dashboard.child.title}</h2>
-        <p>Continue tes missions pour débloquer des badges, accessoires et surprises.</p>
+        <p>Boutique magique : continue tes missions pour débloquer badges, accessoires et surprises.</p>
         <ProgressBar value={68} />
       </section>
-      <section className="reward-grid" aria-label="Badges débloqués">
-        {dashboard.recentBadges.map((badge) => (
-          <article className="reward-card" key={badge.id}>
-            <span aria-hidden="true">{badge.icon}</span>
-            <h3>{badge.title}</h3>
-            <p>{badge.description}</p>
+      <section className="reward-grid" aria-label="Boutique magique">
+        {dashboard.rewardShelf.map((reward) => (
+          <article className={`reward-card ${reward.status}`} key={reward.id}>
+            <span aria-hidden="true">{reward.icon}</span>
+            <h3>{reward.title}</h3>
+            <p>{reward.description}</p>
+            <strong>{reward.status === 'locked' ? 'Verrouillé' : 'Débloqué'} · {reward.costStars} ⭐</strong>
           </article>
         ))}
-        <article className="reward-card locked">
-          <span aria-hidden="true">🏰</span>
-          <h3>Château des mots</h3>
-          <p>À débloquer avec 200 étoiles.</p>
-        </article>
+      </section>
+      <section className="card-panel reward-history" aria-label="Historique des étoiles">
+        <p className="eyebrow">Historique récent</p>
+        {dashboard.rewardHistory.map((event) => (
+          <article key={event.id}>
+            <strong>{event.title}</strong>
+            <p>{event.description}</p>
+          </article>
+        ))}
       </section>
     </main>
   );
 }
 
 function ReadingView({ dashboard }: { dashboard: ChildDashboard }) {
+  const [sessionState, setSessionState] = useState<ApiState<ReadingSession>>({ status: 'loading' });
+  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [resultState, setResultState] = useState<ApiState<ReadingAnswerResult> | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    getReadingSession(dashboard.child.id)
+      .then((session) => {
+        if (!cancelled) setSessionState({ status: 'success', data: session });
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) setSessionState({ status: 'error', message: error instanceof Error ? error.message : 'Impossible de charger la lecture.' });
+      });
+    return () => { cancelled = true; };
+  }, [dashboard.child.id]);
+
+  async function validateReading() {
+    if (sessionState.status !== 'success') return;
+    setResultState({ status: 'loading' });
+    try {
+      const result = await submitReadingAnswers(dashboard.child.id, {
+        sessionId: sessionState.data.id,
+        answers: sessionState.data.questions.map((question) => ({ questionId: question.id, selectedOptionId: answers[question.id] ?? '' })),
+      });
+      setResultState({ status: 'success', data: result });
+    } catch (error: unknown) {
+      setResultState({ status: 'error', message: error instanceof Error ? error.message : 'Lecture impossible à valider.' });
+    }
+  }
+
   return (
     <main className="child-main">
       <ChildTopBar dashboard={dashboard} title="Lecture" />
-      <section className="page-card">
-        <p className="eyebrow">Bientôt</p>
-        <h2>Lecture à voix haute</h2>
-        <p>Cette page préparera les exercices de lecture orale avec consigne, texte, micro et feedback bienveillant.</p>
-      </section>
+      {sessionState.status === 'loading' ? <div className="state-card">Préparation de l’histoire…</div> : null}
+      {sessionState.status === 'error' ? <div className="state-card error">{sessionState.message}</div> : null}
+      {sessionState.status === 'success' ? (
+        <>
+          <section className="language-card reading-card" aria-labelledby="reading-title">
+            <div className="language-mascot" aria-hidden="true">📖</div>
+            <div>
+              <p className="eyebrow">Mission compréhension</p>
+              <h2 id="reading-title">{sessionState.data.title}</h2>
+              <p>{sessionState.data.instruction}</p>
+              <button className="audio-button" type="button">🔊 {sessionState.data.audioLabel}</button>
+              <div className="story-lines">
+                {sessionState.data.text.map((line) => <p key={line}>{line}</p>)}
+              </div>
+            </div>
+          </section>
+          <section className="quiz-stack" aria-label="Questions de compréhension">
+            {sessionState.data.questions.map((question) => (
+              <article className="quiz-card" key={question.id}>
+                <h3>{question.prompt}</h3>
+                <div className="answer-grid compact">
+                  {question.options.map((option, index) => (
+                    <button
+                      className={answers[question.id] === question.optionIds[index] ? 'selected' : ''}
+                      key={option}
+                      onClick={() => setAnswers((current) => ({ ...current, [question.id]: question.optionIds[index] }))}
+                      type="button"
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </div>
+              </article>
+            ))}
+            <button className="primary-action" type="button" onClick={validateReading}>Valider ma compréhension</button>
+            {resultState?.status === 'loading' ? <p className="feedback-card">La mascotte relit tes réponses…</p> : null}
+            {resultState?.status === 'error' ? <p className="feedback-card error">{resultState.message}</p> : null}
+            {resultState?.status === 'success' ? (
+              <div className="feedback-card success">
+                <h3>{resultState.data.feedbackTitle}</h3>
+                <p>{resultState.data.feedbackMessage}</p>
+              </div>
+            ) : null}
+          </section>
+        </>
+      ) : null}
     </main>
   );
 }
 
 function MultiplicationView({ dashboard }: { dashboard: ChildDashboard }) {
   const [sessionState, setSessionState] = useState<ApiState<MultiplicationSession>>({ status: 'loading' });
+  const [questionIndex, setQuestionIndex] = useState(0);
   const [answerState, setAnswerState] = useState<ApiState<MultiplicationAnswerResult> | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-
     getMultiplicationSession(dashboard.child.id)
       .then((session) => {
         if (!cancelled) setSessionState({ status: 'success', data: session });
       })
       .catch((error: unknown) => {
-        if (!cancelled) {
-          const message = error instanceof Error ? error.message : 'Impossible de charger les tables.';
-          setSessionState({ status: 'error', message });
-        }
+        if (!cancelled) setSessionState({ status: 'error', message: error instanceof Error ? error.message : 'Impossible de charger les tables.' });
       });
-
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [dashboard.child.id]);
 
-  async function answerQuestion(selectedAnswer: number) {
-    if (sessionState.status !== 'success') return;
-    setAnswerState({ status: 'loading' });
+  const currentQuestion = sessionState.status === 'success' ? sessionState.data.questions[questionIndex] : null;
 
+  async function answerQuestion(selectedAnswer: number) {
+    if (!currentQuestion) return;
+    setAnswerState({ status: 'loading' });
     try {
-      const result = await submitMultiplicationAnswer(dashboard.child.id, {
-        questionId: sessionState.data.currentQuestion.id,
-        selectedAnswer,
-      });
+      const result = await submitMultiplicationAnswer(dashboard.child.id, { questionId: currentQuestion.id, selectedAnswer });
       setAnswerState({ status: 'success', data: result });
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Réponse impossible à envoyer.';
-      setAnswerState({ status: 'error', message });
+      setAnswerState({ status: 'error', message: error instanceof Error ? error.message : 'Réponse impossible à envoyer.' });
     }
+  }
+
+  function goNextQuestion() {
+    if (sessionState.status !== 'success') return;
+    setAnswerState(null);
+    setQuestionIndex((index) => Math.min(index + 1, sessionState.data.totalQuestions - 1));
   }
 
   return (
@@ -255,11 +331,11 @@ function MultiplicationView({ dashboard }: { dashboard: ChildDashboard }) {
       <ChildTopBar dashboard={dashboard} title="Tables de multiplication" />
       {sessionState.status === 'loading' ? <div className="state-card">Préparation des tables…</div> : null}
       {sessionState.status === 'error' ? <div className="state-card error">{sessionState.message}</div> : null}
-      {sessionState.status === 'success' ? (
+      {sessionState.status === 'success' && currentQuestion ? (
         <>
           <section className="page-card multiplication-hero">
             <p className="eyebrow">Mission calcul magique</p>
-            <h2>Choisis une table, puis trouve la bonne réponse.</h2>
+            <h2>Choisis une table, puis réussis ta mini-série.</h2>
             <p>{sessionState.data.mascotTip}</p>
           </section>
 
@@ -270,11 +346,7 @@ function MultiplicationView({ dashboard }: { dashboard: ChildDashboard }) {
             </div>
             <div className="table-chip-grid">
               {sessionState.data.availableTables.map((table) => (
-                <button
-                  aria-pressed={sessionState.data.selectedTable === table.value}
-                  className={sessionState.data.selectedTable === table.value ? 'active' : ''}
-                  key={table.value}
-                >
+                <button aria-pressed={sessionState.data.selectedTable === table.value} className={sessionState.data.selectedTable === table.value ? 'active' : ''} key={table.value}>
                   <strong>{table.label}</strong>
                   <span>{table.progressPercent}% · +{table.rewardStars} ⭐</span>
                 </button>
@@ -285,13 +357,12 @@ function MultiplicationView({ dashboard }: { dashboard: ChildDashboard }) {
           <section className="question-card" aria-labelledby="multiplication-question">
             <div className="question-mascot" aria-hidden="true">🦉</div>
             <div>
-              <p className="eyebrow">Question QCM</p>
-              <h2 id="multiplication-question">{sessionState.data.currentQuestion.prompt}</h2>
+              <p className="eyebrow">Question {questionIndex + 1} sur {sessionState.data.totalQuestions}</p>
+              <h2 id="multiplication-question">{currentQuestion.prompt}</h2>
+              <ProgressBar value={((questionIndex + 1) / sessionState.data.totalQuestions) * 100} />
               <div className="answer-grid">
-                {sessionState.data.currentQuestion.options.map((option) => (
-                  <button key={option} onClick={() => answerQuestion(option)} disabled={answerState?.status === 'loading'}>
-                    {option}
-                  </button>
+                {currentQuestion.options.map((option) => (
+                  <button key={option} onClick={() => answerQuestion(option)} disabled={answerState?.status === 'loading'}>{option}</button>
                 ))}
               </div>
               {answerState?.status === 'loading' ? <p className="feedback-card">Le hibou vérifie…</p> : null}
@@ -300,7 +371,8 @@ function MultiplicationView({ dashboard }: { dashboard: ChildDashboard }) {
                 <div className={answerState.data.isCorrect ? 'feedback-card success' : 'feedback-card retry'}>
                   <h3>{answerState.data.feedbackTitle}</h3>
                   <p>{answerState.data.feedbackMessage}</p>
-                  <button>Question suivante</button>
+                  {answerState.data.sessionSummary ? <p><strong>{answerState.data.sessionSummary.title}</strong> {answerState.data.sessionSummary.message}</p> : null}
+                  {questionIndex < sessionState.data.totalQuestions - 1 ? <button onClick={goNextQuestion}>Question suivante</button> : null}
                 </div>
               ) : null}
             </div>
@@ -318,36 +390,24 @@ function DictationView({ dashboard }: { dashboard: ChildDashboard }) {
 
   useEffect(() => {
     let cancelled = false;
-
     getDictationSession(dashboard.child.id)
       .then((session) => {
         if (!cancelled) setSessionState({ status: 'success', data: session });
       })
       .catch((error: unknown) => {
-        if (!cancelled) {
-          const message = error instanceof Error ? error.message : 'Impossible de charger la dictée.';
-          setSessionState({ status: 'error', message });
-        }
+        if (!cancelled) setSessionState({ status: 'error', message: error instanceof Error ? error.message : 'Impossible de charger la dictée.' });
       });
-
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [dashboard.child.id]);
 
   async function correctDictation() {
     if (sessionState.status !== 'success') return;
     setAnswerState({ status: 'loading' });
-
     try {
-      const result = await submitDictationAnswer(dashboard.child.id, {
-        sessionId: sessionState.data.id,
-        answerText,
-      });
+      const result = await submitDictationAnswer(dashboard.child.id, { sessionId: sessionState.data.id, answerText });
       setAnswerState({ status: 'success', data: result });
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Correction impossible.';
-      setAnswerState({ status: 'error', message });
+      setAnswerState({ status: 'error', message: error instanceof Error ? error.message : 'Correction impossible.' });
     }
   }
 
@@ -371,9 +431,7 @@ function DictationView({ dashboard }: { dashboard: ChildDashboard }) {
               <span>Ta phrase</span>
               <textarea value={answerText} onChange={(event) => setAnswerText(event.target.value)} rows={4} />
             </label>
-            <button className="primary-action" type="button" onClick={correctDictation} disabled={answerState?.status === 'loading'}>
-              Corriger ma dictée
-            </button>
+            <button className="primary-action" type="button" onClick={correctDictation} disabled={answerState?.status === 'loading'}>Corriger ma dictée</button>
             {answerState?.status === 'loading' ? <p className="feedback-card">La mascotte relit ta phrase…</p> : null}
             {answerState?.status === 'error' ? <p className="feedback-card error">{answerState.message}</p> : null}
             {answerState?.status === 'success' ? (
@@ -381,6 +439,12 @@ function DictationView({ dashboard }: { dashboard: ChildDashboard }) {
                 <h3>{answerState.data.feedbackTitle}</h3>
                 <p>{answerState.data.feedbackMessage}</p>
                 <p><strong>Correction :</strong> {answerState.data.correctedText}</p>
+                <div className="word-feedback" aria-label="Correction mot par mot">
+                  {answerState.data.wordFeedback.map((word) => (
+                    <span className={word.status} key={`${word.expected}-${word.actual}`}>{word.expected}<small>{word.hint}</small></span>
+                  ))}
+                </div>
+                <button type="button" onClick={() => { setAnswerText(''); setAnswerState(null); }}>{answerState.data.retryLabel}</button>
               </div>
             ) : null}
           </div>
@@ -393,39 +457,28 @@ function DictationView({ dashboard }: { dashboard: ChildDashboard }) {
 function PoetryView({ dashboard }: { dashboard: ChildDashboard }) {
   const [sessionState, setSessionState] = useState<ApiState<PoetrySession>>({ status: 'loading' });
   const [recitalState, setRecitalState] = useState<ApiState<PoetryRecitalResult> | null>(null);
+  const [hideWords, setHideWords] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-
     getPoetrySession(dashboard.child.id)
       .then((session) => {
         if (!cancelled) setSessionState({ status: 'success', data: session });
       })
       .catch((error: unknown) => {
-        if (!cancelled) {
-          const message = error instanceof Error ? error.message : 'Impossible de charger la poésie.';
-          setSessionState({ status: 'error', message });
-        }
+        if (!cancelled) setSessionState({ status: 'error', message: error instanceof Error ? error.message : 'Impossible de charger la poésie.' });
       });
-
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [dashboard.child.id]);
 
   async function validateRecital() {
     if (sessionState.status !== 'success') return;
     setRecitalState({ status: 'loading' });
-
     try {
-      const result = await submitPoetryRecital(dashboard.child.id, {
-        poemId: sessionState.data.poemId,
-        confidence: 'ready',
-      });
+      const result = await submitPoetryRecital(dashboard.child.id, { poemId: sessionState.data.poemId, confidence: 'ready' });
       setRecitalState({ status: 'success', data: result });
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Récitation impossible à valider.';
-      setRecitalState({ status: 'error', message });
+      setRecitalState({ status: 'error', message: error instanceof Error ? error.message : 'Récitation impossible à valider.' });
     }
   }
 
@@ -442,8 +495,13 @@ function PoetryView({ dashboard }: { dashboard: ChildDashboard }) {
               <p className="eyebrow">Mission mémoire</p>
               <h2 id="poetry-title">{sessionState.data.title}</h2>
               <p>{sessionState.data.instruction}</p>
+              <div className="poetry-mode-row">
+                {sessionState.data.memoryModes.map((mode) => (
+                  <button className="audio-button" key={mode} type="button" onClick={() => mode === 'Cacher des mots' && setHideWords((value) => !value)}>{mode}</button>
+                ))}
+              </div>
               <div className="poem-lines" aria-label="Texte de la poésie">
-                {sessionState.data.lines.map((line) => <p key={line}>{line}</p>)}
+                {sessionState.data.practiceLines.map((line) => <p key={line.id}><strong>{line.label}</strong> — {hideWords ? line.hiddenText : line.text}</p>)}
               </div>
             </div>
           </section>
@@ -458,9 +516,7 @@ function PoetryView({ dashboard }: { dashboard: ChildDashboard }) {
           <section className="page-card recital-card">
             <p className="eyebrow">Récitation simulée</p>
             <h2>Quand tu es prête, valide ta récitation.</h2>
-            <button className="primary-action" type="button" onClick={validateRecital} disabled={recitalState?.status === 'loading'}>
-              J’ai récité ma poésie
-            </button>
+            <button className="primary-action" type="button" onClick={validateRecital} disabled={recitalState?.status === 'loading'}>J’ai récité ma poésie</button>
             {recitalState?.status === 'loading' ? <p className="feedback-card">La mascotte écoute ton effort…</p> : null}
             {recitalState?.status === 'error' ? <p className="feedback-card error">{recitalState.message}</p> : null}
             {recitalState?.status === 'success' ? (
@@ -496,12 +552,7 @@ function ChildBottomNav({ activePage, onNavigate }: { activePage: ChildPage; onN
   return (
     <nav className="child-bottom-nav" aria-label="Navigation enfant">
       {navItems.map(({ id, label, icon: Icon }) => (
-        <button
-          aria-current={activePage === id ? 'page' : undefined}
-          className={activePage === id ? 'active' : ''}
-          key={id}
-          onClick={() => onNavigate(id)}
-        >
+        <button aria-current={activePage === id ? 'page' : undefined} className={activePage === id ? 'active' : ''} key={id} onClick={() => onNavigate(id)}>
           <Icon size={18} />
           <span>{label}</span>
         </button>
@@ -512,23 +563,15 @@ function ChildBottomNav({ activePage, onNavigate }: { activePage: ChildPage; onN
 
 function ActivePage({ page, dashboard, onNavigate }: { page: ChildPage; dashboard: ChildDashboard; onNavigate: (page: ChildPage) => void }) {
   switch (page) {
-    case 'path':
-      return <LearningPathView dashboard={dashboard} />;
-    case 'rewards':
-      return <RewardsView dashboard={dashboard} />;
-    case 'reading':
-      return <ReadingView dashboard={dashboard} />;
-    case 'multiplication':
-      return <MultiplicationView dashboard={dashboard} />;
-    case 'dictation':
-      return <DictationView dashboard={dashboard} />;
-    case 'poetry':
-      return <PoetryView dashboard={dashboard} />;
-    case 'profile':
-      return <ProfileView dashboard={dashboard} />;
+    case 'path': return <LearningPathView dashboard={dashboard} />;
+    case 'rewards': return <RewardsView dashboard={dashboard} />;
+    case 'reading': return <ReadingView dashboard={dashboard} />;
+    case 'multiplication': return <MultiplicationView dashboard={dashboard} />;
+    case 'dictation': return <DictationView dashboard={dashboard} />;
+    case 'poetry': return <PoetryView dashboard={dashboard} />;
+    case 'profile': return <ProfileView dashboard={dashboard} />;
     case 'home':
-    default:
-      return <HomeView dashboard={dashboard} onNavigate={onNavigate} />;
+    default: return <HomeView dashboard={dashboard} onNavigate={onNavigate} />;
   }
 }
 
@@ -538,29 +581,28 @@ export default function App() {
 
   useEffect(() => {
     let cancelled = false;
-
     getChildDashboard('emma-demo')
       .then((dashboard) => {
         if (!cancelled) setDashboardState({ status: 'success', data: dashboard });
       })
       .catch((error: unknown) => {
-        if (!cancelled) {
-          const message = error instanceof Error ? error.message : 'Impossible de charger le tableau de bord.';
-          setDashboardState({ status: 'error', message });
-        }
+        if (!cancelled) setDashboardState({ status: 'error', message: error instanceof Error ? error.message : 'Impossible de charger le tableau de bord.' });
       });
-
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, []);
+
+  const shell = useMemo(() => {
+    if (dashboardState.status === 'success') {
+      return <ActivePage page={activePage} dashboard={dashboardState.data} onNavigate={setActivePage} />;
+    }
+    if (dashboardState.status === 'loading') return <div className="state-card">Chargement de ton aventure…</div>;
+    if (dashboardState.status === 'empty') return <div className="state-card">Aucune mission pour le moment.</div>;
+    return <div className="state-card error">{dashboardState.message}</div>;
+  }, [activePage, dashboardState]);
 
   return (
     <div className="child-app-shell">
-      {dashboardState.status === 'loading' ? <div className="state-card">Chargement de ton aventure…</div> : null}
-      {dashboardState.status === 'error' ? <div className="state-card error">{dashboardState.message}</div> : null}
-      {dashboardState.status === 'empty' ? <div className="state-card">Aucune mission pour le moment.</div> : null}
-      {dashboardState.status === 'success' ? <ActivePage page={activePage} dashboard={dashboardState.data} onNavigate={setActivePage} /> : null}
+      {shell}
       <ChildBottomNav activePage={activePage} onNavigate={setActivePage} />
     </div>
   );

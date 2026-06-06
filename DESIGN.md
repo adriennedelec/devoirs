@@ -208,11 +208,14 @@ Contenu :
 - étoiles ;
 - progression globale ;
 - objectif du jour ;
+- mission principale avec CTA immédiat ;
 - activités ;
 - badges récents ;
 - défi en cours ;
 - rappels ;
 - navigation basse.
+
+Implémentation Lot 5 : cockpit quotidien avec message `Aujourd’hui...`, carte mission principale, CTA `Je commence ma mission`, mascotte et progression claire.
 
 ### 2. Parcours
 
@@ -226,6 +229,8 @@ Contenu :
 - étoiles ;
 - objectif final ;
 - encouragement mascotte.
+
+Implémentation Lot 6 : parcours par mondes (`Île des calculs`, `Monde des mots`, `Forêt des histoires`, `Scène des poètes`) avec progression, statut et badges débloqués.
 
 ### 3. Tables de multiplication
 
@@ -253,13 +258,16 @@ Contenu :
 - astuce ;
 - prochaine question.
 
-Implémentation Lot 3 :
+Implémentation Lot 3 puis Lot 9 :
 
 - entrée depuis la carte `Tables de multiplication` ;
 - hub de tables en chips larges avec progression ;
+- mini-série de 5 questions avec indicateur `Question N sur 5` ;
 - carte QCM centrale avec mascotte hibou ;
 - réponses sous forme de gros boutons tactiles ;
 - feedback `Bravo` / `Presque` jamais culpabilisant ;
+- bouton `Question suivante` ;
+- résumé final `Série terminée !` ;
 - état `loading` pendant la préparation et la soumission.
 
 ### 5. Dictée
@@ -275,17 +283,25 @@ Contenu :
 - correction ;
 - récompense.
 
-Implémentation Lot 4 :
+Implémentation Lot 4 puis Lot 10 :
 
 - bouton `Écouter la phrase` simulé ;
 - indices visibles en pastilles ;
 - grande zone `Ta phrase` ;
 - correction douce avec texte corrigé ;
+- correction mot par mot avec statuts `correct`, accent/ponctuation, mot différent ou manquant ;
+- bouton `Réessayer doucement` ;
 - feedback `Super dictée !` ou `Très proche !` ;
 - pas d’audio réel ni stockage vocal en V1.
 
 
-### 6. Poésie
+### 6. Lecture
+
+Rôle : lire, comprendre, répondre.
+
+Implémentation Lot 8 : module `Le dragon qui aimait les livres`, audio simulé `Écouter l’histoire`, texte court en paragraphes, 3 questions de compréhension et feedback final.
+
+### 7. Poésie
 
 Rôle : apprentissage en étapes.
 
@@ -298,10 +314,12 @@ Rôle : apprentissage en étapes.
 
 La reconnaissance vocale réelle peut être simulée en V1.
 
-Implémentation Lot 4 :
+Implémentation Lot 4 puis Lot 11 :
 
 - poésie affichée en lignes courtes dans une carte douce ;
 - étapes visibles `Écouter`, `Comprendre`, `Mémoriser`, `Réciter` ;
+- mémorisation ligne par ligne (`Ligne 1`, `Ligne 2`, etc.) ;
+- modes `Lire`, `Cacher des mots`, `Réciter` ;
 - bouton `J’ai récité ma poésie` ;
 - feedback immédiat et étoiles ;
 - récitation simulée sans enregistrement vocal.
@@ -319,6 +337,8 @@ Contenu :
 - badges ;
 - streak ;
 - objets débloqués.
+
+Implémentation Lot 7 : boutique magique avec récompenses débloquées/verrouillées, coûts en étoiles et historique récent des gains.
 
 ## Règles de feedback enfant
 
