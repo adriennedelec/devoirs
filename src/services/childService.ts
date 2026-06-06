@@ -218,22 +218,26 @@ function findUnknownDictationWords(words: string[], confirmedUnknownWords: strin
   });
 }
 
-function cleanWordList(words: string[]) {
-  return words
-    .flatMap((item) => item.split(/[\n,;]+/))
+function splitWordsFromInput(text: string) {
+  return text
+    .replace(/[’']/g, ' ')
+    .split(/[^\p{L}\p{M}]+/u)
     .map((word) => word.trim())
+    .filter((word) => word.length >= 2);
+}
+
+function cleanWordList(words: string[]) {
+  const normalizedWords = words
+    .flatMap(splitWordsFromInput)
+    .map((word) => word.toLocaleLowerCase('fr-FR'));
+
+  return normalizedWords
     .filter(Boolean)
-    .filter((word, index, allWords) => allWords.findIndex((candidate) => candidate.toLocaleLowerCase('fr-FR') === word.toLocaleLowerCase('fr-FR')) === index);
+    .filter((word, index, allWords) => allWords.findIndex((candidate) => candidate === word) === index);
 }
 
 function extractCandidateWordsFromText(text: string) {
-  return cleanWordList(
-    text
-      .replace(/[’']/g, ' ')
-      .split(/[^\p{L}\p{M}-]+/u)
-      .map((word) => word.trim())
-      .filter((word) => word.length >= 2),
-  ).map((word) => word.toLocaleLowerCase('fr-FR'));
+  return cleanWordList([text]);
 }
 
 export async function extractWordDictationWordsFromOcr(

@@ -70,20 +70,20 @@ describe('Lot 4 dictation and poetry services', () => {
     expect(result.text).toMatch(/[.!?]$/);
   });
 
-  it('requires parent confirmation before generating with an unknown typed word', async () => {
+  it('splits typed word series on any separator before checking the dictionary', async () => {
     await expect(generateWordDictationText('emma-demo', {
-      words: ['dragon', 'dragonnn'],
+      words: ['dragon cartable/rivière. dragonnn'],
       verbTenses: ['present'],
       confirmedUnknownWords: [],
     })).rejects.toThrow(/Confirme ces mots avant de générer : dragonnn/);
 
     const confirmedResult = await generateWordDictationText('emma-demo', {
-      words: ['dragon', 'dragonnn'],
+      words: ['dragon cartable/rivière. dragonnn'],
       verbTenses: ['present'],
       confirmedUnknownWords: ['dragonnn'],
     });
 
-    expect(confirmedResult.wordChecklist).toEqual(['dragon', 'dragonnn']);
+    expect(confirmedResult.wordChecklist).toEqual(['dragon', 'cartable', 'rivière', 'dragonnn']);
   });
 
   it('extracts OCR words from an imported document or photo payload for word dictation', async () => {

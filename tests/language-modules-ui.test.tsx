@@ -90,7 +90,7 @@ describe('Lot 4 dictation and poetry UI', () => {
       expect(screen.getByRole('button', { name: /dictée de mots/i })).toBeInTheDocument();
     });
 
-    await user.type(screen.getByLabelText(/série de mots/i), 'dragon, dragonnn');
+    await user.type(screen.getByLabelText(/série de mots/i), 'dragon cartable/rivière. dragonnn');
     await user.click(screen.getByRole('button', { name: /générer le texte/i }));
 
     await waitFor(() => {
@@ -104,6 +104,9 @@ describe('Lot 4 dictation and poetry UI', () => {
     await waitFor(() => {
       expect(screen.getByText(/texte masqué pour l’élève/i)).toBeInTheDocument();
     });
+    expect(screen.getByText('dragon')).toBeInTheDocument();
+    expect(screen.getByText('cartable')).toBeInTheDocument();
+    expect(screen.getByText('rivière')).toBeInTheDocument();
   });
 
   it('uses full page width and imports OCR words from a file into the word series field', async () => {
