@@ -8,6 +8,7 @@ import type {
   PoetryRecitalResult,
   PoetrySession,
   VerbTense,
+  WordDictationOcrResult,
   WordDictationTextResult,
 } from './types/language';
 import type {
@@ -24,6 +25,7 @@ import {
   getPoetrySession,
   getReadingSession,
   dictationVerbTenseOptions,
+  extractWordDictationWordsFromOcr,
   generateWordDictationText,
   submitDictationAnswer,
   submitMultiplicationAnswer,
@@ -653,6 +655,7 @@ function DictationView({ dashboard }: { dashboard: ChildDashboard }) {
   const [sessionState, setSessionState] = useState<ApiState<DictationSession>>({ status: 'loading' });
   const [dictationMode, setDictationMode] = useState<DictationMode>('word_dictation');
   const [wordSeries, setWordSeries] = useState('');
+  const [ocrState, setOcrState] = useState<ApiState<WordDictationOcrResult> | null>(null);
   const [selectedVerbTenses, setSelectedVerbTenses] = useState<VerbTense[]>([]);
   const [generatedTextState, setGeneratedTextState] = useState<ApiState<WordDictationTextResult> | null>(null);
   const [showGeneratedText, setShowGeneratedText] = useState(false);
@@ -675,6 +678,23 @@ function DictationView({ dashboard }: { dashboard: ChildDashboard }) {
     setSelectedVerbTenses((current) => current.includes(verbTense)
       ? current.filter((item) => item !== verbTense)
       : [...current, verbTense]);
+  }
+
+  async function handleWordSourceUpload(file: File | undefined) {
+    if (!file) return;
+    setOcrState({ status: 'loading' });
+    try {
+      const extractedText = file.type.startsWith('text/') ? await file.text() : '';
+      const result = await extractWordDictationWordsFromOcr(dashboard.child.id, {
+        fileName: file.name,
+        mimeType: file.type || 'application/octet-stream',
+        extractedText,
+      });
+      setWordSeries(result.words.join(', '));
+      setOcrState({ status: 'success', data: result });
+    } catch (error: unknown) {
+      setOcrState({ status: 'error', message: error instanceof Error ? error.message : 'OCR impossible pour ce document.' });
+    }
   }
 
   async function prepareWordDictationText() {
@@ -736,6 +756,30 @@ function DictationView({ dashboard }: { dashboard: ChildDashboard }) {
                     rows={3}
                   />
                 </label>
+                <div className="word-source-actions" aria-label="Import OCR des mots">
+                  <label>
+                    <span>📎 Importer un fichier</span>
+                    <input
+                      accept="image/*,.pdf,.txt,.doc,.docx"
+                      aria-label="Importer un fichier"
+                      onChange={(event) => void handleWordSourceUpload(event.currentTarget.files?.[0])}
+                      type="file"
+                    />
+                  </label>
+                  <label>
+                    <span>📷 Prendre une photo</span>
+                    <input
+                      accept="image/*"
+                      aria-label="Prendre une photo"
+                      capture="environment"
+                      onChange={(event) => void handleWordSourceUpload(event.currentTarget.files?.[0])}
+                      type="file"
+                    />
+                  </label>
+                </div>
+                {ocrState?.status === 'loading' ? <p className="feedback-card">OCR en cours : le hibou lit les mots…</p> : null}
+                {ocrState?.status === 'error' ? <p className="feedback-card error">{ocrState.message}</p> : null}
+                {ocrState?.status === 'success' ? <p className="ocr-feedback">{ocrState.data.helperText}</p> : null}
                 <fieldset className="verb-tense-options">
                   <legend>Temps des verbes</legend>
                   <p>Sélection multiple possible.</p>
@@ -965,7 +1009,9 @@ export default function App() {
   const showSideNav = dashboardState.status === 'success';
   const layoutClassName = activePage === 'multiplication'
     ? 'child-app-layout has-side-nav multiplication-app-layout'
-    : showSideNav ? 'child-app-layout has-side-nav' : 'child-app-layout';
+    : activePage === 'dictation'
+      ? 'child-app-layout has-side-nav dictation-app-layout'
+      : showSideNav ? 'child-app-layout has-side-nav' : 'child-app-layout';
 
   return (
     <div className={layoutClassName}>

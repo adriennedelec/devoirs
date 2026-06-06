@@ -74,6 +74,34 @@ describe('Lot 4 dictation and poetry UI', () => {
     expect(screen.getByText(/dessine la rivière/i)).toBeInTheDocument();
   });
 
+  it('uses full page width and imports OCR words from a file into the word series field', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /bonjour emma/i })).toBeInTheDocument();
+    });
+
+    const dictationCard = screen.getByRole('heading', { name: /dictée/i }).closest('article');
+    expect(dictationCard).not.toBeNull();
+    await user.click(within(dictationCard!).getByRole('button', { name: /continuer/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /dictée de mots/i })).toBeInTheDocument();
+    });
+    expect(document.querySelector('.dictation-app-layout .child-app-shell')).toBeInTheDocument();
+    expect(screen.getByLabelText(/importer un fichier/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/prendre une photo/i)).toHaveAttribute('capture', 'environment');
+
+    const file = new File(['Dragon\ncartable\nrivière'], 'liste-mots.txt', { type: 'text/plain' });
+    await user.upload(screen.getByLabelText(/importer un fichier/i), file);
+
+    await waitFor(() => {
+      expect(screen.getByText(/3 mots détectés par OCR/i)).toBeInTheDocument();
+    });
+    expect(screen.getByLabelText(/série de mots/i)).toHaveValue('dragon, cartable, rivière');
+  });
+
   it('opens the poetry module from Accueil and validates a simulated recital', async () => {
     const user = userEvent.setup();
     render(<App />);

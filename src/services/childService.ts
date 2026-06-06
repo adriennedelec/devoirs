@@ -6,6 +6,8 @@ import type {
   DictationWordFeedback,
   VerbTense,
   VerbTenseOption,
+  WordDictationOcrRequest,
+  WordDictationOcrResult,
   WordDictationTextRequest,
   WordDictationTextResult,
   PoetryRecitalResult,
@@ -202,6 +204,37 @@ function cleanWordList(words: string[]) {
     .map((word) => word.trim())
     .filter(Boolean)
     .filter((word, index, allWords) => allWords.findIndex((candidate) => candidate.toLocaleLowerCase('fr-FR') === word.toLocaleLowerCase('fr-FR')) === index);
+}
+
+function extractCandidateWordsFromText(text: string) {
+  return cleanWordList(
+    text
+      .replace(/[’']/g, ' ')
+      .split(/[^\p{L}\p{M}-]+/u)
+      .map((word) => word.trim())
+      .filter((word) => word.length >= 2),
+  ).map((word) => word.toLocaleLowerCase('fr-FR'));
+}
+
+export async function extractWordDictationWordsFromOcr(
+  childId: string,
+  request: WordDictationOcrRequest,
+): Promise<WordDictationOcrResult> {
+  await apiDelay();
+  assertKnownChild(childId);
+
+  const words = extractCandidateWordsFromText(request.extractedText || request.fileName.replace(/\.[^.]+$/, ''));
+  if (words.length === 0) {
+    throw new Error('Aucun mot lisible détecté. Essaie une photo plus nette ou saisis les mots à la main.');
+  }
+
+  return {
+    source: 'ocr',
+    fileName: request.fileName,
+    words,
+    detectedText: request.extractedText,
+    helperText: `${words.length} mots détectés par OCR. Vérifie la liste avant de générer la dictée.`,
+  };
 }
 
 function buildTenseSentences(words: string[], verbTenses: VerbTense[]) {

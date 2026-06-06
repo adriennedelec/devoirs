@@ -37,6 +37,17 @@
   padding: 0;
 }
 
+.has-side-nav.dictation-app-layout .child-app-shell {
+  width: calc(100vw - 250px);
+  max-width: none;
+  margin-left: 250px;
+  margin-right: 0;
+}
+
+.has-side-nav.dictation-app-layout .child-main {
+  width: 100%;
+}
+
 .child-main {
   display: grid;
   gap: 20px;
@@ -695,6 +706,43 @@
 .dictation-mode-card button span {
   font-weight: 800;
   opacity: 0.86;
+}
+
+.word-source-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 12px 0;
+}
+
+.word-source-actions label {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  min-height: 48px;
+  border-radius: 999px;
+  padding: 0 18px;
+  color: var(--color-primary-dark);
+  background: #fff;
+  box-shadow: var(--shadow-card);
+  font-weight: 1000;
+  cursor: pointer;
+}
+
+.word-source-actions input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.ocr-feedback {
+  margin: 10px 0 0;
+  border-radius: 18px;
+  padding: 12px 14px;
+  color: #225c38;
+  background: #e9fff0;
+  font-weight: 900;
 }
 
 .verb-tense-options {

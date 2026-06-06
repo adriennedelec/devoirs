@@ -232,6 +232,9 @@ Construire une première maquette web crédible et navigable, avec une vraie str
 
 - deux modes visibles : `Dictée de mots` et `Dictée normale` ;
 - dictée de mots travaillée en priorité : saisie parent d’une série de mots ;
+- module dictée affiché en pleine largeur à droite du menu latéral ;
+- import fichier ou prise de photo pour lancer un OCR API-ready ;
+- mots détectés automatiquement par OCR et recopiés dans le champ `Série de mots` ;
 - génération d’un texte court contenant tous les mots demandés ;
 - options de temps verbaux en sélection multiple (`Présent`, `Imparfait`, `Passé composé`, `Futur`) ;
 - texte généré masqué par défaut pour l’élève et destiné à être lu par l’application ;

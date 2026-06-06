@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   getDictationSession,
   getPoetrySession,
+  extractWordDictationWordsFromOcr,
   generateWordDictationText,
   submitDictationAnswer,
   submitPoetryRecital,
@@ -64,6 +65,19 @@ describe('Lot 4 dictation and poetry services', () => {
       expect(result.text.toLocaleLowerCase('fr-FR')).toContain(word);
     }
     expect(result.text).toMatch(/Aujourd’hui|Demain/);
+  });
+
+  it('extracts OCR words from an imported document or photo payload for word dictation', async () => {
+    const result = await extractWordDictationWordsFromOcr('emma-demo', {
+      fileName: 'liste-mots-photo.jpg',
+      mimeType: 'image/jpeg',
+      extractedText: 'Dragon\ncartable, rivière ! dragon',
+    });
+
+    expect(result.source).toBe('ocr');
+    expect(result.words).toEqual(['dragon', 'cartable', 'rivière']);
+    expect(result.detectedText).toContain('Dragon');
+    expect(result.helperText).toMatch(/mots détectés/i);
   });
 
   it('returns a poetry session and validates a simulated recital', async () => {

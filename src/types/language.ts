@@ -8,6 +8,20 @@ export type VerbTenseOption = {
   helper: string;
 };
 
+export type WordDictationOcrRequest = {
+  fileName: string;
+  mimeType: string;
+  extractedText: string;
+};
+
+export type WordDictationOcrResult = {
+  source: 'ocr';
+  fileName: string;
+  words: string[];
+  detectedText: string;
+  helperText: string;
+};
+
 export type WordDictationTextRequest = {
   words: string[];
   verbTenses: VerbTense[];
