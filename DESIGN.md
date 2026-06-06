@@ -193,9 +193,10 @@ Structure visuelle :
 - une **question de multiplication à la fois** (`7 × 8 = ?`) avec 4 boutons QCM larges et rassurants ;
 - bande de progression `1×` à `10×` pour montrer les facteurs déjà réussis / à revoir ;
 - bouton `Écouter la question` violet ;
+- tableau bas `Historique des tables réalisées` listant, pour chaque table terminée, les réponses justes, les réponses fausses et le score obtenu ;
 - conservation de la navigation directe vers `Tables`, `Dictée`, `Poésie` dans le menu latéral.
 
-Règle UX : une bonne réponse avance automatiquement à la question suivante ; une erreur garde la même question active. Le score final reste basé sur la réussite du premier coup et la table complète marque les calculs à revoir en rouge.
+Règle UX : une bonne réponse avance automatiquement à la question suivante ; une erreur garde la même question active. Le score final reste basé sur la réussite du premier coup, la table complète marque les calculs à revoir en rouge, puis le tableau d’historique sert de carnet de progrès lisible sans transformer l’écran enfant en dashboard adulte.
 
 ### Composants gamification
 

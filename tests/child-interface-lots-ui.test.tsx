@@ -107,6 +107,12 @@ describe('Lots 5-11 complete child interface', () => {
     const missedFact = screen.getByText('8 × 7 = 56').closest('li');
     expect(missedFact).toHaveClass('missed');
     expect(screen.getByText('6 × 7 = 42').closest('li')).toHaveClass('mastered');
+
+    const history = screen.getByRole('table', { name: /historique des tables réalisées/i });
+    expect(within(history).getByText(/table de 7/i)).toBeInTheDocument();
+    expect(within(history).getByText(/9 justes/i)).toBeInTheDocument();
+    expect(within(history).getByText(/1 fausse/i)).toBeInTheDocument();
+    expect(within(history).getByText(/9 \/ 10/i)).toBeInTheDocument();
   });
 
   it('lets the child launch every available multiplication table from the picker', async () => {

@@ -37,6 +37,15 @@ type NavItem = {
   icon: typeof Home;
 };
 
+type CompletedMultiplicationTable = {
+  id: string;
+  table: number;
+  correctCount: number;
+  wrongCount: number;
+  score: number;
+  totalQuestions: number;
+};
+
 const navItems: NavItem[] = [
   { id: 'home', label: 'Accueil', icon: Home },
   { id: 'path', label: 'Parcours', icon: Map },
@@ -304,6 +313,7 @@ function MultiplicationView({ dashboard }: { dashboard: ChildDashboard }) {
   const [answerState, setAnswerState] = useState<ApiState<MultiplicationAnswerResult> | null>(null);
   const [firstTryByQuestion, setFirstTryByQuestion] = useState<Record<string, boolean>>({});
   const [attemptHistory, setAttemptHistory] = useState<MultiplicationAttemptRecord[]>([]);
+  const [completedTableHistory, setCompletedTableHistory] = useState<CompletedMultiplicationTable[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -372,6 +382,21 @@ function MultiplicationView({ dashboard }: { dashboard: ChildDashboard }) {
         }, 60);
         return;
       }
+
+      const score = nextHistory.reduce((total, record) => total + record.scorePoint, 0);
+      const correctCount = nextHistory.filter((record) => record.scorePoint === 1).length;
+      const wrongCount = sessionState.status === 'success' ? sessionState.data.totalQuestions - correctCount : 0;
+      setCompletedTableHistory((current) => [
+        ...current,
+        {
+          id: `${currentQuestion.table}-${Date.now()}`,
+          table: currentQuestion.table,
+          correctCount,
+          wrongCount,
+          score,
+          totalQuestions: sessionState.status === 'success' ? sessionState.data.totalQuestions : nextHistory.length,
+        },
+      ]);
       setAnswerState({ status: 'success', data: result });
     } catch (error: unknown) {
       setAnswerState({ status: 'error', message: error instanceof Error ? error.message : 'Réponse impossible à envoyer.' });
@@ -480,7 +505,14 @@ function MultiplicationView({ dashboard }: { dashboard: ChildDashboard }) {
               <ProgressBar value={((questionIndex + 1) / sessionState.data.totalQuestions) * 100} />
               <div className="answer-grid magic-answer-grid" aria-label="Choix de réponse">
                 {currentQuestion.options.map((option) => (
-                  <button key={option} onClick={() => answerQuestion(option)} disabled={answerState?.status === 'loading'} type="button">{option}</button>
+                  <button
+                    key={option}
+                    onClick={() => answerQuestion(option)}
+                    disabled={answerState?.status === 'loading' || Boolean(answerState?.status === 'success' && answerState.data.sessionSummary)}
+                    type="button"
+                  >
+                    {option}
+                  </button>
                 ))}
               </div>
               <div className="table-progress-strip" aria-label={`Avancement de la table de ${activeTable}`}>
@@ -512,6 +544,40 @@ function MultiplicationView({ dashboard }: { dashboard: ChildDashboard }) {
                 </div>
               ) : null}
               <button className="listen-button" type="button">🔊 Écouter la question</button>
+            </div>
+          </section>
+
+          <section className="multiplication-history-card" aria-labelledby="multiplication-history-title">
+            <div className="section-heading compact">
+              <p className="eyebrow">Carnet de progrès</p>
+              <h2 id="multiplication-history-title">Historique des tables réalisées</h2>
+              <p>Retrouve tes tables terminées, tes réponses justes, celles à revoir et ton score.</p>
+            </div>
+            <div className="multiplication-history-table-wrap">
+              <table aria-label="Historique des tables réalisées" className="multiplication-history-table">
+                <thead>
+                  <tr>
+                    <th scope="col">Table</th>
+                    <th scope="col">Réponses justes</th>
+                    <th scope="col">Réponses fausses</th>
+                    <th scope="col">Score</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {completedTableHistory.length === 0 ? (
+                    <tr>
+                      <td colSpan={4}>Termine une table pour remplir ton historique magique ✨</td>
+                    </tr>
+                  ) : completedTableHistory.map((record) => (
+                    <tr key={record.id}>
+                      <td>Table de {record.table}</td>
+                      <td><span className="history-pill success">{record.correctCount} justes</span></td>
+                      <td><span className="history-pill retry">{record.wrongCount} {record.wrongCount > 1 ? 'fausses' : 'fausse'}</span></td>
+                      <td><strong>{record.score} / {record.totalQuestions}</strong></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </section>
         </>

@@ -1453,6 +1453,81 @@
   background: #fff0f0;
 }
 
+.multiplication-history-card {
+  width: 100%;
+  max-width: none;
+  margin: 0 0 16px;
+  padding: clamp(20px, 3vw, 28px);
+  border: 1px solid rgba(255, 255, 255, 0.86);
+  border-radius: 32px;
+  background: rgba(250, 250, 255, 0.92);
+  box-shadow: 0 24px 58px rgba(52, 36, 111, 0.14);
+}
+
+.section-heading.compact {
+  margin-bottom: 14px;
+}
+
+.section-heading.compact p:last-child {
+  margin: 6px 0 0;
+  color: #6756a3;
+  font-weight: 800;
+}
+
+.multiplication-history-table-wrap {
+  overflow-x: auto;
+  border-radius: 24px;
+  background: #ffffff;
+  box-shadow: inset 0 0 0 1px rgba(205, 184, 255, 0.42);
+}
+
+.multiplication-history-table {
+  width: 100%;
+  min-width: 620px;
+  border-collapse: collapse;
+  color: #34246f;
+  font-weight: 900;
+}
+
+.multiplication-history-table th,
+.multiplication-history-table td {
+  padding: 16px 18px;
+  text-align: left;
+  border-bottom: 1px solid rgba(205, 184, 255, 0.28);
+}
+
+.multiplication-history-table thead th {
+  background: linear-gradient(135deg, #f8f1ff, #dff2ff);
+  color: #4b3bc4;
+  font-size: 0.82rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.multiplication-history-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.history-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 92px;
+  border-radius: 999px;
+  padding: 9px 12px;
+  font-size: 0.92rem;
+}
+
+.history-pill.success {
+  color: #147348;
+  background: #e6fbef;
+}
+
+.history-pill.retry {
+  color: #b42318;
+  background: #fff0f0;
+}
+
 @media (max-width: 920px) {
   .math-magic-header,
   .magic-exercise-card,

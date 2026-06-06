@@ -223,6 +223,7 @@ Construire une première maquette web crédible et navigable, avec une vraie str
 - session complète de 10 calculs couvrant les facteurs 1 à 10 dans le désordre ;
 - score sur 10 calculé uniquement sur les réponses réussies du premier coup ;
 - table complète finale avec erreurs du premier essai affichées en rouge ;
+- historique bas des tables terminées avec réponses justes, réponses fausses et score obtenu ;
 - récompenses instantanées et zone aide pédagogique.
 
 #### 5. Dictée
