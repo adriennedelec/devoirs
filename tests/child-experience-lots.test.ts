@@ -63,6 +63,30 @@ describe('Lots 5-11 child experience service contracts', () => {
     expect(result.sessionSummary?.title).toBe('Série terminée !');
   });
 
+  it('makes every displayed multiplication table playable with its own generated series', async () => {
+    const baseSession = await getMultiplicationSession('emma-demo');
+    const availableTableValues = baseSession.availableTables.map((table) => table.value);
+
+    await Promise.all(
+      availableTableValues.map(async (tableValue) => {
+        const session = await getMultiplicationSession('emma-demo', tableValue);
+        expect(session.selectedTable).toBe(tableValue);
+        expect(session.questions).toHaveLength(5);
+        expect(session.questions.every((question) => question.table === tableValue)).toBe(true);
+        expect(session.questions.every((question) => question.leftFactor === tableValue)).toBe(true);
+
+        const firstQuestion = session.questions[0];
+        const result = await submitMultiplicationAnswer('emma-demo', {
+          questionId: firstQuestion.id,
+          selectedAnswer: firstQuestion.leftFactor * firstQuestion.rightFactor,
+        });
+
+        expect(result.isCorrect).toBe(true);
+        expect(result.feedbackMessage).toContain(`table de ${tableValue}`);
+      }),
+    );
+  });
+
   it('returns pedagogical dictation word feedback instead of only a full correction', async () => {
     const result = await submitDictationAnswer('emma-demo', {
       sessionId: 'dictation-forest-1',

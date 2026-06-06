@@ -69,6 +69,21 @@ describe('Lots 5-11 complete child interface', () => {
     expect(screen.getByText(/question 2 sur 5/i)).toBeInTheDocument();
   });
 
+  it('lets the child launch every available multiplication table from the picker', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await waitFor(() => expect(screen.getByRole('heading', { name: /bonjour emma/i })).toBeInTheDocument());
+    const multiplicationCard = screen.getByRole('heading', { name: /tables de multiplication/i }).closest('article');
+    await user.click(within(multiplicationCard!).getByRole('button', { name: /continuer/i }));
+
+    await waitFor(() => expect(screen.getByText(/question 1 sur 5/i)).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: /table de 8/i }));
+
+    await waitFor(() => expect(screen.getByRole('heading', { name: /8 × 8 = \?/i })).toBeInTheDocument());
+    expect(screen.getByRole('button', { name: '64' })).toBeInTheDocument();
+  });
+
   it('shows dictation word feedback and poetry memorisation helpers', async () => {
     const user = userEvent.setup();
     render(<App />);

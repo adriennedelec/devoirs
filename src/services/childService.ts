@@ -36,16 +36,75 @@ export async function getChildDashboard(childId: string): Promise<ChildDashboard
   return cloneApiPayload(childDashboardMock);
 }
 
+const multiplicationPracticeFactors = [8, 6, 9, 4, 7];
+
+function getTableRewardStars(table: number) {
+  return multiplicationSessionMock.availableTables.find((availableTable) => availableTable.value === table)?.rewardStars ?? 2;
+}
+
+function buildAnswerOptions(table: number, factor: number): number[] {
+  const correctAnswer = table * factor;
+  const options = new Set<number>([correctAnswer]);
+  [correctAnswer - table, correctAnswer + table, correctAnswer - factor, correctAnswer + factor, correctAnswer + table + factor]
+    .filter((option) => option > 0)
+    .forEach((option) => options.add(option));
+
+  let filler = correctAnswer + 1;
+  while (options.size < 4) {
+    options.add(filler);
+    filler += 1;
+  }
+
+  return Array.from(options).slice(0, 4).sort((left, right) => left - right);
+}
+
+function buildMultiplicationQuestions(table: number) {
+  const rewardStars = getTableRewardStars(table);
+
+  return multiplicationPracticeFactors.map((factor) => ({
+    id: `q-${table}-${factor}`,
+    table,
+    leftFactor: table,
+    rightFactor: factor,
+    prompt: `${table} × ${factor} = ?`,
+    options: buildAnswerOptions(table, factor),
+    rewardStars,
+  }));
+}
+
+function buildMultiplicationSession(table?: number): MultiplicationSession {
+  const session = cloneApiPayload(multiplicationSessionMock);
+  const selectedTable = table && session.availableTables.some((availableTable) => availableTable.value === table)
+    ? table
+    : session.selectedTable;
+  const questions = buildMultiplicationQuestions(selectedTable);
+
+  return {
+    ...session,
+    selectedTable,
+    currentQuestion: questions[0],
+    questions,
+    totalQuestions: questions.length,
+  };
+}
+
+function findGeneratedMultiplicationQuestion(questionId: string) {
+  const match = /^q-(\d+)-(\d+)$/.exec(questionId);
+  if (!match) return null;
+
+  const table = Number(match[1]);
+  const factor = Number(match[2]);
+  const questionIndex = multiplicationPracticeFactors.indexOf(factor);
+  const question = buildMultiplicationQuestions(table).find((item) => item.id === questionId);
+
+  return question && questionIndex >= 0 ? { question, questionIndex } : null;
+}
+
 export async function getMultiplicationSession(childId: string, table?: number): Promise<MultiplicationSession> {
   await apiDelay();
   assertKnownChild(childId);
 
-  const session = cloneApiPayload(multiplicationSessionMock);
-  if (table && session.availableTables.some((availableTable) => availableTable.value === table)) {
-    session.selectedTable = table;
-  }
-
-  return session;
+  return buildMultiplicationSession(table);
 }
 
 export async function submitMultiplicationAnswer(
@@ -55,16 +114,18 @@ export async function submitMultiplicationAnswer(
   await apiDelay();
   assertKnownChild(childId);
 
-  const questionIndex = multiplicationSessionMock.questions.findIndex((question) => question.id === submission.questionId);
-  const question = multiplicationSessionMock.questions[questionIndex];
-  if (!question) {
+  const generatedQuestion = findGeneratedMultiplicationQuestion(submission.questionId);
+  if (!generatedQuestion) {
     throw new Error(`Question inconnue : ${submission.questionId}`);
   }
 
+  const { question, questionIndex } = generatedQuestion;
+  const sessionQuestions = buildMultiplicationQuestions(question.table);
   const correctAnswer = question.leftFactor * question.rightFactor;
   const isCorrect = submission.selectedAnswer === correctAnswer;
   const currentIndex = questionIndex + 1;
-  const isFinalQuestion = currentIndex === multiplicationSessionMock.totalQuestions;
+  const totalQuestions = sessionQuestions.length;
+  const isFinalQuestion = currentIndex === totalQuestions;
 
   return {
     questionId: question.id,
@@ -78,13 +139,13 @@ export async function submitMultiplicationAnswer(
       : `${question.leftFactor} × ${question.rightFactor} = ${correctAnswer}. On retente avec le hibou magique.`,
     sessionProgress: {
       currentIndex,
-      totalQuestions: multiplicationSessionMock.totalQuestions,
+      totalQuestions,
     },
     sessionSummary: isFinalQuestion
       ? {
           title: 'Série terminée !',
           message: 'Tu as fini les 5 questions. Relis tes erreurs puis choisis une nouvelle table.',
-          earnedStars: multiplicationSessionMock.questions.reduce((total, item) => total + item.rewardStars, 0),
+          earnedStars: sessionQuestions.reduce((total, item) => total + item.rewardStars, 0),
         }
       : undefined,
   };

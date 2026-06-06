@@ -20,7 +20,8 @@ describe('Lot 3 multiplication tables service', () => {
       prompt: '7 × 8 = ?',
       rewardStars: 3,
     });
-    expect(session.currentQuestion.options).toEqual([54, 56, 63, 48]);
+    expect(session.currentQuestion.options).toHaveLength(4);
+    expect(session.currentQuestion.options).toContain(56);
   });
 
   it('submits an answer through the mock API and returns corrective feedback', async () => {

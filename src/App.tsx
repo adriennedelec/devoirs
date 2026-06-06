@@ -320,6 +320,18 @@ function MultiplicationView({ dashboard }: { dashboard: ChildDashboard }) {
     }
   }
 
+  async function selectTable(table: number) {
+    setSessionState({ status: 'loading' });
+    setQuestionIndex(0);
+    setAnswerState(null);
+    try {
+      const session = await getMultiplicationSession(dashboard.child.id, table);
+      setSessionState({ status: 'success', data: session });
+    } catch (error: unknown) {
+      setSessionState({ status: 'error', message: error instanceof Error ? error.message : 'Impossible de charger cette table.' });
+    }
+  }
+
   function goNextQuestion() {
     if (sessionState.status !== 'success') return;
     setAnswerState(null);
@@ -346,7 +358,13 @@ function MultiplicationView({ dashboard }: { dashboard: ChildDashboard }) {
             </div>
             <div className="table-chip-grid">
               {sessionState.data.availableTables.map((table) => (
-                <button aria-pressed={sessionState.data.selectedTable === table.value} className={sessionState.data.selectedTable === table.value ? 'active' : ''} key={table.value}>
+                <button
+                  aria-pressed={sessionState.data.selectedTable === table.value}
+                  className={sessionState.data.selectedTable === table.value ? 'active' : ''}
+                  key={table.value}
+                  onClick={() => selectTable(table.value)}
+                  type="button"
+                >
                   <strong>{table.label}</strong>
                   <span>{table.progressPercent}% · +{table.rewardStars} ⭐</span>
                 </button>
