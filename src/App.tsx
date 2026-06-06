@@ -314,6 +314,11 @@ function MultiplicationView({ dashboard }: { dashboard: ChildDashboard }) {
     setAnswerState({ status: 'loading' });
     try {
       const result = await submitMultiplicationAnswer(dashboard.child.id, { questionId: currentQuestion.id, selectedAnswer });
+      if (result.isCorrect && !result.sessionSummary) {
+        setAnswerState(null);
+        setQuestionIndex((index) => index + 1);
+        return;
+      }
       setAnswerState({ status: 'success', data: result });
     } catch (error: unknown) {
       setAnswerState({ status: 'error', message: error instanceof Error ? error.message : 'Réponse impossible à envoyer.' });

@@ -64,9 +64,9 @@ describe('Lots 5-11 complete child interface', () => {
 
     await waitFor(() => expect(screen.getByText(/question 1 sur 5/i)).toBeInTheDocument());
     await user.click(screen.getByRole('button', { name: '56' }));
-    await waitFor(() => expect(screen.getByText(/bravo emma/i)).toBeInTheDocument());
-    await user.click(screen.getByRole('button', { name: /question suivante/i }));
-    expect(screen.getByText(/question 2 sur 5/i)).toBeInTheDocument();
+
+    await waitFor(() => expect(screen.getByText(/question 2 sur 5/i)).toBeInTheDocument());
+    expect(screen.queryByRole('button', { name: /question suivante/i })).not.toBeInTheDocument();
   });
 
   it('lets the child launch every available multiplication table from the picker', async () => {

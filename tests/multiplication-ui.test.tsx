@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import App from '../src/App';
 
 describe('Lot 3 multiplication module UI', () => {
-  it('opens the multiplication adventure from Accueil and gives feedback after a QCM answer', async () => {
+  it('opens the multiplication adventure from Accueil and advances after a correct QCM answer', async () => {
     const user = userEvent.setup();
     render(<App />);
 
@@ -27,9 +27,9 @@ describe('Lot 3 multiplication module UI', () => {
     await user.click(screen.getByRole('button', { name: '56' }));
 
     await waitFor(() => {
-      expect(screen.getByText(/bravo emma/i)).toBeInTheDocument();
+      expect(screen.getByText(/question 2 sur 5/i)).toBeInTheDocument();
     });
-    expect(screen.getByText(/tu gagnes 3 étoiles/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /question suivante/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /7 × 6 = \?/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /question suivante/i })).not.toBeInTheDocument();
   });
 });
