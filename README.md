@@ -189,4 +189,16 @@ npm run build
 - `src/types/` contient les contrats métier.
 - `src/App.tsx` consomme le service asynchrone et gère les états `loading`, `success`, `empty`, `error`.
 
-Prochaine étape recommandée : **Lot 2 — renforcer le shell enfant et préparer la navigation réelle entre Accueil, Parcours, Récompenses et Profil.**
+Prochaine étape recommandée : **Lot 3 — Tables de multiplication** avec hub des tables, exercice QCM et soumission d’une tentative via service mock API.
+
+## Lot 2 réalisé
+
+Le shell enfant est maintenant navigable :
+
+- `Accueil` : dashboard enfant existant ;
+- `Parcours` : première vue de chemin pédagogique ;
+- `Récompenses` : badges, niveau et récompense verrouillée ;
+- `Lecture` : page placeholder API-ready pour futur module lecture orale ;
+- `Profil` : carte enfant sécurisée.
+
+La navigation est encore locale côté React, volontairement simple pour le MVP. Elle garde néanmoins un contrat API-ready : les pages consomment le même `ChildDashboard` chargé par `childService.ts`, et pourront ensuite être séparées en routes/services dédiés.

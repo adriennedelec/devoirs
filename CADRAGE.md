@@ -433,10 +433,24 @@ Réalisé :
 
 ### Lot 2 — Maquette enfant navigable
 
-- dashboard enfant ;
-- parcours ;
-- récompenses ;
-- navigation.
+Statut : réalisé.
+
+Réalisé :
+
+- navigation basse interactive ;
+- page `Accueil` ;
+- page `Parcours` ;
+- page `Récompenses` ;
+- page `Lecture` placeholder ;
+- page `Profil` ;
+- test de navigation utilisateur ;
+- maintien du chargement API mock unique via `childService.ts`.
+
+À approfondir plus tard :
+
+- extraction des pages dans `features/` ;
+- routing URL réel si nécessaire ;
+- données dédiées par page quand les services API seront séparés.
 
 ### Lot 3 — Tables de multiplication
 
