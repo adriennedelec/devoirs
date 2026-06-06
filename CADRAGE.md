@@ -147,7 +147,7 @@ Règles :
 - phrases courtes ;
 - feedback positif ;
 - mascotte / aide ;
-- navigation simple ;
+- navigation simple, désormais portée par un menu latéral fixe et compact sur petit écran ;
 - progression visible ;
 - pas de surcharge analytique côté enfant.
 

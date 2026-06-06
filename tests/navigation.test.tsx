@@ -26,6 +26,9 @@ describe('Lot 2 child navigation', () => {
 
     await user.click(screen.getByRole('button', { name: /accueil/i }));
     expect(screen.getByRole('heading', { name: /bonjour emma/i })).toBeInTheDocument();
-    expect(screen.getByRole('navigation', { name: /navigation enfant/i })).toBeInTheDocument();
+    const navigation = screen.getByRole('navigation', { name: /navigation enfant/i });
+    expect(navigation).toBeInTheDocument();
+    expect(navigation).toHaveClass('child-side-nav');
+    expect(navigation).toHaveAccessibleName(/menu latéral/i);
   });
 });

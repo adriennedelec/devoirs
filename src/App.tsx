@@ -623,9 +623,13 @@ function ProfileView({ dashboard }: { dashboard: ChildDashboard }) {
   );
 }
 
-function ChildBottomNav({ activePage, onNavigate }: { activePage: ChildPage; onNavigate: (page: ChildPage) => void }) {
+function ChildSideNav({ activePage, onNavigate }: { activePage: ChildPage; onNavigate: (page: ChildPage) => void }) {
   return (
-    <nav className="child-bottom-nav" aria-label="Navigation enfant">
+    <nav className="child-side-nav" aria-label="Navigation enfant — menu latéral">
+      <div className="side-nav-brand" aria-hidden="true">
+        <span>🦉</span>
+        <strong>Devoirs</strong>
+      </div>
       {navItems.map(({ id, label, icon: Icon }) => (
         <button aria-current={activePage === id ? 'page' : undefined} className={activePage === id ? 'active' : ''} key={id} onClick={() => onNavigate(id)}>
           <Icon size={18} />
@@ -676,9 +680,11 @@ export default function App() {
   }, [activePage, dashboardState]);
 
   return (
-    <div className="child-app-shell">
-      {shell}
-      <ChildBottomNav activePage={activePage} onNavigate={setActivePage} />
+    <div className={dashboardState.status === 'success' ? 'child-app-layout has-side-nav' : 'child-app-layout'}>
+      {dashboardState.status === 'success' ? <ChildSideNav activePage={activePage} onNavigate={setActivePage} /> : null}
+      <div className="child-app-shell">
+        {shell}
+      </div>
     </div>
   );
 }

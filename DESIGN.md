@@ -116,24 +116,28 @@ Structure recommandée :
 
 ```txt
 AppShellEnfant
+├── SideNav
+│   ├── mascotte / marque
+│   ├── Accueil
+│   ├── Parcours
+│   ├── Récompenses
+│   ├── Lecture
+│   └── Profil
 ├── TopBar
 │   ├── avatar / prénom
 │   ├── étoiles
 │   └── notifications
-├── MainContent
-│   ├── cartes / mission / exercice
-│   └── mascotte / conseil
-└── BottomNav
-    ├── Accueil
-    ├── Parcours
-    ├── Récompenses
-    ├── Progression
-    └── Profil
+└── MainContent
+    ├── cartes / mission / exercice
+    └── mascotte / conseil
 ```
+
+Règle actuelle : la navigation principale est un **menu latéral fixe**, plus lisible sur desktop/tablette et compactée en rail vertical sur petits écrans. Il ne doit plus revenir en barre basse sauf demande explicite.
 
 Sur desktop :
 
 - conserver un conteneur central façon tablette ;
+- placer le contenu à droite du rail latéral ;
 - éviter d’étirer les cartes sur toute la largeur ;
 - éventuellement ajouter un fond décoratif.
 
