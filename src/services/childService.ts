@@ -273,25 +273,59 @@ export async function extractWordDictationWordsFromOcr(
   };
 }
 
+function formatFrenchWordList(words: string[]) {
+  if (words.length === 0) return '';
+  if (words.length === 1) return words[0];
+  if (words.length === 2) return `${words[0]} et ${words[1]}`;
+
+  return `${words.slice(0, -1).join(', ')} et ${words[words.length - 1]}`;
+}
+
+function takeWord(words: string[], searchedWord: string) {
+  const index = words.findIndex((word) => normalizeDictionaryWord(word) === searchedWord);
+  if (index === -1) return false;
+
+  words.splice(index, 1);
+  return true;
+}
+
+function getDictationOpening(verbTenses: VerbTense[]) {
+  if (verbTenses.includes('futur') && !verbTenses.includes('present')) return 'Demain';
+  if (verbTenses.includes('passe_compose') && !verbTenses.includes('present')) return 'Hier';
+  if (verbTenses.includes('imparfait') && !verbTenses.includes('present')) return 'Avant';
+
+  return 'Aujourd’hui';
+}
+
 function buildTenseSentences(words: string[], verbTenses: VerbTense[]) {
   const chosenTenses: VerbTense[] = verbTenses.length > 0 ? verbTenses : ['present'];
-  const sentenceTemplates: Record<VerbTense, (word: string, index: number) => string> = {
-    present: (word, index) => index === 0
-      ? `Aujourd’hui, Emma utilise le mot ${word}.`
-      : `Elle utilise aussi le mot ${word}.`,
-    imparfait: (word, index) => index === 0
-      ? `Avant, Emma apprenait le mot ${word}.`
-      : `Elle apprenait aussi le mot ${word}.`,
-    passe_compose: (word, index) => index === 0
-      ? `Hier, Emma a écrit le mot ${word}.`
-      : `Elle a écrit aussi le mot ${word}.`,
-    futur: (word, index) => index === 0
-      ? `Demain, Emma utilisera le mot ${word}.`
-      : `Demain, elle utilisera aussi le mot ${word}.`,
-  };
+  const remainingWords = [...words];
+  const hasSe = takeWord(remainingWords, 'se');
+  const hasCoucher = takeWord(remainingWords, 'coucher');
+  const hasLaver = takeWord(remainingWords, 'laver');
+  const opening = getDictationOpening(chosenTenses);
+  const firstScene = remainingWords.slice(0, 3);
+  const secondScene = remainingWords.slice(3);
+  const sentences: string[] = [];
 
-  return words
-    .map((word, index) => sentenceTemplates[chosenTenses[index % chosenTenses.length]](word, index))
+  if (firstScene.length > 0) {
+    sentences.push(`${opening}, Emma invente une petite aventure avec ${formatFrenchWordList(firstScene)}.`);
+  }
+  if (secondScene.length > 0) {
+    sentences.push(`Sur le chemin, elle rencontre ${formatFrenchWordList(secondScene)}.`);
+  }
+
+  if (hasSe && hasCoucher && hasLaver) {
+    sentences.push('Le soir, elle va se coucher après avoir pensé à laver ses mains.');
+  } else if (hasSe && hasCoucher) {
+    sentences.push('Le soir, elle va se coucher en souriant.');
+  } else if (hasLaver) {
+    sentences.push('Avant de dormir, elle pense à laver ses mains.');
+  } else if (sentences.length === 1 && words.length <= 3) {
+    sentences.push('La phrase reste courte pour une dictée facile à écouter.');
+  }
+
+  return sentences
     .join(' ')
     .replace(/\s+/g, ' ')
     .trim();

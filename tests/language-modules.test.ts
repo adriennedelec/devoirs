@@ -96,6 +96,25 @@ describe('Lot 4 dictation and poetry services', () => {
     expect(result.wordChecklist).toEqual(['bonjour', 'maman', 'papa', 'chocolat', 'cahier']);
   });
 
+  it('generates an age-appropriate mini story instead of repeating word labels', async () => {
+    const requestedWords = ['cartable', 'dragon', 'autruche', 'citrouille', 'banane', 'escargot', 'se', 'coucher', 'laver'];
+    const result = await generateWordDictationText('emma-demo', {
+      words: requestedWords,
+      verbTenses: ['present'],
+      confirmedUnknownWords: [],
+    });
+
+    expect(result.text).not.toMatch(/mot\s+(cartable|dragon|autruche|citrouille|banane|escargot|se|coucher|laver)/iu);
+    expect(result.text).not.toMatch(/utilise aussi|écrit aussi|mot\s+\w+/iu);
+    expect(result.text).toMatch(/Emma|école|histoire|aventure|soir|dormir/i);
+    expect(result.text.split(/[.!?]+/).filter((sentence) => sentence.trim().length > 0).length).toBeLessThanOrEqual(3);
+    expect(result.text.length).toBeLessThanOrEqual(260);
+    for (const word of requestedWords) {
+      const occurrences = result.text.toLocaleLowerCase('fr-FR').match(new RegExp(`\\b${word}\\b`, 'gu')) ?? [];
+      expect(occurrences).toHaveLength(1);
+    }
+  });
+
   it('extracts OCR words from an imported document or photo payload for word dictation', async () => {
     const result = await extractWordDictationWordsFromOcr('emma-demo', {
       fileName: 'liste-mots-photo.jpg',
