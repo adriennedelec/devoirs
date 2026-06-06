@@ -24,13 +24,17 @@ describe('Lot 3 multiplication module UI', () => {
       expect(screen.getByRole('region', { name: /choisis une table/i })).toBeInTheDocument();
     });
     expect(screen.getByRole('button', { name: /table de 7/i })).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.queryByRole('navigation', { name: /navigation enfant/i })).not.toBeInTheDocument();
+    const navigation = screen.getByRole('navigation', { name: /navigation enfant/i });
+    expect(navigation).toBeInTheDocument();
+    expect(navigation).toHaveClass('child-side-nav');
+    expect(within(navigation).getByRole('button', { name: /tables/i })).toHaveAttribute('aria-current', 'page');
     expect(screen.getByText(/entraîne-toi et deviens un champion/i)).toBeInTheDocument();
     expect(screen.getByText(/réussis 10 calculs/i)).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /7 × 8 = \?/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '56' })).toBeInTheDocument();
+    expect(screen.queryByLabelText(/8 fois 7/i)).not.toBeInTheDocument();
 
-    await user.type(screen.getByLabelText(/8 fois 7/i), '56');
-    await user.click(screen.getByRole('button', { name: /corriger/i }));
+    await user.click(screen.getByRole('button', { name: '56' }));
 
     await waitFor(() => {
       expect(screen.getByText(/question 2 sur 10/i)).toBeInTheDocument();

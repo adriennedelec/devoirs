@@ -181,7 +181,7 @@ Sur desktop :
 
 ### Écran Tables de multiplication — refonte magique
 
-L’écran `Tables de multiplication` est une exception volontaire au shell standard : il se présente en **plein écran centré sans sidebar** pour se rapprocher d’un jeu éducatif premium.
+L’écran `Tables de multiplication` doit garder le **design magique premium** tout en restant dans le shell enfant standard : le **menu latéral fixe reste visible** pour ne pas casser la navigation globale.
 
 Structure visuelle :
 
@@ -190,11 +190,12 @@ Structure visuelle :
 - sélecteur horizontal de tables `2` à `10`, boutons blancs arrondis, état actif en dégradé violet ;
 - trois cartes de progression : objectif du jour, série actuelle, niveau joueur ;
 - grande carte exercice blanche `32px` avec personnage enfant, robot, coffre, bulle BD et carte aide ;
-- opérations verticales `1 × table` à `10 × table` avec champs de réponse arrondis, contour vert et coche quand c’est réussi ;
-- boutons `Écouter` violet et `Corriger` jaune doré ;
-- section récompenses avec coffre et chemin de progression `✔ → ✔ → ✔ → Niveau 7 → 8 → 9 → 10`.
+- une **question de multiplication à la fois** (`7 × 8 = ?`) avec 4 boutons QCM larges et rassurants ;
+- bande de progression `1×` à `10×` pour montrer les facteurs déjà réussis / à revoir ;
+- bouton `Écouter la question` violet ;
+- conservation de la navigation directe vers `Tables`, `Dictée`, `Poésie` dans le menu latéral.
 
-Règle UX : une bonne réponse avance automatiquement au calcul suivant ; une erreur garde le même champ actif. Le score final reste basé sur la réussite du premier coup et la table complète marque les calculs à revoir en rouge.
+Règle UX : une bonne réponse avance automatiquement à la question suivante ; une erreur garde la même question active. Le score final reste basé sur la réussite du premier coup et la table complète marque les calculs à revoir en rouge.
 
 ### Composants gamification
 

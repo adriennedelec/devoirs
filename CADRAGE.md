@@ -214,10 +214,10 @@ Construire une première maquette web crédible et navigable, avec une vraie str
 
 #### 4. Exercice multiplication
 
-- écran plein écran magique sans sidebar ;
+- écran magique avec menu latéral conservé ;
 - fond pastel violet → bleu avec étoiles et texture nuageuse ;
 - sélecteur des tables 2 à 10 ;
-- champs de réponse verticaux de `1 × table` à `10 × table` ;
+- exercice par question QCM, une multiplication affichée à la fois ;
 - correction immédiate ;
 - progression de série ;
 - session complète de 10 calculs couvrant les facteurs 1 à 10 dans le désordre ;

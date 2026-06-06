@@ -63,15 +63,13 @@ describe('Lots 5-11 complete child interface', () => {
     await user.click(within(multiplicationCard!).getByRole('button', { name: /continuer/i }));
 
     await waitFor(() => expect(screen.getByText(/question 1 sur 10/i)).toBeInTheDocument());
-    await user.type(screen.getByLabelText(/8 fois 7/i), '49');
-    await user.click(screen.getByRole('button', { name: /corriger/i }));
+    expect(screen.getByRole('navigation', { name: /navigation enfant/i })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '49' }));
 
     await waitFor(() => expect(screen.getByText(/on retente/i)).toBeInTheDocument());
     expect(screen.getByRole('heading', { name: /7 × 8 = \?/i })).toBeInTheDocument();
 
-    await user.clear(screen.getByLabelText(/8 fois 7/i));
-    await user.type(screen.getByLabelText(/8 fois 7/i), '56');
-    await user.click(screen.getByRole('button', { name: /corriger/i }));
+    await user.click(screen.getByRole('button', { name: '56' }));
     await waitFor(() => expect(screen.getByText(/question 2 sur 10/i)).toBeInTheDocument());
     expect(screen.queryByRole('button', { name: /question suivante/i })).not.toBeInTheDocument();
   });
@@ -85,27 +83,23 @@ describe('Lots 5-11 complete child interface', () => {
     await user.click(within(multiplicationCard!).getByRole('button', { name: /continuer/i }));
 
     await waitFor(() => expect(screen.getByText(/question 1 sur 10/i)).toBeInTheDocument());
-    await user.type(screen.getByLabelText(/8 fois 7/i), '49');
-    await user.click(screen.getByRole('button', { name: /corriger/i }));
+    await user.click(screen.getByRole('button', { name: '49' }));
     await waitFor(() => expect(screen.getByText(/on retente/i)).toBeInTheDocument());
-    await user.clear(screen.getByLabelText(/8 fois 7/i));
-    await user.type(screen.getByLabelText(/8 fois 7/i), '56');
-    await user.click(screen.getByRole('button', { name: /corriger/i }));
+    await user.click(screen.getByRole('button', { name: '56' }));
 
-    for (const [label, answer] of [
-      [/6 fois 7/i, '42'],
-      [/9 fois 7/i, '63'],
-      [/4 fois 7/i, '28'],
-      [/7 fois 7/i, '49'],
-      [/2 fois 7/i, '14'],
-      [/5 fois 7/i, '35'],
-      [/3 fois 7/i, '21'],
-      [/1 fois 7/i, '7'],
-      [/10 fois 7/i, '70'],
+    for (const [question, answer] of [
+      [/7 × 6 = \?/i, '42'],
+      [/7 × 9 = \?/i, '63'],
+      [/7 × 4 = \?/i, '28'],
+      [/7 × 7 = \?/i, '49'],
+      [/7 × 2 = \?/i, '14'],
+      [/7 × 5 = \?/i, '35'],
+      [/7 × 3 = \?/i, '21'],
+      [/7 × 1 = \?/i, '7'],
+      [/7 × 10 = \?/i, '70'],
     ] as const) {
-      await waitFor(() => expect(screen.getByLabelText(label)).toBeEnabled());
-      await user.type(screen.getByLabelText(label), answer);
-      await user.click(screen.getByRole('button', { name: /corriger/i }));
+      await waitFor(() => expect(screen.getByRole('heading', { name: question })).toBeInTheDocument());
+      await user.click(screen.getByRole('button', { name: answer }));
     }
 
     await waitFor(() => expect(screen.getByText(/score : 9 \/ 10/i)).toBeInTheDocument());
@@ -127,7 +121,7 @@ describe('Lots 5-11 complete child interface', () => {
     await user.click(screen.getByRole('button', { name: /table de 8/i }));
 
     await waitFor(() => expect(screen.getByRole('heading', { name: /8 × 8 = \?/i })).toBeInTheDocument());
-    expect(screen.getByLabelText(/8 fois 8/i)).toBeEnabled();
+    expect(screen.getByRole('button', { name: '64' })).toBeEnabled();
   });
 
   it('shows dictation word feedback and poetry memorisation helpers', async () => {
