@@ -189,7 +189,7 @@ Le module `Dictée magique` doit distinguer clairement deux usages :
 - sélecteur de mode en deux cartes arrondies, état actif violet ;
 - import des mots via `Importer un fichier` et `Prendre une photo` (`capture="environment"`), branché sur un service OCR API-ready ;
 - retour OCR doux (`3 mots détectés par OCR...`) puis remplissage automatique du champ `Série de mots` ;
-- comparer chaque mot découpé au dictionnaire local/API-ready ; si un mot saisi ou OCRisé n’est pas reconnu, afficher une carte douce `Mot à confirmer` avec le ou les mots concernés et un bouton `Confirmer et générer` ;
+- comparer chaque mot découpé au dictionnaire français embarqué/API-ready (environ 336 000 mots via `an-array-of-french-words`) ; si un mot saisi ou OCRisé n’est pas reconnu, afficher une carte douce `Mot à confirmer` avec le ou les mots concernés et un bouton `Confirmer et générer` ;
 - choix des temps verbaux sous forme de cases à cocher multi-sélection : `Présent`, `Imparfait`, `Passé composé`, `Futur` ;
 - bouton `Générer le texte` qui produit un texte court, bien formulé en français, contenant tous les mots demandés **une seule fois chacun** ;
 - carte de résultat masquée par défaut : titre `Texte masqué pour l’élève`, bloc occulté, liste de mots inclus visible pour le parent ;

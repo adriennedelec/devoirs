@@ -235,7 +235,7 @@ Construire une première maquette web crédible et navigable, avec une vraie str
 - module dictée affiché en pleine largeur à droite du menu latéral ;
 - import fichier ou prise de photo pour lancer un OCR API-ready ;
 - mots détectés automatiquement par OCR et recopiés dans le champ `Série de mots` ;
-- contrôle de chaque mot saisi ou OCRisé via dictionnaire local/API-ready, avec demande de confirmation parent si un mot paraît inconnu ;
+- contrôle de chaque mot saisi ou OCRisé via dictionnaire français embarqué/API-ready (`an-array-of-french-words`, environ 336 000 mots), avec demande de confirmation parent si un mot paraît inconnu ;
 - génération d’un texte court, bien formulé en français, contenant tous les mots demandés une seule fois chacun ;
 - options de temps verbaux en sélection multiple (`Présent`, `Imparfait`, `Passé composé`, `Futur`) ;
 - texte généré masqué par défaut pour l’élève et destiné à être lu par l’application ;

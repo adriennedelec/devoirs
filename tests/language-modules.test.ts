@@ -86,6 +86,16 @@ describe('Lot 4 dictation and poetry services', () => {
     expect(confirmedResult.wordChecklist).toEqual(['dragon', 'cartable', 'rivière', 'dragonnn']);
   });
 
+  it('accepts common French words from the full dictionary without parent confirmation', async () => {
+    const result = await generateWordDictationText('emma-demo', {
+      words: ['bonjour maman papa chocolat cahier'],
+      verbTenses: ['present'],
+      confirmedUnknownWords: [],
+    });
+
+    expect(result.wordChecklist).toEqual(['bonjour', 'maman', 'papa', 'chocolat', 'cahier']);
+  });
+
   it('extracts OCR words from an imported document or photo payload for word dictation', async () => {
     const result = await extractWordDictationWordsFromOcr('emma-demo', {
       fileName: 'liste-mots-photo.jpg',

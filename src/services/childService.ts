@@ -198,19 +198,25 @@ export const dictationVerbTenseOptions: VerbTenseOption[] = [
   { value: 'futur', label: 'Futur', helper: 'Demain, je prépare la suite.' },
 ];
 
-const knownDictationWords = new Set([
-  'abeille', 'ami', 'amie', 'animal', 'arbre', 'automne', 'ballon', 'bateau', 'chat', 'château', 'chemin',
-  'chien', 'classe', 'crayon', 'dragon', 'école', 'enfant', 'étoile', 'famille', 'fleur', 'forêt', 'garçon',
-  'histoire', 'jardin', 'lapin', 'livre', 'maison', 'matin', 'mer', 'mot', 'mots', 'nuage', 'oiseau', 'page',
-  'papillon', 'pluie', 'poésie', 'pomme', 'renard', 'rivière', 'robot', 'sac', 'soleil', 'table', 'cartable',
-  'train', 'vélo', 'ville', 'voiture', 'voyage',
-]);
+let knownDictationWordsCache: Set<string> | null = null;
+
+async function getKnownDictationWords() {
+  if (knownDictationWordsCache === null) {
+    const frenchDictionaryModule = await import('an-array-of-french-words');
+    knownDictationWordsCache = new Set(
+      frenchDictionaryModule.default.map((word) => word.toLocaleLowerCase('fr-FR')),
+    );
+  }
+
+  return knownDictationWordsCache;
+}
 
 function normalizeDictionaryWord(word: string) {
   return word.trim().toLocaleLowerCase('fr-FR');
 }
 
-function findUnknownDictationWords(words: string[], confirmedUnknownWords: string[] = []) {
+async function findUnknownDictationWords(words: string[], confirmedUnknownWords: string[] = []) {
+  const knownDictationWords = await getKnownDictationWords();
   const confirmed = new Set(confirmedUnknownWords.map(normalizeDictionaryWord));
   return words.filter((word) => {
     const normalizedWord = normalizeDictionaryWord(word);
@@ -252,7 +258,7 @@ export async function extractWordDictationWordsFromOcr(
     throw new Error('Aucun mot lisible détecté. Essaie une photo plus nette ou saisis les mots à la main.');
   }
 
-  const unknownWords = findUnknownDictationWords(words);
+  const unknownWords = await findUnknownDictationWords(words);
   const helperText = unknownWords.length > 0
     ? `${words.length} mots détectés par OCR. Mot à confirmer : ${unknownWords.join(', ')}.`
     : `${words.length} mots détectés par OCR. Vérifie la liste avant de générer la dictée.`;
@@ -304,7 +310,7 @@ export async function generateWordDictationText(
   }
 
   const selectedVerbTenses: VerbTense[] = request.verbTenses.length > 0 ? request.verbTenses : ['present'];
-  const unknownWords = findUnknownDictationWords(words, request.confirmedUnknownWords ?? []);
+  const unknownWords = await findUnknownDictationWords(words, request.confirmedUnknownWords ?? []);
   if (unknownWords.length > 0) {
     throw new Error(`Confirme ces mots avant de générer : ${unknownWords.join(', ')}`);
   }
