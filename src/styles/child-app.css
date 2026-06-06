@@ -385,11 +385,138 @@
   font-size: 3rem;
 }
 
+.multiplication-hero {
+  background:
+    radial-gradient(circle at top right, rgba(126, 104, 255, 0.2), transparent 13rem),
+    radial-gradient(circle at bottom left, rgba(255, 191, 63, 0.24), transparent 12rem),
+    rgba(255, 255, 255, 0.9);
+}
+
+.table-picker,
+.question-card {
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: var(--radius-xl);
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: var(--shadow-card);
+}
+
+.table-picker {
+  padding: 20px;
+}
+
+.table-chip-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.table-chip-grid button,
+.answer-grid button,
+.feedback-card button {
+  border: 0;
+  font-weight: 900;
+}
+
+.table-chip-grid button {
+  display: grid;
+  gap: 5px;
+  border-radius: 22px;
+  padding: 14px;
+  color: var(--color-primary-dark);
+  background: #f4f0ff;
+  text-align: left;
+}
+
+.table-chip-grid button.active {
+  color: #fff;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+}
+
+.table-chip-grid span {
+  font-size: 0.78rem;
+  opacity: 0.82;
+}
+
+.question-card {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 18px;
+  padding: 24px;
+}
+
+.question-mascot {
+  display: grid;
+  place-items: center;
+  width: 84px;
+  height: 84px;
+  border-radius: 30px;
+  background: linear-gradient(135deg, #fff7dc, #f0ebff);
+  font-size: 3rem;
+}
+
+.question-card h2 {
+  margin: 0 0 16px;
+  font-size: clamp(2.4rem, 8vw, 5rem);
+  color: var(--color-primary-dark);
+}
+
+.answer-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.answer-grid button {
+  min-height: 74px;
+  border-radius: 24px;
+  color: var(--color-primary-dark);
+  background: linear-gradient(135deg, #fff, #fff1ca);
+  box-shadow: inset 0 -3px 0 rgba(92, 73, 194, 0.12);
+  font-size: 1.8rem;
+}
+
+.answer-grid button:disabled {
+  opacity: 0.62;
+}
+
+.feedback-card {
+  margin: 16px 0 0;
+  padding: 16px;
+  border-radius: 22px;
+  background: #f4f0ff;
+  color: var(--color-primary-dark);
+  font-weight: 800;
+}
+
+.feedback-card h3,
+.feedback-card p {
+  margin: 0 0 8px;
+}
+
+.feedback-card.success {
+  background: #e6fbef;
+  color: #147348;
+}
+
+.feedback-card.retry,
+.feedback-card.error {
+  background: #fff1d6;
+  color: #9a5a00;
+}
+
+.feedback-card button {
+  border-radius: 999px;
+  padding: 10px 16px;
+  color: #fff;
+  background: linear-gradient(135deg, var(--color-secondary), var(--color-primary));
+}
+
 @media (max-width: 720px) {
   .child-topbar,
   .hero-card,
   .daily-goal-card,
-  .dashboard-columns {
+  .dashboard-columns,
+  .question-card {
     grid-template-columns: 1fr;
   }
 
@@ -399,7 +526,9 @@
 
   .activity-grid,
   .path-grid,
-  .reward-grid {
+  .reward-grid,
+  .table-chip-grid,
+  .answer-grid {
     grid-template-columns: 1fr;
   }
 

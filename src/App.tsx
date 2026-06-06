@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Bell, BookOpen, Gift, Home, Map, Sparkles, UserRound } from 'lucide-react';
 import type { ApiState, ChildDashboard } from './types/api';
-import { getChildDashboard } from './services/childService';
+import type { MultiplicationAnswerResult, MultiplicationSession } from './types/multiplication';
+import { getChildDashboard, getMultiplicationSession, submitMultiplicationAnswer } from './services/childService';
 import './styles/tokens.css';
 import './styles/base.css';
 import './styles/child-app.css';
 
-type ChildPage = 'home' | 'path' | 'rewards' | 'reading' | 'profile';
+type ChildPage = 'home' | 'path' | 'rewards' | 'reading' | 'multiplication' | 'profile';
 
 type NavItem = {
   id: ChildPage;
@@ -95,7 +96,11 @@ function HomeView({ dashboard, onNavigate }: { dashboard: ChildDashboard; onNavi
                 <ProgressBar value={activity.progressPercent} />
                 <span className="activity-meta">{activity.progressPercent}% · +{activity.rewardStars} étoiles</span>
               </div>
-              <button onClick={() => onNavigate(activity.subject === 'reading' ? 'reading' : 'path')}>Continuer</button>
+              <button onClick={() => {
+                if (activity.subject === 'reading') onNavigate('reading');
+                else if (activity.subject === 'multiplication') onNavigate('multiplication');
+                else onNavigate('path');
+              }}>Continuer</button>
             </article>
           ))}
         </div>
@@ -190,6 +195,106 @@ function ReadingView({ dashboard }: { dashboard: ChildDashboard }) {
   );
 }
 
+function MultiplicationView({ dashboard }: { dashboard: ChildDashboard }) {
+  const [sessionState, setSessionState] = useState<ApiState<MultiplicationSession>>({ status: 'loading' });
+  const [answerState, setAnswerState] = useState<ApiState<MultiplicationAnswerResult> | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    getMultiplicationSession(dashboard.child.id)
+      .then((session) => {
+        if (!cancelled) setSessionState({ status: 'success', data: session });
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          const message = error instanceof Error ? error.message : 'Impossible de charger les tables.';
+          setSessionState({ status: 'error', message });
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [dashboard.child.id]);
+
+  async function answerQuestion(selectedAnswer: number) {
+    if (sessionState.status !== 'success') return;
+    setAnswerState({ status: 'loading' });
+
+    try {
+      const result = await submitMultiplicationAnswer(dashboard.child.id, {
+        questionId: sessionState.data.currentQuestion.id,
+        selectedAnswer,
+      });
+      setAnswerState({ status: 'success', data: result });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Réponse impossible à envoyer.';
+      setAnswerState({ status: 'error', message });
+    }
+  }
+
+  return (
+    <main className="child-main">
+      <ChildTopBar dashboard={dashboard} title="Tables de multiplication" />
+      {sessionState.status === 'loading' ? <div className="state-card">Préparation des tables…</div> : null}
+      {sessionState.status === 'error' ? <div className="state-card error">{sessionState.message}</div> : null}
+      {sessionState.status === 'success' ? (
+        <>
+          <section className="page-card multiplication-hero">
+            <p className="eyebrow">Mission calcul magique</p>
+            <h2>Choisis une table, puis trouve la bonne réponse.</h2>
+            <p>{sessionState.data.mascotTip}</p>
+          </section>
+
+          <section className="table-picker" aria-label="Choisis une table">
+            <div className="section-heading">
+              <p className="eyebrow">Choisis une table</p>
+              <h2>Ton terrain d’entraînement</h2>
+            </div>
+            <div className="table-chip-grid">
+              {sessionState.data.availableTables.map((table) => (
+                <button
+                  aria-pressed={sessionState.data.selectedTable === table.value}
+                  className={sessionState.data.selectedTable === table.value ? 'active' : ''}
+                  key={table.value}
+                >
+                  <strong>{table.label}</strong>
+                  <span>{table.progressPercent}% · +{table.rewardStars} ⭐</span>
+                </button>
+              ))}
+            </div>
+          </section>
+
+          <section className="question-card" aria-labelledby="multiplication-question">
+            <div className="question-mascot" aria-hidden="true">🦉</div>
+            <div>
+              <p className="eyebrow">Question QCM</p>
+              <h2 id="multiplication-question">{sessionState.data.currentQuestion.prompt}</h2>
+              <div className="answer-grid">
+                {sessionState.data.currentQuestion.options.map((option) => (
+                  <button key={option} onClick={() => answerQuestion(option)} disabled={answerState?.status === 'loading'}>
+                    {option}
+                  </button>
+                ))}
+              </div>
+              {answerState?.status === 'loading' ? <p className="feedback-card">Le hibou vérifie…</p> : null}
+              {answerState?.status === 'error' ? <p className="feedback-card error">{answerState.message}</p> : null}
+              {answerState?.status === 'success' ? (
+                <div className={answerState.data.isCorrect ? 'feedback-card success' : 'feedback-card retry'}>
+                  <h3>{answerState.data.feedbackTitle}</h3>
+                  <p>{answerState.data.feedbackMessage}</p>
+                  <button>Question suivante</button>
+                </div>
+              ) : null}
+            </div>
+          </section>
+        </>
+      ) : null}
+    </main>
+  );
+}
+
 function ProfileView({ dashboard }: { dashboard: ChildDashboard }) {
   return (
     <main className="child-main">
@@ -232,6 +337,8 @@ function ActivePage({ page, dashboard, onNavigate }: { page: ChildPage; dashboar
       return <RewardsView dashboard={dashboard} />;
     case 'reading':
       return <ReadingView dashboard={dashboard} />;
+    case 'multiplication':
+      return <MultiplicationView dashboard={dashboard} />;
     case 'profile':
       return <ProfileView dashboard={dashboard} />;
     case 'home':

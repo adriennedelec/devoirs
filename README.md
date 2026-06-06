@@ -122,7 +122,7 @@ Phase suivante :
 
 ## État actuel
 
-Lot 1 démarré : socle React/Vite TypeScript API-ready.
+Lots 1 à 3 réalisés : socle React/Vite TypeScript API-ready, shell enfant navigable et premier module pédagogique interactif.
 
 Le projet contient maintenant :
 
@@ -142,11 +142,15 @@ src/
     ├── activity.ts
     ├── api.ts
     ├── child.ts
+    ├── multiplication.ts
     └── reward.ts
 
 tests/
 ├── App.test.tsx
-└── childService.test.ts
+├── childService.test.ts
+├── multiplication.test.ts
+├── multiplication-ui.test.tsx
+└── navigation.test.tsx
 ```
 
 ## Commandes
@@ -184,12 +188,12 @@ npm run build
 ## Architecture API-compatible actuelle
 
 - `src/services/apiClient.ts` contient la couche API simulée.
-- `src/services/childService.ts` expose `getChildDashboard(childId)`.
-- `src/services/mockData.ts` contient des fixtures structurées comme des réponses API.
-- `src/types/` contient les contrats métier.
-- `src/App.tsx` consomme le service asynchrone et gère les états `loading`, `success`, `empty`, `error`.
+- `src/services/childService.ts` expose `getChildDashboard(childId)`, `getMultiplicationSession(childId, table?)` et `submitMultiplicationAnswer(childId, submission)`.
+- `src/services/mockData.ts` contient des fixtures structurées comme des réponses API, dont la session de multiplication.
+- `src/types/` contient les contrats métier, dont `multiplication.ts` pour le hub, la question QCM et le résultat de tentative.
+- `src/App.tsx` consomme les services asynchrones et gère les états `loading`, `success`, `empty`, `error`.
 
-Prochaine étape recommandée : **Lot 3 — Tables de multiplication** avec hub des tables, exercice QCM et soumission d’une tentative via service mock API.
+Prochaine étape recommandée : **Lot 4 — Dictée / poésie** avec un module guidé simple, toujours branché par service mock API.
 
 ## Lot 2 réalisé
 
@@ -202,3 +206,17 @@ Le shell enfant est maintenant navigable :
 - `Profil` : carte enfant sécurisée.
 
 La navigation est encore locale côté React, volontairement simple pour le MVP. Elle garde néanmoins un contrat API-ready : les pages consomment le même `ChildDashboard` chargé par `childService.ts`, et pourront ensuite être séparées en routes/services dédiés.
+
+## Lot 3 réalisé
+
+Premier module pédagogique interactif disponible depuis la carte `Tables de multiplication` de l’accueil :
+
+- hub des tables 2 à 9 avec état de progression ;
+- table 7 sélectionnée dans la fixture initiale ;
+- exercice QCM `7 × 8 = ?` ;
+- soumission de réponse via `submitMultiplicationAnswer` ;
+- feedback immédiat positif ou correctif ;
+- étoiles gagnées via le résultat de tentative ;
+- tests service + UI pour verrouiller le contrat API et l’expérience enfant.
+
+La donnée métier reste dans `mockData.ts` et passe par `childService.ts`. L’écran pourra donc évoluer vers un vrai backend sans réécrire l’interface.

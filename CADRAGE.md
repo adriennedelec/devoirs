@@ -330,7 +330,7 @@ type ChildDashboard = {
 ```ts
 type ActivitySummary = {
   id: string;
-  subject: 'math' | 'dictation' | 'poetry' | 'reading' | 'orthography' | 'grammar';
+  subject: 'math' | 'multiplication' | 'dictation' | 'poetry' | 'reading' | 'orthography' | 'grammar';
   title: string;
   description: string;
   progressPercent: number;
@@ -454,11 +454,24 @@ Réalisé :
 
 ### Lot 3 — Tables de multiplication
 
-- hub tables ;
-- exercice QCM ;
-- correction ;
-- progression ;
-- étoiles.
+Statut : réalisé.
+
+Réalisé :
+
+- hub des tables 2 à 9 ;
+- état de progression par table ;
+- exercice QCM branché à une session mock API ;
+- mutation `submitMultiplicationAnswer` pour soumettre une tentative ;
+- correction immédiate bienveillante ;
+- étoiles gagnées et message de progression ;
+- tests service et UI.
+
+À approfondir plus tard :
+
+- changement réel de table et génération de questions ;
+- série de plusieurs questions ;
+- persistance des scores ;
+- astuces pédagogiques par erreur.
 
 ### Lot 4 — Dictée et poésie
 

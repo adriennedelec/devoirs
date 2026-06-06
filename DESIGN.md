@@ -253,6 +253,15 @@ Contenu :
 - astuce ;
 - prochaine question.
 
+Implémentation Lot 3 :
+
+- entrée depuis la carte `Tables de multiplication` ;
+- hub de tables en chips larges avec progression ;
+- carte QCM centrale avec mascotte hibou ;
+- réponses sous forme de gros boutons tactiles ;
+- feedback `Bravo` / `Presque` jamais culpabilisant ;
+- état `loading` pendant la préparation et la soumission.
+
 ### 5. Dictée
 
 Rôle : écouter, écrire, corriger.

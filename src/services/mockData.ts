@@ -1,4 +1,5 @@
 import type { ChildDashboard } from '../types/api';
+import type { MultiplicationSession } from '../types/multiplication';
 
 export const childDashboardMock: ChildDashboard = {
   child: {
@@ -87,4 +88,30 @@ export const childDashboardMock: ChildDashboard = {
     { id: 'quiz', title: 'Quiz du jour', description: 'Un mini quiz t’attend.', kind: 'quiz' },
     { id: 'homework', title: 'À ne pas oublier', description: 'Revoir la table de 7.', kind: 'homework' },
   ],
+};
+
+export const multiplicationSessionMock: MultiplicationSession = {
+  childId: 'emma-demo',
+  title: 'Tables de multiplication',
+  mascotTip: 'Le hibou magique t’aide à retrouver le bon résultat. Respire, observe, choisis !',
+  selectedTable: 7,
+  availableTables: [
+    { value: 2, label: 'Table de 2', progressPercent: 100, status: 'mastered', rewardStars: 2 },
+    { value: 3, label: 'Table de 3', progressPercent: 82, status: 'in_progress', rewardStars: 2 },
+    { value: 4, label: 'Table de 4', progressPercent: 64, status: 'in_progress', rewardStars: 2 },
+    { value: 5, label: 'Table de 5', progressPercent: 72, status: 'in_progress', rewardStars: 2 },
+    { value: 6, label: 'Table de 6', progressPercent: 24, status: 'not_started', rewardStars: 3 },
+    { value: 7, label: 'Table de 7', progressPercent: 45, status: 'in_progress', rewardStars: 3 },
+    { value: 8, label: 'Table de 8', progressPercent: 18, status: 'not_started', rewardStars: 3 },
+    { value: 9, label: 'Table de 9', progressPercent: 10, status: 'not_started', rewardStars: 3 },
+  ],
+  currentQuestion: {
+    id: 'q-7-8',
+    table: 7,
+    leftFactor: 7,
+    rightFactor: 8,
+    prompt: '7 × 8 = ?',
+    options: [54, 56, 63, 48],
+    rewardStars: 3,
+  },
 };
