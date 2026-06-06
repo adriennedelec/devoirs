@@ -13,12 +13,12 @@ describe('Lot 3 multiplication tables service', () => {
       status: 'in_progress',
     });
     expect(session.currentQuestion).toMatchObject({
-      id: 'q-7-8',
-      table: 7,
-      leftFactor: 7,
-      rightFactor: 8,
-      prompt: '7 × 8 = ?',
-      rewardStars: 3,
+    id: 'q-7-8',
+    table: 7,
+    leftFactor: 7,
+    rightFactor: 8,
+    prompt: '7 × 8 = ?',
+    rewardStars: 1,
     });
     expect(session.currentQuestion.options).toHaveLength(4);
     expect(session.currentQuestion.options).toContain(56);
@@ -35,7 +35,7 @@ describe('Lot 3 multiplication tables service', () => {
       selectedAnswer: 56,
       correctAnswer: 56,
       isCorrect: true,
-      earnedStars: 3,
+      earnedStars: 1,
       feedbackTitle: 'Bravo Emma !',
     });
 

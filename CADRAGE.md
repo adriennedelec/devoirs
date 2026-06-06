@@ -214,12 +214,16 @@ Construire une première maquette web crédible et navigable, avec une vraie str
 
 #### 4. Exercice multiplication
 
-- question QCM ;
+- écran plein écran magique sans sidebar ;
+- fond pastel violet → bleu avec étoiles et texture nuageuse ;
+- sélecteur des tables 2 à 10 ;
+- champs de réponse verticaux de `1 × table` à `10 × table` ;
 - correction immédiate ;
 - progression de série ;
-- session complète de 8 questions couvrant les facteurs 2 à 9 dans le désordre ;
-- score sur 8 calculé uniquement sur les réponses réussies du premier coup ;
-- table complète finale avec erreurs du premier essai affichées en rouge.
+- session complète de 10 calculs couvrant les facteurs 1 à 10 dans le désordre ;
+- score sur 10 calculé uniquement sur les réponses réussies du premier coup ;
+- table complète finale avec erreurs du premier essai affichées en rouge ;
+- récompenses instantanées et zone aide pédagogique.
 
 #### 5. Dictée
 

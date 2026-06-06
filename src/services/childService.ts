@@ -36,7 +36,7 @@ export async function getChildDashboard(childId: string): Promise<ChildDashboard
   return cloneApiPayload(childDashboardMock);
 }
 
-const multiplicationPracticeFactors = [8, 6, 9, 4, 7, 2, 5, 3];
+const multiplicationPracticeFactors = [8, 6, 9, 4, 7, 2, 5, 3, 1, 10];
 
 function getTableRewardStars(table: number) {
   return multiplicationSessionMock.availableTables.find((availableTable) => availableTable.value === table)?.rewardStars ?? 2;
@@ -144,7 +144,7 @@ export async function submitMultiplicationAnswer(
     sessionSummary: isFinalQuestion
       ? {
           title: 'Série terminée !',
-          message: 'Tu as fini les 8 questions. Regarde ton score et relis les calculs en rouge avant une nouvelle table.',
+          message: 'Tu as fini les 10 calculs. Regarde ton score et relis les calculs en rouge avant une nouvelle table.',
           earnedStars: sessionQuestions.reduce((total, item) => total + item.rewardStars, 0),
         }
       : undefined,

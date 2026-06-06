@@ -179,6 +179,23 @@ Sur desktop :
 - `StepProgress`
 - `RewardToast`
 
+### Écran Tables de multiplication — refonte magique
+
+L’écran `Tables de multiplication` est une exception volontaire au shell standard : il se présente en **plein écran centré sans sidebar** pour se rapprocher d’un jeu éducatif premium.
+
+Structure visuelle :
+
+- fond dégradé violet pastel `#7A5AF8` / lavande / bleu clair `#DFF2FF`, texture nuageuse légère et étoiles scintillantes ;
+- header très grand (`48px+`) avec titre `Tables de multiplication`, sous-titre encourageant et carte `⭐ 125 Étoiles` ;
+- sélecteur horizontal de tables `2` à `10`, boutons blancs arrondis, état actif en dégradé violet ;
+- trois cartes de progression : objectif du jour, série actuelle, niveau joueur ;
+- grande carte exercice blanche `32px` avec personnage enfant, robot, coffre, bulle BD et carte aide ;
+- opérations verticales `1 × table` à `10 × table` avec champs de réponse arrondis, contour vert et coche quand c’est réussi ;
+- boutons `Écouter` violet et `Corriger` jaune doré ;
+- section récompenses avec coffre et chemin de progression `✔ → ✔ → ✔ → Niveau 7 → 8 → 9 → 10`.
+
+Règle UX : une bonne réponse avance automatiquement au calcul suivant ; une erreur garde le même champ actif. Le score final reste basé sur la réussite du premier coup et la table complète marque les calculs à revoir en rouge.
+
 ### Composants gamification
 
 - `AvatarCard`

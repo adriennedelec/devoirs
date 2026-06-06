@@ -299,6 +299,7 @@ function MultiplicationView({ dashboard }: { dashboard: ChildDashboard }) {
   const [sessionState, setSessionState] = useState<ApiState<MultiplicationSession>>({ status: 'loading' });
   const [questionIndex, setQuestionIndex] = useState(0);
   const [answerState, setAnswerState] = useState<ApiState<MultiplicationAnswerResult> | null>(null);
+  const [answerInput, setAnswerInput] = useState('');
   const [firstTryByQuestion, setFirstTryByQuestion] = useState<Record<string, boolean>>({});
   const [attemptHistory, setAttemptHistory] = useState<MultiplicationAttemptRecord[]>([]);
 
@@ -316,19 +317,27 @@ function MultiplicationView({ dashboard }: { dashboard: ChildDashboard }) {
 
   const currentQuestion = sessionState.status === 'success' ? sessionState.data.questions[questionIndex] : null;
   const finalScore = attemptHistory.reduce((score, record) => score + record.scorePoint, 0);
+  const goodAnswerCount = attemptHistory.filter((record) => record.scorePoint === 1).length;
+  const activeTable = sessionState.status === 'success' ? sessionState.data.selectedTable : 7;
+  const currentReward = answerState?.status === 'success' && answerState.data.isCorrect ? answerState.data.earnedStars : 0;
 
   function getTableFactClass(factor: number) {
     const record = attemptHistory.find((item) => item.rightFactor === factor);
-    return record?.scorePoint === 0 ? 'missed' : 'mastered';
+    if (!record) return currentQuestion?.rightFactor === factor ? 'active' : 'pending';
+    return record.scorePoint === 0 ? 'missed' : 'mastered';
+  }
+
+  function getStoredCorrectAnswer(factor: number) {
+    return attemptHistory.find((item) => item.rightFactor === factor)?.correctAnswer;
   }
 
   function buildTableFacts(session: MultiplicationSession): MultiplicationTableReviewFact[] {
-    return Array.from({ length: 8 }, (_, index) => {
-      const rightFactor = index + 2;
+    return Array.from({ length: 10 }, (_, index) => {
+      const rightFactor = index + 1;
       return {
         rightFactor,
-        line: `${session.selectedTable} × ${rightFactor} = ${session.selectedTable * rightFactor}`,
-        status: getTableFactClass(rightFactor),
+        line: `${rightFactor} × ${session.selectedTable} = ${session.selectedTable * rightFactor}`,
+        status: attemptHistory.find((item) => item.rightFactor === rightFactor)?.scorePoint === 0 ? 'missed' : 'mastered',
       };
     });
   }
@@ -357,10 +366,14 @@ function MultiplicationView({ dashboard }: { dashboard: ChildDashboard }) {
         attemptRecord,
       ];
       setAttemptHistory(nextHistory);
+      setAnswerInput('');
 
       if (!result.sessionSummary) {
-        setAnswerState(null);
-        setQuestionIndex((index) => index + 1);
+        setAnswerState({ status: 'success', data: result });
+        window.setTimeout(() => {
+          setAnswerState(null);
+          setQuestionIndex((index) => index + 1);
+        }, 60);
         return;
       }
       setAnswerState({ status: 'success', data: result });
@@ -369,10 +382,18 @@ function MultiplicationView({ dashboard }: { dashboard: ChildDashboard }) {
     }
   }
 
+  function correctTypedAnswer() {
+    if (!answerInput.trim()) return;
+    const selectedAnswer = Number(answerInput.trim());
+    if (!Number.isFinite(selectedAnswer)) return;
+    void answerQuestion(selectedAnswer);
+  }
+
   async function selectTable(table: number) {
     setSessionState({ status: 'loading' });
     setQuestionIndex(0);
     setAnswerState(null);
+    setAnswerInput('');
     setFirstTryByQuestion({});
     setAttemptHistory([]);
     try {
@@ -384,72 +405,157 @@ function MultiplicationView({ dashboard }: { dashboard: ChildDashboard }) {
   }
 
   return (
-    <main className="child-main">
-      <ChildTopBar dashboard={dashboard} title="Tables de multiplication" />
+    <main className="multiplication-screen magical-math-screen">
       {sessionState.status === 'loading' ? <div className="state-card">Préparation des tables…</div> : null}
       {sessionState.status === 'error' ? <div className="state-card error">{sessionState.message}</div> : null}
       {sessionState.status === 'success' && currentQuestion ? (
         <>
-          <section className="page-card multiplication-hero">
-            <p className="eyebrow">Mission calcul magique</p>
-            <h2>Choisis une table, puis réponds aux 8 calculs mélangés.</h2>
-            <p>{sessionState.data.mascotTip}</p>
-          </section>
-
-          <section className="table-picker" aria-label="Choisis une table">
-            <div className="section-heading">
-              <p className="eyebrow">Choisis une table</p>
-              <h2>Ton terrain d’entraînement</h2>
-            </div>
-            <div className="table-chip-grid">
-              {sessionState.data.availableTables.map((table) => (
-                <button
-                  aria-pressed={sessionState.data.selectedTable === table.value}
-                  className={sessionState.data.selectedTable === table.value ? 'active' : ''}
-                  key={table.value}
-                  onClick={() => selectTable(table.value)}
-                  type="button"
-                >
-                  <strong>{table.label}</strong>
-                  <span>{table.progressPercent}% · +{table.rewardStars} ⭐</span>
-                </button>
-              ))}
-            </div>
-          </section>
-
-          <section className="question-card" aria-labelledby="multiplication-question">
-            <div className="question-mascot" aria-hidden="true">🦉</div>
+          <header className="math-magic-header">
             <div>
+              <h1>Tables de multiplication</h1>
+              <p>Entraîne-toi et deviens un champion !</p>
+            </div>
+            <div className="math-star-card" aria-label={`${dashboard.child.stars} étoiles`}>
+              <span aria-hidden="true">⭐</span>
+              <strong>{dashboard.child.stars}</strong>
+              <span>Étoiles</span>
+            </div>
+          </header>
+
+          <section className="magic-table-selector" aria-label="Choisis une table">
+            {sessionState.data.availableTables.map((table) => (
+              <button
+                aria-label={table.label}
+                aria-pressed={sessionState.data.selectedTable === table.value}
+                className={sessionState.data.selectedTable === table.value ? 'active' : ''}
+                key={table.value}
+                onClick={() => selectTable(table.value)}
+                type="button"
+              >
+                {table.value}
+              </button>
+            ))}
+          </section>
+
+          <section className="math-progress-grid" aria-label="Progression des tables">
+            <article className="math-progress-card">
+              <div className="progress-icon" aria-hidden="true">🎯</div>
+              <div>
+                <p className="eyebrow">Objectif du jour</p>
+                <h2>Réussis 10 calculs</h2>
+                <ProgressBar value={(attemptHistory.length / sessionState.data.totalQuestions) * 100} />
+                <strong>{attemptHistory.length} / {sessionState.data.totalQuestions}</strong>
+              </div>
+            </article>
+            <article className="math-progress-card">
+              <div className="progress-icon" aria-hidden="true">🏆</div>
+              <div>
+                <p className="eyebrow">Série actuelle</p>
+                <h2>{goodAnswerCount} bonnes réponses</h2>
+                <div className="streak-dots" aria-label={`${goodAnswerCount} bonnes réponses`}>
+                  {Array.from({ length: 5 }, (_, index) => <span key={index}>{index < goodAnswerCount ? '✅' : '○'}</span>)}
+                </div>
+              </div>
+            </article>
+            <article className="math-progress-card">
+              <div className="progress-icon level" aria-hidden="true">7</div>
+              <div>
+                <p className="eyebrow">Niveau joueur</p>
+                <h2>Niveau {dashboard.child.level}</h2>
+                <p>{dashboard.child.title}</p>
+                <ProgressBar value={68} />
+                <strong>680 / 1000 XP</strong>
+              </div>
+            </article>
+          </section>
+
+          <section className="magic-exercise-card" aria-labelledby="multiplication-question">
+            <div className="character-stage">
+              <div className="encouragement-bubble">Résous les calculs de la table de {activeTable}.<br />Tu es capable ! 💪</div>
+              <div className="characters" aria-hidden="true">
+                <div className="kid-character">🧒👍</div>
+                <div className="robot-character">🤖</div>
+              </div>
+              <div className="treasure-chest" aria-hidden="true">🧰🪙</div>
+              <aside className="help-card">
+                <strong>💡 Aide</strong>
+                <p>{activeTable} × {currentQuestion.rightFactor} = c'est {currentQuestion.rightFactor} groupes de {activeTable}.</p>
+                <p>{Array.from({ length: currentQuestion.rightFactor }, () => activeTable).join(' + ')} = {activeTable * currentQuestion.rightFactor}</p>
+              </aside>
+            </div>
+
+            <div className="calculation-panel">
+              <div className="table-ribbon">Table de {activeTable}</div>
               <p className="eyebrow">Question {questionIndex + 1} sur {sessionState.data.totalQuestions}</p>
               <h2 id="multiplication-question">{currentQuestion.prompt}</h2>
-              <ProgressBar value={((questionIndex + 1) / sessionState.data.totalQuestions) * 100} />
-              <div className="answer-grid">
-                {currentQuestion.options.map((option) => (
-                  <button key={option} onClick={() => answerQuestion(option)} disabled={answerState?.status === 'loading'}>{option}</button>
-                ))}
+              <div className="operation-stack" aria-label={`Exercices de la table de ${activeTable}`}>
+                {Array.from({ length: 10 }, (_, index) => {
+                  const factor = index + 1;
+                  const status = getTableFactClass(factor);
+                  const isFinalSummaryVisible = answerState?.status === 'success' && Boolean(answerState.data.sessionSummary);
+                  const isActive = currentQuestion.rightFactor === factor && !isFinalSummaryVisible;
+                  const storedAnswer = getStoredCorrectAnswer(factor);
+                  return (
+                    <label className={`operation-row ${status} ${isActive ? 'is-active' : ''}`} key={factor}>
+                      <span>{factor} × {activeTable} =</span>
+                      <input
+                        aria-label={`${factor} fois ${activeTable}`}
+                        disabled={!isActive || answerState?.status === 'loading'}
+                        inputMode="numeric"
+                        onChange={(event) => setAnswerInput(event.target.value)}
+                        onKeyDown={(event) => { if (event.key === 'Enter') correctTypedAnswer(); }}
+                        placeholder={isActive ? '?' : ''}
+                        value={isActive ? answerInput : storedAnswer ?? ''}
+                      />
+                      {status === 'mastered' ? <span className="answer-check" aria-label="réponse correcte">✅</span> : null}
+                      {status === 'missed' ? <span className="answer-check missed" aria-label="à revoir">↺</span> : null}
+                    </label>
+                  );
+                })}
               </div>
-              {answerState?.status === 'loading' ? <p className="feedback-card">Le hibou vérifie…</p> : null}
+              {answerState?.status === 'loading' ? <p className="feedback-card">Le robot vérifie…</p> : null}
               {answerState?.status === 'error' ? <p className="feedback-card error">{answerState.message}</p> : null}
-              {answerState?.status === 'success' ? (
-                <div className={answerState.data.isCorrect ? 'feedback-card success' : 'feedback-card retry'}>
-                  <h3>{answerState.data.feedbackTitle}</h3>
-                  <p>{answerState.data.feedbackMessage}</p>
-                  {answerState.data.sessionSummary ? (
-                    <div className="multiplication-final-summary">
-                      <p><strong>{answerState.data.sessionSummary.title}</strong> {answerState.data.sessionSummary.message}</p>
-                      <p className="score-pill">Score : {finalScore} / {sessionState.data.totalQuestions}</p>
-                      <div className="full-table-review" aria-label="Table complète avec erreurs">
-                        <h3>Table complète de {sessionState.data.selectedTable}</h3>
-                        <ul>
-                          {buildTableFacts(sessionState.data).map((fact) => (
-                            <li className={fact.status} key={fact.rightFactor}>{fact.line}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    </div>
-                  ) : null}
+              {answerState?.status === 'success' && !answerState.data.sessionSummary ? (
+                <div className={answerState.data.isCorrect ? 'instant-reward success' : 'instant-reward retry'}>
+                  <strong>{answerState.data.isCorrect ? 'Correct !' : answerState.data.feedbackTitle}</strong>
+                  <span>{answerState.data.isCorrect ? `⭐ +${answerState.data.earnedStars}` : answerState.data.feedbackMessage}</span>
                 </div>
               ) : null}
+              {currentReward > 0 && answerState?.status === 'success' && !answerState.data.sessionSummary ? <div className="floating-reward">Correct !<br />⭐ +{currentReward}</div> : null}
+              {answerState?.status === 'success' && answerState.data.sessionSummary ? (
+                <div className="multiplication-final-summary">
+                  <p><strong>{answerState.data.sessionSummary.title}</strong> {answerState.data.sessionSummary.message}</p>
+                  <p className="score-pill">Score : {finalScore} / {sessionState.data.totalQuestions}</p>
+                  <div className="full-table-review" aria-label="Table complète avec erreurs">
+                    <h3>Table complète de {sessionState.data.selectedTable}</h3>
+                    <ul>
+                      {buildTableFacts(sessionState.data).map((fact) => (
+                        <li className={fact.status} key={fact.rightFactor}>{fact.line}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              ) : null}
+              <div className="exercise-actions">
+                <button className="listen-button" type="button">🔊 Écouter</button>
+                <button className="correct-button" type="button" onClick={correctTypedAnswer} disabled={!answerInput.trim() || answerState?.status === 'loading'}>✅ Corriger</button>
+              </div>
+            </div>
+          </section>
+
+          <section className="math-rewards-card" aria-label="Récompenses de multiplication">
+            <div>
+              <p className="eyebrow">Tes récompenses</p>
+              <h2>Tes récompenses</h2>
+              <p>⭐ +1 par bonne réponse</p>
+              <div className="reward-treasure" aria-hidden="true">🧰✨🪙</div>
+            </div>
+            <div>
+              <p className="eyebrow">Ta progression aujourd'hui</p>
+              <h2>Ta progression aujourd'hui</h2>
+              <div className="level-road" aria-label="Progression de niveau">
+                {['✔', '✔', '✔', 'Niveau 7', '8', '9', '10'].map((step, index) => <span className={step === 'Niveau 7' ? 'current' : ''} key={`${step}-${index}`}>{step}</span>)}
+              </div>
             </div>
           </section>
         </>
@@ -679,9 +785,14 @@ export default function App() {
     return <div className="state-card error">{dashboardState.message}</div>;
   }, [activePage, dashboardState]);
 
+  const showSideNav = dashboardState.status === 'success' && activePage !== 'multiplication';
+  const layoutClassName = activePage === 'multiplication'
+    ? 'child-app-layout multiplication-app-layout'
+    : showSideNav ? 'child-app-layout has-side-nav' : 'child-app-layout';
+
   return (
-    <div className={dashboardState.status === 'success' ? 'child-app-layout has-side-nav' : 'child-app-layout'}>
-      {dashboardState.status === 'success' ? <ChildSideNav activePage={activePage} onNavigate={setActivePage} /> : null}
+    <div className={layoutClassName}>
+      {showSideNav ? <ChildSideNav activePage={activePage} onNavigate={setActivePage} /> : null}
       <div className="child-app-shell">
         {shell}
       </div>

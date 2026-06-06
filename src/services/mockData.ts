@@ -52,7 +52,7 @@ export const childDashboardMock: ChildDashboard = {
       id: 'multiplication-tables',
       subject: 'multiplication',
       title: 'Tables de multiplication',
-      description: 'Révise les tables avec une mini-série de 5 questions.',
+      description: 'Révise les tables avec 10 calculs magiques.',
       progressPercent: 68,
       status: 'in_progress',
       rewardStars: 10,
@@ -128,11 +128,11 @@ export const childDashboardMock: ChildDashboard = {
 };
 
 const multiplicationQuestions = [
-  { id: 'q-7-8', table: 7, leftFactor: 7, rightFactor: 8, prompt: '7 × 8 = ?', options: [54, 56, 63, 48], rewardStars: 3 },
-  { id: 'q-7-6', table: 7, leftFactor: 7, rightFactor: 6, prompt: '7 × 6 = ?', options: [36, 42, 49, 40], rewardStars: 2 },
-  { id: 'q-7-9', table: 7, leftFactor: 7, rightFactor: 9, prompt: '7 × 9 = ?', options: [63, 56, 72, 64], rewardStars: 2 },
-  { id: 'q-7-4', table: 7, leftFactor: 7, rightFactor: 4, prompt: '7 × 4 = ?', options: [21, 28, 32, 35], rewardStars: 2 },
-  { id: 'q-7-7', table: 7, leftFactor: 7, rightFactor: 7, prompt: '7 × 7 = ?', options: [42, 48, 49, 56], rewardStars: 3 },
+  { id: 'q-7-8', table: 7, leftFactor: 7, rightFactor: 8, prompt: '7 × 8 = ?', options: [54, 56, 63, 48], rewardStars: 1 },
+  { id: 'q-7-6', table: 7, leftFactor: 7, rightFactor: 6, prompt: '7 × 6 = ?', options: [36, 42, 49, 40], rewardStars: 1 },
+  { id: 'q-7-9', table: 7, leftFactor: 7, rightFactor: 9, prompt: '7 × 9 = ?', options: [63, 56, 72, 64], rewardStars: 1 },
+  { id: 'q-7-4', table: 7, leftFactor: 7, rightFactor: 4, prompt: '7 × 4 = ?', options: [21, 28, 32, 35], rewardStars: 1 },
+  { id: 'q-7-7', table: 7, leftFactor: 7, rightFactor: 7, prompt: '7 × 7 = ?', options: [42, 48, 49, 56], rewardStars: 1 },
 ];
 
 export const multiplicationSessionMock: MultiplicationSession = {
@@ -141,14 +141,15 @@ export const multiplicationSessionMock: MultiplicationSession = {
   mascotTip: 'Le hibou magique t’aide à retrouver le bon résultat. Respire, observe, choisis !',
   selectedTable: 7,
   availableTables: [
-    { value: 2, label: 'Table de 2', progressPercent: 100, status: 'mastered', rewardStars: 2 },
-    { value: 3, label: 'Table de 3', progressPercent: 82, status: 'in_progress', rewardStars: 2 },
-    { value: 4, label: 'Table de 4', progressPercent: 64, status: 'in_progress', rewardStars: 2 },
-    { value: 5, label: 'Table de 5', progressPercent: 72, status: 'in_progress', rewardStars: 2 },
-    { value: 6, label: 'Table de 6', progressPercent: 24, status: 'not_started', rewardStars: 3 },
-    { value: 7, label: 'Table de 7', progressPercent: 45, status: 'in_progress', rewardStars: 3 },
-    { value: 8, label: 'Table de 8', progressPercent: 18, status: 'not_started', rewardStars: 3 },
-    { value: 9, label: 'Table de 9', progressPercent: 10, status: 'not_started', rewardStars: 3 },
+    { value: 2, label: 'Table de 2', progressPercent: 100, status: 'mastered', rewardStars: 1 },
+    { value: 3, label: 'Table de 3', progressPercent: 82, status: 'in_progress', rewardStars: 1 },
+    { value: 4, label: 'Table de 4', progressPercent: 64, status: 'in_progress', rewardStars: 1 },
+    { value: 5, label: 'Table de 5', progressPercent: 72, status: 'in_progress', rewardStars: 1 },
+    { value: 6, label: 'Table de 6', progressPercent: 24, status: 'not_started', rewardStars: 1 },
+    { value: 7, label: 'Table de 7', progressPercent: 45, status: 'in_progress', rewardStars: 1 },
+    { value: 8, label: 'Table de 8', progressPercent: 18, status: 'not_started', rewardStars: 1 },
+    { value: 9, label: 'Table de 9', progressPercent: 10, status: 'not_started', rewardStars: 1 },
+    { value: 10, label: 'Table de 10', progressPercent: 8, status: 'not_started', rewardStars: 1 },
   ],
   currentQuestion: multiplicationQuestions[0],
   questions: multiplicationQuestions,
