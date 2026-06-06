@@ -3,6 +3,11 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import App from '../src/App';
 
+declare const process: { cwd: () => string };
+declare function require(moduleName: string): { readFileSync?: (path: string, encoding: string) => string; resolve?: (...paths: string[]) => string };
+const { readFileSync } = require('node:fs') as { readFileSync: (path: string, encoding: string) => string };
+const { resolve } = require('node:path') as { resolve: (...paths: string[]) => string };
+
 describe('Lot 3 multiplication module UI', () => {
   it('opens the multiplication adventure from Accueil and advances after a correct QCM answer', async () => {
     const user = userEvent.setup();
@@ -41,5 +46,16 @@ describe('Lot 3 multiplication module UI', () => {
     });
     expect(screen.getByRole('heading', { name: /7 × 6 = \?/i })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /question suivante/i })).not.toBeInTheDocument();
+  });
+
+  it('keeps the sidebar fixed and lets multiplication use the full remaining width', () => {
+    const css = readFileSync(resolve(process.cwd(), 'src/styles/child-app.css'), 'utf8');
+
+    expect(css).toContain('.has-side-nav.multiplication-app-layout .child-app-shell');
+    expect(css).toContain('width: calc(100vw - 250px);');
+    expect(css).toContain('margin-left: 250px;');
+    expect(css).toContain('max-width: none;');
+    expect(css).toMatch(/\.math-magic-header[\s\S]*?width: 100%;[\s\S]*?max-width: none;/);
+    expect(css).toMatch(/\.magic-exercise-card[\s\S]*?width: 100%;[\s\S]*?max-width: none;/);
   });
 });

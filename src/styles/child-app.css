@@ -21,9 +21,10 @@
 }
 
 .has-side-nav.multiplication-app-layout .child-app-shell {
-  width: min(calc(100% - 264px), 1180px);
-  margin-left: max(250px, calc((100vw - 980px) / 2 + 232px));
-  margin-right: auto;
+  width: calc(100vw - 250px);
+  max-width: none;
+  margin-left: 250px;
+  margin-right: 0;
   padding: 18px 18px 40px;
 }
 
@@ -972,8 +973,9 @@
   grid-template-columns: 1fr auto;
   align-items: start;
   gap: 20px;
-  max-width: 1180px;
-  margin: 0 auto 24px;
+  width: 100%;
+  max-width: none;
+  margin: 0 0 24px;
 }
 
 .math-magic-header h1 {
@@ -1013,8 +1015,9 @@
   display: grid;
   grid-template-columns: repeat(9, minmax(54px, 1fr));
   gap: 12px;
-  max-width: 840px;
-  margin: 0 auto 22px;
+  width: 100%;
+  max-width: none;
+  margin: 0 0 22px;
   padding: 10px;
   border-radius: 30px;
   background: rgba(250, 250, 255, 0.44);
@@ -1044,8 +1047,9 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
-  max-width: 1180px;
-  margin: 0 auto 22px;
+  width: 100%;
+  max-width: none;
+  margin: 0 0 22px;
 }
 
 .math-progress-card {
@@ -1102,8 +1106,9 @@
   display: grid;
   grid-template-columns: minmax(260px, 0.8fr) minmax(420px, 1.25fr);
   gap: 28px;
-  max-width: 1180px;
-  margin: 0 auto 24px;
+  width: 100%;
+  max-width: none;
+  margin: 0 0 24px;
   padding: clamp(22px, 3vw, 34px);
   border: 1px solid rgba(255, 255, 255, 0.86);
   border-radius: 32px;
