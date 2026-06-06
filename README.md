@@ -122,7 +122,7 @@ Phase suivante :
 
 ## État actuel
 
-Lots 1 à 3 réalisés : socle React/Vite TypeScript API-ready, shell enfant navigable et premier module pédagogique interactif.
+Lots 1 à 4 réalisés : socle React/Vite TypeScript API-ready, shell enfant navigable, module multiplication interactif, puis modules guidés dictée et poésie.
 
 Le projet contient maintenant :
 
@@ -142,12 +142,15 @@ src/
     ├── activity.ts
     ├── api.ts
     ├── child.ts
+    ├── language.ts
     ├── multiplication.ts
     └── reward.ts
 
 tests/
 ├── App.test.tsx
 ├── childService.test.ts
+├── language-modules.test.ts
+├── language-modules-ui.test.tsx
 ├── multiplication.test.ts
 ├── multiplication-ui.test.tsx
 └── navigation.test.tsx
@@ -188,12 +191,12 @@ npm run build
 ## Architecture API-compatible actuelle
 
 - `src/services/apiClient.ts` contient la couche API simulée.
-- `src/services/childService.ts` expose `getChildDashboard(childId)`, `getMultiplicationSession(childId, table?)` et `submitMultiplicationAnswer(childId, submission)`.
-- `src/services/mockData.ts` contient des fixtures structurées comme des réponses API, dont la session de multiplication.
-- `src/types/` contient les contrats métier, dont `multiplication.ts` pour le hub, la question QCM et le résultat de tentative.
+- `src/services/childService.ts` expose `getChildDashboard(childId)`, `getMultiplicationSession(childId, table?)`, `submitMultiplicationAnswer(childId, submission)`, `getDictationSession(childId)`, `submitDictationAnswer(childId, submission)`, `getPoetrySession(childId)` et `submitPoetryRecital(childId, submission)`.
+- `src/services/mockData.ts` contient des fixtures structurées comme des réponses API, dont les sessions multiplication, dictée et poésie.
+- `src/types/` contient les contrats métier, dont `multiplication.ts` et `language.ts` pour les modules pédagogiques.
 - `src/App.tsx` consomme les services asynchrones et gère les états `loading`, `success`, `empty`, `error`.
 
-Prochaine étape recommandée : **Lot 4 — Dictée / poésie** avec un module guidé simple, toujours branché par service mock API.
+Prochaine étape recommandée : **Lot 5 — Parent / enseignant** ou consolidation technique des modules dans `features/` avant dashboard adulte.
 
 ## Lot 2 réalisé
 
@@ -220,3 +223,15 @@ Premier module pédagogique interactif disponible depuis la carte `Tables de mul
 - tests service + UI pour verrouiller le contrat API et l’expérience enfant.
 
 La donnée métier reste dans `mockData.ts` et passe par `childService.ts`. L’écran pourra donc évoluer vers un vrai backend sans réécrire l’interface.
+
+## Lot 4 réalisé
+
+Deux modules guidés ont été ajoutés depuis les cartes de l’accueil :
+
+- **Dictée magique** : session audio simulée, indices, zone de saisie, correction douce et étoiles ;
+- **Poésie des saisons** : texte en lignes, étapes écouter/comprendre/mémoriser/réciter et récitation simulée ;
+- services mock API dédiés pour charger les sessions et soumettre les résultats ;
+- type `language.ts` pour les contrats dictée/poésie ;
+- tests service + UI pour verrouiller le comportement enfant-first.
+
+La reconnaissance vocale et l’audio réel restent simulés en V1, conformément au cadrage confidentialité / MVP.

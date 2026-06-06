@@ -1,13 +1,27 @@
 import { useEffect, useState } from 'react';
 import { Bell, BookOpen, Gift, Home, Map, Sparkles, UserRound } from 'lucide-react';
 import type { ApiState, ChildDashboard } from './types/api';
+import type {
+  DictationAnswerResult,
+  DictationSession,
+  PoetryRecitalResult,
+  PoetrySession,
+} from './types/language';
 import type { MultiplicationAnswerResult, MultiplicationSession } from './types/multiplication';
-import { getChildDashboard, getMultiplicationSession, submitMultiplicationAnswer } from './services/childService';
+import {
+  getChildDashboard,
+  getDictationSession,
+  getMultiplicationSession,
+  getPoetrySession,
+  submitDictationAnswer,
+  submitMultiplicationAnswer,
+  submitPoetryRecital,
+} from './services/childService';
 import './styles/tokens.css';
 import './styles/base.css';
 import './styles/child-app.css';
 
-type ChildPage = 'home' | 'path' | 'rewards' | 'reading' | 'multiplication' | 'profile';
+type ChildPage = 'home' | 'path' | 'rewards' | 'reading' | 'multiplication' | 'dictation' | 'poetry' | 'profile';
 
 type NavItem = {
   id: ChildPage;
@@ -99,6 +113,8 @@ function HomeView({ dashboard, onNavigate }: { dashboard: ChildDashboard; onNavi
               <button onClick={() => {
                 if (activity.subject === 'reading') onNavigate('reading');
                 else if (activity.subject === 'multiplication') onNavigate('multiplication');
+                else if (activity.subject === 'dictation') onNavigate('dictation');
+                else if (activity.subject === 'poetry') onNavigate('poetry');
                 else onNavigate('path');
               }}>Continuer</button>
             </article>
@@ -295,6 +311,171 @@ function MultiplicationView({ dashboard }: { dashboard: ChildDashboard }) {
   );
 }
 
+function DictationView({ dashboard }: { dashboard: ChildDashboard }) {
+  const [sessionState, setSessionState] = useState<ApiState<DictationSession>>({ status: 'loading' });
+  const [answerText, setAnswerText] = useState('');
+  const [answerState, setAnswerState] = useState<ApiState<DictationAnswerResult> | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    getDictationSession(dashboard.child.id)
+      .then((session) => {
+        if (!cancelled) setSessionState({ status: 'success', data: session });
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          const message = error instanceof Error ? error.message : 'Impossible de charger la dictée.';
+          setSessionState({ status: 'error', message });
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [dashboard.child.id]);
+
+  async function correctDictation() {
+    if (sessionState.status !== 'success') return;
+    setAnswerState({ status: 'loading' });
+
+    try {
+      const result = await submitDictationAnswer(dashboard.child.id, {
+        sessionId: sessionState.data.id,
+        answerText,
+      });
+      setAnswerState({ status: 'success', data: result });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Correction impossible.';
+      setAnswerState({ status: 'error', message });
+    }
+  }
+
+  return (
+    <main className="child-main">
+      <ChildTopBar dashboard={dashboard} title="Dictée magique" />
+      {sessionState.status === 'loading' ? <div className="state-card">Préparation de la dictée…</div> : null}
+      {sessionState.status === 'error' ? <div className="state-card error">{sessionState.message}</div> : null}
+      {sessionState.status === 'success' ? (
+        <section className="language-card dictation-card" aria-labelledby="dictation-title">
+          <div className="language-mascot" aria-hidden="true">✍️</div>
+          <div>
+            <p className="eyebrow">Mission orthographe</p>
+            <h2 id="dictation-title">{sessionState.data.title}</h2>
+            <p>{sessionState.data.instruction}</p>
+            <button className="audio-button" type="button">🔊 {sessionState.data.audioLabel}</button>
+            <div className="hint-list" aria-label="Indices de dictée">
+              {sessionState.data.hints.map((hint) => <span key={hint}>{hint}</span>)}
+            </div>
+            <label className="answer-field">
+              <span>Ta phrase</span>
+              <textarea value={answerText} onChange={(event) => setAnswerText(event.target.value)} rows={4} />
+            </label>
+            <button className="primary-action" type="button" onClick={correctDictation} disabled={answerState?.status === 'loading'}>
+              Corriger ma dictée
+            </button>
+            {answerState?.status === 'loading' ? <p className="feedback-card">La mascotte relit ta phrase…</p> : null}
+            {answerState?.status === 'error' ? <p className="feedback-card error">{answerState.message}</p> : null}
+            {answerState?.status === 'success' ? (
+              <div className={answerState.data.isCorrect ? 'feedback-card success' : 'feedback-card retry'}>
+                <h3>{answerState.data.feedbackTitle}</h3>
+                <p>{answerState.data.feedbackMessage}</p>
+                <p><strong>Correction :</strong> {answerState.data.correctedText}</p>
+              </div>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
+    </main>
+  );
+}
+
+function PoetryView({ dashboard }: { dashboard: ChildDashboard }) {
+  const [sessionState, setSessionState] = useState<ApiState<PoetrySession>>({ status: 'loading' });
+  const [recitalState, setRecitalState] = useState<ApiState<PoetryRecitalResult> | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    getPoetrySession(dashboard.child.id)
+      .then((session) => {
+        if (!cancelled) setSessionState({ status: 'success', data: session });
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          const message = error instanceof Error ? error.message : 'Impossible de charger la poésie.';
+          setSessionState({ status: 'error', message });
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [dashboard.child.id]);
+
+  async function validateRecital() {
+    if (sessionState.status !== 'success') return;
+    setRecitalState({ status: 'loading' });
+
+    try {
+      const result = await submitPoetryRecital(dashboard.child.id, {
+        poemId: sessionState.data.poemId,
+        confidence: 'ready',
+      });
+      setRecitalState({ status: 'success', data: result });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Récitation impossible à valider.';
+      setRecitalState({ status: 'error', message });
+    }
+  }
+
+  return (
+    <main className="child-main">
+      <ChildTopBar dashboard={dashboard} title="Poésie" />
+      {sessionState.status === 'loading' ? <div className="state-card">Préparation de la poésie…</div> : null}
+      {sessionState.status === 'error' ? <div className="state-card error">{sessionState.message}</div> : null}
+      {sessionState.status === 'success' ? (
+        <>
+          <section className="language-card poetry-card" aria-labelledby="poetry-title">
+            <div className="language-mascot" aria-hidden="true">🎙️</div>
+            <div>
+              <p className="eyebrow">Mission mémoire</p>
+              <h2 id="poetry-title">{sessionState.data.title}</h2>
+              <p>{sessionState.data.instruction}</p>
+              <div className="poem-lines" aria-label="Texte de la poésie">
+                {sessionState.data.lines.map((line) => <p key={line}>{line}</p>)}
+              </div>
+            </div>
+          </section>
+          <section className="poetry-steps" aria-label="Étapes de poésie">
+            {sessionState.data.steps.map((step) => (
+              <article className={`poetry-step ${step.status}`} key={step.id}>
+                <strong>{step.label}</strong>
+                <p>{step.description}</p>
+              </article>
+            ))}
+          </section>
+          <section className="page-card recital-card">
+            <p className="eyebrow">Récitation simulée</p>
+            <h2>Quand tu es prête, valide ta récitation.</h2>
+            <button className="primary-action" type="button" onClick={validateRecital} disabled={recitalState?.status === 'loading'}>
+              J’ai récité ma poésie
+            </button>
+            {recitalState?.status === 'loading' ? <p className="feedback-card">La mascotte écoute ton effort…</p> : null}
+            {recitalState?.status === 'error' ? <p className="feedback-card error">{recitalState.message}</p> : null}
+            {recitalState?.status === 'success' ? (
+              <div className={recitalState.data.status === 'completed' ? 'feedback-card success' : 'feedback-card retry'}>
+                <h3>{recitalState.data.feedbackTitle}</h3>
+                <p>{recitalState.data.feedbackMessage}</p>
+              </div>
+            ) : null}
+          </section>
+        </>
+      ) : null}
+    </main>
+  );
+}
+
 function ProfileView({ dashboard }: { dashboard: ChildDashboard }) {
   return (
     <main className="child-main">
@@ -339,6 +520,10 @@ function ActivePage({ page, dashboard, onNavigate }: { page: ChildPage; dashboar
       return <ReadingView dashboard={dashboard} />;
     case 'multiplication':
       return <MultiplicationView dashboard={dashboard} />;
+    case 'dictation':
+      return <DictationView dashboard={dashboard} />;
+    case 'poetry':
+      return <PoetryView dashboard={dashboard} />;
     case 'profile':
       return <ProfileView dashboard={dashboard} />;
     case 'home':

@@ -511,12 +511,141 @@
   background: linear-gradient(135deg, var(--color-secondary), var(--color-primary));
 }
 
+.language-card {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 18px;
+  padding: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: var(--radius-xl);
+  background:
+    radial-gradient(circle at top right, rgba(76, 201, 240, 0.18), transparent 13rem),
+    rgba(255, 255, 255, 0.9);
+  box-shadow: var(--shadow-card);
+}
+
+.language-card h2,
+.recital-card h2 {
+  margin: 0 0 10px;
+  letter-spacing: -0.03em;
+}
+
+.language-card p,
+.recital-card p,
+.poetry-step p {
+  color: var(--color-text-muted);
+}
+
+.language-mascot {
+  display: grid;
+  place-items: center;
+  width: 84px;
+  height: 84px;
+  border-radius: 30px;
+  background: linear-gradient(135deg, #fff7dc, #f0ebff);
+  font-size: 3rem;
+}
+
+.audio-button,
+.primary-action {
+  border: 0;
+  border-radius: 999px;
+  padding: 12px 18px;
+  color: #fff;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+  font-weight: 900;
+}
+
+.audio-button {
+  margin: 10px 0;
+  background: linear-gradient(135deg, var(--color-secondary), var(--color-primary));
+}
+
+.hint-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0 14px;
+}
+
+.hint-list span {
+  border-radius: 999px;
+  padding: 8px 10px;
+  background: #fff7dc;
+  color: var(--color-primary-dark);
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.answer-field {
+  display: grid;
+  gap: 8px;
+  margin: 14px 0;
+  font-weight: 900;
+  color: var(--color-primary-dark);
+}
+
+.answer-field textarea {
+  resize: vertical;
+  min-height: 120px;
+  border: 2px solid #e4def8;
+  border-radius: 22px;
+  padding: 14px;
+  color: var(--color-text);
+  background: #fff;
+  font: inherit;
+  font-weight: 700;
+}
+
+.poem-lines {
+  display: grid;
+  gap: 8px;
+  margin: 16px 0 0;
+  padding: 18px;
+  border-radius: 24px;
+  background: #f4f0ff;
+}
+
+.poem-lines p {
+  margin: 0;
+  color: var(--color-primary-dark);
+  font-size: 1.08rem;
+  font-weight: 900;
+}
+
+.poetry-steps {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.poetry-step {
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: var(--shadow-card);
+}
+
+.poetry-step.completed {
+  background: #e6fbef;
+}
+
+.poetry-step.current {
+  background: #fff7dc;
+}
+
+.poetry-step.locked {
+  opacity: 0.7;
+}
+
 @media (max-width: 720px) {
   .child-topbar,
   .hero-card,
   .daily-goal-card,
   .dashboard-columns,
-  .question-card {
+  .question-card,
+  .language-card {
     grid-template-columns: 1fr;
   }
 
@@ -528,7 +657,8 @@
   .path-grid,
   .reward-grid,
   .table-chip-grid,
-  .answer-grid {
+  .answer-grid,
+  .poetry-steps {
     grid-template-columns: 1fr;
   }
 

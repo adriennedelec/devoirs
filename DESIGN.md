@@ -275,6 +275,16 @@ Contenu :
 - correction ;
 - récompense.
 
+Implémentation Lot 4 :
+
+- bouton `Écouter la phrase` simulé ;
+- indices visibles en pastilles ;
+- grande zone `Ta phrase` ;
+- correction douce avec texte corrigé ;
+- feedback `Super dictée !` ou `Très proche !` ;
+- pas d’audio réel ni stockage vocal en V1.
+
+
 ### 6. Poésie
 
 Rôle : apprentissage en étapes.
@@ -287,6 +297,15 @@ Rôle : apprentissage en étapes.
 4. réciter.
 
 La reconnaissance vocale réelle peut être simulée en V1.
+
+Implémentation Lot 4 :
+
+- poésie affichée en lignes courtes dans une carte douce ;
+- étapes visibles `Écouter`, `Comprendre`, `Mémoriser`, `Réciter` ;
+- bouton `J’ai récité ma poésie` ;
+- feedback immédiat et étoiles ;
+- récitation simulée sans enregistrement vocal.
+
 
 ### 7. Récompenses / progression
 

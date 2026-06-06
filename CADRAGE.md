@@ -475,9 +475,29 @@ Réalisé :
 
 ### Lot 4 — Dictée et poésie
 
-- dictée simple ;
-- poésie écouter / mémoriser ;
-- récitation simulée.
+Statut : réalisé.
+
+Réalisé :
+
+- module `Dictée magique` depuis la carte d’accueil ;
+- audio simulé + bouton d’écoute ;
+- indices pédagogiques ;
+- zone de saisie enfant ;
+- correction bienveillante avec texte corrigé ;
+- module `Poésie des saisons` depuis la carte d’accueil ;
+- étapes écouter / comprendre / mémoriser / réciter ;
+- récitation simulée et récompense ;
+- contrats `language.ts` et services mock API ;
+- tests service et UI.
+
+À approfondir plus tard :
+
+- audio réel ;
+- reconnaissance vocale ;
+- comparaison détaillée de mots ;
+- mode DYS ;
+- historique des tentatives.
+
 
 ### Lot 5 — Parent / enseignant
 

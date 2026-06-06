@@ -1,4 +1,5 @@
 import type { ChildDashboard } from '../types/api';
+import type { DictationSession, PoetrySession } from '../types/language';
 import type { MultiplicationSession } from '../types/multiplication';
 
 export const childDashboardMock: ChildDashboard = {
@@ -114,4 +115,35 @@ export const multiplicationSessionMock: MultiplicationSession = {
     options: [54, 56, 63, 48],
     rewardStars: 3,
   },
+};
+
+export const dictationSessionMock: DictationSession = {
+  childId: 'emma-demo',
+  id: 'dictation-forest-1',
+  title: 'Dictée de la forêt magique',
+  instruction: 'Écoute la phrase puis écris-la dans ton cahier magique.',
+  audioLabel: 'Écouter la phrase',
+  expectedText: 'Le petit renard traverse la forêt.',
+  hints: ['La phrase commence par une majuscule.', 'Il y a un accent circonflexe dans forêt.', 'N’oublie pas le point final.'],
+  rewardStars: 4,
+};
+
+export const poetrySessionMock: PoetrySession = {
+  childId: 'emma-demo',
+  poemId: 'poem-seasons-1',
+  title: 'Poésie des saisons',
+  instruction: 'Écoute, comprends, mémorise puis récite quand tu te sens prête.',
+  lines: [
+    'Le printemps réveille les jardins,',
+    'L’été fait danser la lumière,',
+    'L’automne colore les chemins,',
+    'L’hiver chuchote près de la terre.',
+  ],
+  steps: [
+    { id: 'listen', label: 'Écouter', description: 'Lis la poésie à voix basse ou écoute un adulte.', status: 'completed' },
+    { id: 'understand', label: 'Comprendre', description: 'Repère les saisons et les images.', status: 'completed' },
+    { id: 'memorize', label: 'Mémoriser', description: 'Cache une ligne puis essaie de la redire.', status: 'current' },
+    { id: 'recite', label: 'Réciter', description: 'Récite calmement, sans chrono.', status: 'locked' },
+  ],
+  rewardStars: 6,
 };
