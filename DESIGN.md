@@ -262,12 +262,15 @@ Implémentation Lot 3 puis Lot 9 :
 
 - entrée depuis la carte `Tables de multiplication` ;
 - hub de tables en chips larges avec progression ;
-- mini-série de 5 questions avec indicateur `Question N sur 5` ;
+- mini-série de 8 questions avec indicateur `Question N sur 8` ;
+- chaque série couvre toute la table de `2 × table` à `9 × table`, dans un ordre mélangé ;
 - carte QCM centrale avec mascotte hibou ;
 - réponses sous forme de gros boutons tactiles ;
 - feedback `Bravo` / `Presque` jamais culpabilisant ;
-- bouton `Question suivante` ;
-- résumé final `Série terminée !` ;
+- une erreur garde la même question active jusqu’à ce que l’enfant trouve juste ;
+- une bonne réponse intermédiaire fait avancer automatiquement, sans bouton manuel `Question suivante` ;
+- résumé final `Série terminée !` avec score sur 8 ;
+- table complète affichée en fin de session, avec calculs manqués au premier essai en rouge ;
 - état `loading` pendant la préparation et la soumission.
 
 ### 5. Dictée

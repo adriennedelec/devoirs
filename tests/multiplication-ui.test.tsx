@@ -27,7 +27,7 @@ describe('Lot 3 multiplication module UI', () => {
     await user.click(screen.getByRole('button', { name: '56' }));
 
     await waitFor(() => {
-      expect(screen.getByText(/question 2 sur 5/i)).toBeInTheDocument();
+      expect(screen.getByText(/question 2 sur 8/i)).toBeInTheDocument();
     });
     expect(screen.getByRole('heading', { name: /7 × 6 = \?/i })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /question suivante/i })).not.toBeInTheDocument();

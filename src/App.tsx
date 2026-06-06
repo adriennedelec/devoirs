@@ -7,7 +7,12 @@ import type {
   PoetryRecitalResult,
   PoetrySession,
 } from './types/language';
-import type { MultiplicationAnswerResult, MultiplicationSession } from './types/multiplication';
+import type {
+  MultiplicationAnswerResult,
+  MultiplicationAttemptRecord,
+  MultiplicationSession,
+  MultiplicationTableReviewFact,
+} from './types/multiplication';
 import type { ReadingAnswerResult, ReadingSession } from './types/reading';
 import {
   getChildDashboard,
@@ -294,6 +299,8 @@ function MultiplicationView({ dashboard }: { dashboard: ChildDashboard }) {
   const [sessionState, setSessionState] = useState<ApiState<MultiplicationSession>>({ status: 'loading' });
   const [questionIndex, setQuestionIndex] = useState(0);
   const [answerState, setAnswerState] = useState<ApiState<MultiplicationAnswerResult> | null>(null);
+  const [firstTryByQuestion, setFirstTryByQuestion] = useState<Record<string, boolean>>({});
+  const [attemptHistory, setAttemptHistory] = useState<MultiplicationAttemptRecord[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -308,13 +315,50 @@ function MultiplicationView({ dashboard }: { dashboard: ChildDashboard }) {
   }, [dashboard.child.id]);
 
   const currentQuestion = sessionState.status === 'success' ? sessionState.data.questions[questionIndex] : null;
+  const finalScore = attemptHistory.reduce((score, record) => score + record.scorePoint, 0);
+
+  function getTableFactClass(factor: number) {
+    const record = attemptHistory.find((item) => item.rightFactor === factor);
+    return record?.scorePoint === 0 ? 'missed' : 'mastered';
+  }
+
+  function buildTableFacts(session: MultiplicationSession): MultiplicationTableReviewFact[] {
+    return Array.from({ length: 8 }, (_, index) => {
+      const rightFactor = index + 2;
+      return {
+        rightFactor,
+        line: `${session.selectedTable} × ${rightFactor} = ${session.selectedTable * rightFactor}`,
+        status: getTableFactClass(rightFactor),
+      };
+    });
+  }
 
   async function answerQuestion(selectedAnswer: number) {
     if (!currentQuestion) return;
     setAnswerState({ status: 'loading' });
     try {
       const result = await submitMultiplicationAnswer(dashboard.child.id, { questionId: currentQuestion.id, selectedAnswer });
-      if (result.isCorrect && !result.sessionSummary) {
+      if (!result.isCorrect) {
+        setFirstTryByQuestion((current) => ({ ...current, [currentQuestion.id]: false }));
+        setAnswerState({ status: 'success', data: result });
+        return;
+      }
+
+      const scoredFirstTry = firstTryByQuestion[currentQuestion.id] !== false;
+      const attemptRecord: MultiplicationAttemptRecord = {
+        questionId: currentQuestion.id,
+        leftFactor: currentQuestion.leftFactor,
+        rightFactor: currentQuestion.rightFactor,
+        correctAnswer: result.correctAnswer,
+        scorePoint: scoredFirstTry ? 1 : 0,
+      };
+      const nextHistory = [
+        ...attemptHistory.filter((record) => record.questionId !== currentQuestion.id),
+        attemptRecord,
+      ];
+      setAttemptHistory(nextHistory);
+
+      if (!result.sessionSummary) {
         setAnswerState(null);
         setQuestionIndex((index) => index + 1);
         return;
@@ -329,18 +373,14 @@ function MultiplicationView({ dashboard }: { dashboard: ChildDashboard }) {
     setSessionState({ status: 'loading' });
     setQuestionIndex(0);
     setAnswerState(null);
+    setFirstTryByQuestion({});
+    setAttemptHistory([]);
     try {
       const session = await getMultiplicationSession(dashboard.child.id, table);
       setSessionState({ status: 'success', data: session });
     } catch (error: unknown) {
       setSessionState({ status: 'error', message: error instanceof Error ? error.message : 'Impossible de charger cette table.' });
     }
-  }
-
-  function goNextQuestion() {
-    if (sessionState.status !== 'success') return;
-    setAnswerState(null);
-    setQuestionIndex((index) => Math.min(index + 1, sessionState.data.totalQuestions - 1));
   }
 
   return (
@@ -352,7 +392,7 @@ function MultiplicationView({ dashboard }: { dashboard: ChildDashboard }) {
         <>
           <section className="page-card multiplication-hero">
             <p className="eyebrow">Mission calcul magique</p>
-            <h2>Choisis une table, puis réussis ta mini-série.</h2>
+            <h2>Choisis une table, puis réponds aux 8 calculs mélangés.</h2>
             <p>{sessionState.data.mascotTip}</p>
           </section>
 
@@ -394,8 +434,20 @@ function MultiplicationView({ dashboard }: { dashboard: ChildDashboard }) {
                 <div className={answerState.data.isCorrect ? 'feedback-card success' : 'feedback-card retry'}>
                   <h3>{answerState.data.feedbackTitle}</h3>
                   <p>{answerState.data.feedbackMessage}</p>
-                  {answerState.data.sessionSummary ? <p><strong>{answerState.data.sessionSummary.title}</strong> {answerState.data.sessionSummary.message}</p> : null}
-                  {questionIndex < sessionState.data.totalQuestions - 1 ? <button onClick={goNextQuestion}>Question suivante</button> : null}
+                  {answerState.data.sessionSummary ? (
+                    <div className="multiplication-final-summary">
+                      <p><strong>{answerState.data.sessionSummary.title}</strong> {answerState.data.sessionSummary.message}</p>
+                      <p className="score-pill">Score : {finalScore} / {sessionState.data.totalQuestions}</p>
+                      <div className="full-table-review" aria-label="Table complète avec erreurs">
+                        <h3>Table complète de {sessionState.data.selectedTable}</h3>
+                        <ul>
+                          {buildTableFacts(sessionState.data).map((fact) => (
+                            <li className={fact.status} key={fact.rightFactor}>{fact.line}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
               ) : null}
             </div>

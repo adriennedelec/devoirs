@@ -122,7 +122,9 @@ Phase suivante :
 
 ## État actuel
 
-Lots 1 à 11 réalisés : socle React/Vite TypeScript API-ready, shell enfant navigable, modules multiplication/dictée/poésie, puis validation renforcée de l’interface enfant avec cockpit quotidien, parcours gamifié, récompenses dynamiques, vraie lecture-compréhension, mini-session multiplication, correction dictée mot par mot et mémorisation poésie ligne par ligne.
+Lots 1 à 11 réalisés : socle React/Vite TypeScript API-ready, shell enfant navigable, modules multiplication/dictée/poésie, puis validation renforcée de l’interface enfant avec cockpit quotidien, parcours gamifié, récompenses dynamiques, vraie lecture-compréhension, session multiplication complète, correction dictée mot par mot et mémorisation poésie ligne par ligne.
+
+Évolution multiplication validée ensuite : chaque table de 2 à 9 lance désormais 8 questions couvrant les facteurs 2 à 9 dans le désordre. Une bonne réponse fait avancer automatiquement ; une erreur laisse l’enfant sur la même question jusqu’à réussite. Le score final compte uniquement les réussites du premier coup (`1` ou `0` par calcul) et affiche la table complète avec les calculs à retravailler en rouge.
 
 Le projet contient maintenant :
 

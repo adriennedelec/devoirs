@@ -216,9 +216,10 @@ Construire une première maquette web crédible et navigable, avec une vraie str
 
 - question QCM ;
 - correction immédiate ;
-- étoiles ;
-- astuce ;
-- progression de série.
+- progression de série ;
+- session complète de 8 questions couvrant les facteurs 2 à 9 dans le désordre ;
+- score sur 8 calculé uniquement sur les réponses réussies du premier coup ;
+- table complète finale avec erreurs du premier essai affichées en rouge.
 
 #### 5. Dictée
 
@@ -466,12 +467,15 @@ Réalisé :
 - étoiles gagnées et message de progression ;
 - tests service et UI.
 
-À approfondir plus tard :
+Réalisé ensuite :
 
 - changement réel de table et génération de questions ;
-- série de plusieurs questions ;
-- persistance des scores ;
-- astuces pédagogiques par erreur.
+- toutes les tables 2 à 9 jouables ;
+- série de 8 questions couvrant les facteurs 2 à 9 dans le désordre ;
+- avancement automatique uniquement après bonne réponse ;
+- score final sur 8 selon réussite du premier coup ;
+- table complète finale avec erreurs en rouge ;
+- tests service et UI.
 
 ### Lot 4 — Dictée et poésie
 
@@ -509,7 +513,7 @@ Réalisé :
 - parcours par mondes pédagogiques avec états et progression ;
 - récompenses dynamiques : boutique magique, objets débloqués/verrouillés, historique d’étoiles ;
 - module `Lecture` réel avec histoire courte, audio simulé et questions de compréhension ;
-- multiplication enrichie en mini-série de 5 questions avec progression et résumé ;
+- multiplication enrichie en session de 8 questions mélangées couvrant `2 × table` à `9 × table`, avec score sur 8 et tableau final des erreurs ;
 - dictée enrichie par correction mot par mot, accent/ponctuation et réessai doux ;
 - poésie enrichie par mémorisation ligne par ligne et modes `Lire` / `Cacher des mots` / `Réciter` ;
 - nouveaux contrats `learningPath.ts`, `reading.ts` et extensions `reward.ts`, `language.ts`, `multiplication.ts` ;

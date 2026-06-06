@@ -39,6 +39,20 @@ export type MultiplicationSessionProgress = {
   totalQuestions: number;
 };
 
+export type MultiplicationAttemptRecord = {
+  questionId: string;
+  leftFactor: number;
+  rightFactor: number;
+  correctAnswer: number;
+  scorePoint: 0 | 1;
+};
+
+export type MultiplicationTableReviewFact = {
+  rightFactor: number;
+  line: string;
+  status: 'mastered' | 'missed';
+};
+
 export type MultiplicationSessionSummary = {
   title: string;
   message: string;
