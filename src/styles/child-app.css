@@ -745,6 +745,36 @@
   font-weight: 900;
 }
 
+.unknown-words-card {
+  display: grid;
+  gap: 10px;
+  margin: 12px 0 0;
+  border-radius: 22px;
+  padding: 14px;
+  color: #8a4b00;
+  background: #fff4d8;
+  box-shadow: inset 0 0 0 2px rgba(253, 171, 61, 0.24);
+}
+
+.unknown-words-card strong {
+  color: #7a3d00;
+}
+
+.unknown-words-card p {
+  margin: 0;
+  color: #8a4b00;
+  font-weight: 800;
+}
+
+.unknown-words-card button {
+  width: fit-content;
+  border-radius: 999px;
+  padding: 10px 16px;
+  color: #fff;
+  background: linear-gradient(135deg, #fdab3d, #ff7a1a);
+  font-weight: 1000;
+}
+
 .verb-tense-options {
   display: grid;
   gap: 10px;

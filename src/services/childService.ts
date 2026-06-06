@@ -198,6 +198,26 @@ export const dictationVerbTenseOptions: VerbTenseOption[] = [
   { value: 'futur', label: 'Futur', helper: 'Demain, je prépare la suite.' },
 ];
 
+const knownDictationWords = new Set([
+  'abeille', 'ami', 'amie', 'animal', 'arbre', 'automne', 'ballon', 'bateau', 'chat', 'château', 'chemin',
+  'chien', 'classe', 'crayon', 'dragon', 'école', 'enfant', 'étoile', 'famille', 'fleur', 'forêt', 'garçon',
+  'histoire', 'jardin', 'lapin', 'livre', 'maison', 'matin', 'mer', 'mot', 'mots', 'nuage', 'oiseau', 'page',
+  'papillon', 'pluie', 'poésie', 'pomme', 'renard', 'rivière', 'robot', 'sac', 'soleil', 'table', 'cartable',
+  'train', 'vélo', 'ville', 'voiture', 'voyage',
+]);
+
+function normalizeDictionaryWord(word: string) {
+  return word.trim().toLocaleLowerCase('fr-FR');
+}
+
+function findUnknownDictationWords(words: string[], confirmedUnknownWords: string[] = []) {
+  const confirmed = new Set(confirmedUnknownWords.map(normalizeDictionaryWord));
+  return words.filter((word) => {
+    const normalizedWord = normalizeDictionaryWord(word);
+    return !knownDictationWords.has(normalizedWord) && !confirmed.has(normalizedWord);
+  });
+}
+
 function cleanWordList(words: string[]) {
   return words
     .flatMap((item) => item.split(/[\n,;]+/))
@@ -228,29 +248,43 @@ export async function extractWordDictationWordsFromOcr(
     throw new Error('Aucun mot lisible détecté. Essaie une photo plus nette ou saisis les mots à la main.');
   }
 
+  const unknownWords = findUnknownDictationWords(words);
+  const helperText = unknownWords.length > 0
+    ? `${words.length} mots détectés par OCR. Mot à confirmer : ${unknownWords.join(', ')}.`
+    : `${words.length} mots détectés par OCR. Vérifie la liste avant de générer la dictée.`;
+
   return {
     source: 'ocr',
     fileName: request.fileName,
     words,
+    unknownWords,
     detectedText: request.extractedText,
-    helperText: `${words.length} mots détectés par OCR. Vérifie la liste avant de générer la dictée.`,
+    helperText,
   };
 }
 
 function buildTenseSentences(words: string[], verbTenses: VerbTense[]) {
-  const [first = 'mot', second = 'phrase', third = 'histoire'] = words;
-  const extraWords = words.slice(3);
-  const sentenceByTense: Record<VerbTense, string> = {
-    present: `Aujourd’hui, Emma observe le ${first}, range le ${second} et dessine la ${third}.`,
-    imparfait: `Autrefois, le ${first} brillait près du ${second} pendant que la ${third} murmurait doucement.`,
-    passe_compose: `Hier, Emma a trouvé le ${first}, a ouvert le ${second} et a suivi la ${third}.`,
-    futur: `Demain, Emma cherchera le ${first}, préparera le ${second} et traversera la ${third}.`,
-  };
   const chosenTenses: VerbTense[] = verbTenses.length > 0 ? verbTenses : ['present'];
-  const baseText = chosenTenses.map((tense) => sentenceByTense[tense]).join(' ');
-  const extraText = extraWords.length > 0 ? ` Elle utilisera aussi ces mots : ${extraWords.join(', ')}.` : '';
+  const sentenceTemplates: Record<VerbTense, (word: string, index: number) => string> = {
+    present: (word, index) => index === 0
+      ? `Aujourd’hui, Emma utilise le mot ${word}.`
+      : `Elle utilise aussi le mot ${word}.`,
+    imparfait: (word, index) => index === 0
+      ? `Avant, Emma apprenait le mot ${word}.`
+      : `Elle apprenait aussi le mot ${word}.`,
+    passe_compose: (word, index) => index === 0
+      ? `Hier, Emma a écrit le mot ${word}.`
+      : `Elle a écrit aussi le mot ${word}.`,
+    futur: (word, index) => index === 0
+      ? `Demain, Emma utilisera le mot ${word}.`
+      : `Demain, elle utilisera aussi le mot ${word}.`,
+  };
 
-  return `${baseText}${extraText}`.replace(/\s+/g, ' ').trim();
+  return words
+    .map((word, index) => sentenceTemplates[chosenTenses[index % chosenTenses.length]](word, index))
+    .join(' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 export async function generateWordDictationText(
@@ -266,11 +300,15 @@ export async function generateWordDictationText(
   }
 
   const selectedVerbTenses: VerbTense[] = request.verbTenses.length > 0 ? request.verbTenses : ['present'];
+  const unknownWords = findUnknownDictationWords(words, request.confirmedUnknownWords ?? []);
+  if (unknownWords.length > 0) {
+    throw new Error(`Confirme ces mots avant de générer : ${unknownWords.join(', ')}`);
+  }
 
   return {
     mode: 'word_dictation',
     title: 'Dictée de mots préparée',
-    text: buildTenseSentences(words, selectedVerbTenses).slice(0, 280),
+    text: buildTenseSentences(words, selectedVerbTenses),
     isHiddenByDefault: true,
     wordChecklist: words,
     selectedVerbTenses,

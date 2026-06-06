@@ -49,10 +49,11 @@ describe('Lot 4 dictation and poetry services', () => {
     });
   });
 
-  it('generates a short hidden-ready word dictation text containing every requested word and selected verb tenses', async () => {
+  it('generates a short well-written hidden-ready text that uses every requested word exactly once', async () => {
     const result = await generateWordDictationText('emma-demo', {
       words: ['dragon', 'cartable', 'rivière'],
       verbTenses: ['present', 'futur'],
+      confirmedUnknownWords: [],
     });
 
     expect(result.mode).toBe('word_dictation');
@@ -60,11 +61,29 @@ describe('Lot 4 dictation and poetry services', () => {
     expect(result.isHiddenByDefault).toBe(true);
     expect(result.wordChecklist).toEqual(['dragon', 'cartable', 'rivière']);
     expect(result.selectedVerbTenses).toEqual(['present', 'futur']);
-    expect(result.text.length).toBeLessThanOrEqual(280);
+    expect(result.text.length).toBeLessThanOrEqual(220);
     for (const word of ['dragon', 'cartable', 'rivière']) {
-      expect(result.text.toLocaleLowerCase('fr-FR')).toContain(word);
+      const occurrences = result.text.toLocaleLowerCase('fr-FR').match(new RegExp(`\\b${word}\\b`, 'gu')) ?? [];
+      expect(occurrences).toHaveLength(1);
     }
     expect(result.text).toMatch(/Aujourd’hui|Demain/);
+    expect(result.text).toMatch(/[.!?]$/);
+  });
+
+  it('requires parent confirmation before generating with an unknown typed word', async () => {
+    await expect(generateWordDictationText('emma-demo', {
+      words: ['dragon', 'dragonnn'],
+      verbTenses: ['present'],
+      confirmedUnknownWords: [],
+    })).rejects.toThrow(/Confirme ces mots avant de générer : dragonnn/);
+
+    const confirmedResult = await generateWordDictationText('emma-demo', {
+      words: ['dragon', 'dragonnn'],
+      verbTenses: ['present'],
+      confirmedUnknownWords: ['dragonnn'],
+    });
+
+    expect(confirmedResult.wordChecklist).toEqual(['dragon', 'dragonnn']);
   });
 
   it('extracts OCR words from an imported document or photo payload for word dictation', async () => {
@@ -76,8 +95,21 @@ describe('Lot 4 dictation and poetry services', () => {
 
     expect(result.source).toBe('ocr');
     expect(result.words).toEqual(['dragon', 'cartable', 'rivière']);
+    expect(result.unknownWords).toEqual([]);
     expect(result.detectedText).toContain('Dragon');
     expect(result.helperText).toMatch(/mots détectés/i);
+  });
+
+  it('flags unknown OCR words so the parent can confirm them before generation', async () => {
+    const result = await extractWordDictationWordsFromOcr('emma-demo', {
+      fileName: 'photo-mots.jpg',
+      mimeType: 'image/jpeg',
+      extractedText: 'dragon dragonnn cartable',
+    });
+
+    expect(result.words).toEqual(['dragon', 'dragonnn', 'cartable']);
+    expect(result.unknownWords).toEqual(['dragonnn']);
+    expect(result.helperText).toMatch(/à confirmer/i);
   });
 
   it('returns a poetry session and validates a simulated recital', async () => {

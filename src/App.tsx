@@ -657,6 +657,8 @@ function DictationView({ dashboard }: { dashboard: ChildDashboard }) {
   const [wordSeries, setWordSeries] = useState('');
   const [ocrState, setOcrState] = useState<ApiState<WordDictationOcrResult> | null>(null);
   const [selectedVerbTenses, setSelectedVerbTenses] = useState<VerbTense[]>([]);
+  const [confirmedUnknownWords, setConfirmedUnknownWords] = useState<string[]>([]);
+  const [pendingUnknownWords, setPendingUnknownWords] = useState<string[]>([]);
   const [generatedTextState, setGeneratedTextState] = useState<ApiState<WordDictationTextResult> | null>(null);
   const [showGeneratedText, setShowGeneratedText] = useState(false);
   const [answerText, setAnswerText] = useState('');
@@ -691,24 +693,46 @@ function DictationView({ dashboard }: { dashboard: ChildDashboard }) {
         extractedText,
       });
       setWordSeries(result.words.join(', '));
+      setPendingUnknownWords(result.unknownWords);
+      setConfirmedUnknownWords((current) => current.filter((word) => result.words.includes(word)));
       setOcrState({ status: 'success', data: result });
     } catch (error: unknown) {
       setOcrState({ status: 'error', message: error instanceof Error ? error.message : 'OCR impossible pour ce document.' });
     }
   }
 
-  async function prepareWordDictationText() {
+  function extractUnknownWordsFromError(message: string) {
+    const [, rawWords = ''] = message.split(' : ');
+    return rawWords.split(',').map((word) => word.trim()).filter(Boolean);
+  }
+
+  async function prepareWordDictationText(wordsConfirmedForGeneration = confirmedUnknownWords) {
     setGeneratedTextState({ status: 'loading' });
     setShowGeneratedText(false);
     try {
       const result = await generateWordDictationText(dashboard.child.id, {
         words: wordSeries.split(/[\n,;]+/),
         verbTenses: selectedVerbTenses,
+        confirmedUnknownWords: wordsConfirmedForGeneration,
       });
+      setPendingUnknownWords([]);
       setGeneratedTextState({ status: 'success', data: result });
     } catch (error: unknown) {
-      setGeneratedTextState({ status: 'error', message: error instanceof Error ? error.message : 'Texte impossible à préparer.' });
+      const message = error instanceof Error ? error.message : 'Texte impossible à préparer.';
+      if (message.startsWith('Confirme ces mots avant de générer')) {
+        setPendingUnknownWords(extractUnknownWordsFromError(message));
+        setGeneratedTextState(null);
+        return;
+      }
+      setGeneratedTextState({ status: 'error', message });
     }
+  }
+
+  async function confirmUnknownWordsAndGenerate() {
+    const nextConfirmedWords = Array.from(new Set([...confirmedUnknownWords, ...pendingUnknownWords]));
+    setConfirmedUnknownWords(nextConfirmedWords);
+    setPendingUnknownWords([]);
+    await prepareWordDictationText(nextConfirmedWords);
   }
 
   async function correctDictation() {
@@ -752,7 +776,11 @@ function DictationView({ dashboard }: { dashboard: ChildDashboard }) {
                   <textarea
                     placeholder="Ex. dragon, cartable, rivière"
                     value={wordSeries}
-                    onChange={(event) => setWordSeries(event.target.value)}
+                    onChange={(event) => {
+                      setWordSeries(event.target.value);
+                      setPendingUnknownWords([]);
+                      setGeneratedTextState(null);
+                    }}
                     rows={3}
                   />
                 </label>
@@ -780,6 +808,16 @@ function DictationView({ dashboard }: { dashboard: ChildDashboard }) {
                 {ocrState?.status === 'loading' ? <p className="feedback-card">OCR en cours : le hibou lit les mots…</p> : null}
                 {ocrState?.status === 'error' ? <p className="feedback-card error">{ocrState.message}</p> : null}
                 {ocrState?.status === 'success' ? <p className="ocr-feedback">{ocrState.data.helperText}</p> : null}
+                {pendingUnknownWords.length > 0 ? (
+                  <div className="unknown-words-card" aria-label="Mots à confirmer">
+                    <strong>Mot à confirmer</strong>
+                    <p>Le hibou n’a pas trouvé ce mot dans son petit dictionnaire. Vérifie l’orthographe avant de continuer.</p>
+                    <div className="word-checklist">
+                      {pendingUnknownWords.map((word) => <span key={word}>{word}</span>)}
+                    </div>
+                    <button type="button" onClick={() => void confirmUnknownWordsAndGenerate()}>Confirmer et générer</button>
+                  </div>
+                ) : null}
                 <fieldset className="verb-tense-options">
                   <legend>Temps des verbes</legend>
                   <p>Sélection multiple possible.</p>
@@ -796,7 +834,7 @@ function DictationView({ dashboard }: { dashboard: ChildDashboard }) {
                     ))}
                   </div>
                 </fieldset>
-                <button className="primary-action" type="button" onClick={prepareWordDictationText} disabled={generatedTextState?.status === 'loading'}>Générer le texte</button>
+                <button className="primary-action" type="button" onClick={() => void prepareWordDictationText()} disabled={generatedTextState?.status === 'loading'}>Générer le texte</button>
                 {generatedTextState?.status === 'loading' ? <p className="feedback-card">Le hibou prépare un texte court…</p> : null}
                 {generatedTextState?.status === 'error' ? <p className="feedback-card error">{generatedTextState.message}</p> : null}
                 {generatedTextState?.status === 'success' ? (

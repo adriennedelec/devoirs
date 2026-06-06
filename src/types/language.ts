@@ -18,6 +18,7 @@ export type WordDictationOcrResult = {
   source: 'ocr';
   fileName: string;
   words: string[];
+  unknownWords: string[];
   detectedText: string;
   helperText: string;
 };
@@ -25,6 +26,7 @@ export type WordDictationOcrResult = {
 export type WordDictationTextRequest = {
   words: string[];
   verbTenses: VerbTense[];
+  confirmedUnknownWords?: string[];
 };
 
 export type WordDictationTextResult = {

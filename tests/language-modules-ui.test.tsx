@@ -69,9 +69,41 @@ describe('Lot 4 dictation and poetry UI', () => {
     expect(screen.getByRole('button', { name: /lire le texte à l’élève/i })).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /afficher pour le parent/i }));
-    expect(screen.getByText(/Aujourd’hui, Emma observe le dragon/i)).toBeInTheDocument();
-    expect(screen.getByText(/range le cartable/i)).toBeInTheDocument();
-    expect(screen.getByText(/dessine la rivière/i)).toBeInTheDocument();
+    expect(screen.getByText(/Aujourd’hui, Emma utilise le mot dragon/i)).toBeInTheDocument();
+    expect(screen.getByText(/Demain, elle utilisera aussi le mot cartable/i)).toBeInTheDocument();
+    expect(screen.getByText(/mot rivière/i)).toBeInTheDocument();
+  });
+
+  it('asks the parent to confirm an unknown typed word before generating the text', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /bonjour emma/i })).toBeInTheDocument();
+    });
+
+    const dictationCard = screen.getByRole('heading', { name: /dictée/i }).closest('article');
+    expect(dictationCard).not.toBeNull();
+    await user.click(within(dictationCard!).getByRole('button', { name: /continuer/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /dictée de mots/i })).toBeInTheDocument();
+    });
+
+    await user.type(screen.getByLabelText(/série de mots/i), 'dragon, dragonnn');
+    await user.click(screen.getByRole('button', { name: /générer le texte/i }));
+
+    await waitFor(() => {
+      expect(screen.getAllByText(/mot à confirmer/i).length).toBeGreaterThan(0);
+    });
+    expect(screen.getByText('dragonnn')).toBeInTheDocument();
+    expect(screen.queryByText(/texte masqué pour l’élève/i)).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /confirmer et générer/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/texte masqué pour l’élève/i)).toBeInTheDocument();
+    });
   });
 
   it('uses full page width and imports OCR words from a file into the word series field', async () => {
@@ -100,6 +132,31 @@ describe('Lot 4 dictation and poetry UI', () => {
       expect(screen.getByText(/3 mots détectés par OCR/i)).toBeInTheDocument();
     });
     expect(screen.getByLabelText(/série de mots/i)).toHaveValue('dragon, cartable, rivière');
+  });
+
+  it('shows confirmation when OCR detects an unknown word', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /bonjour emma/i })).toBeInTheDocument();
+    });
+
+    const dictationCard = screen.getByRole('heading', { name: /dictée/i }).closest('article');
+    expect(dictationCard).not.toBeNull();
+    await user.click(within(dictationCard!).getByRole('button', { name: /continuer/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /dictée de mots/i })).toBeInTheDocument();
+    });
+
+    const file = new File(['Dragon\ndragonnn\ncartable'], 'liste-mots.txt', { type: 'text/plain' });
+    await user.upload(screen.getByLabelText(/importer un fichier/i), file);
+
+    await waitFor(() => {
+      expect(screen.getAllByText(/mot à confirmer/i).length).toBeGreaterThan(0);
+    });
+    expect(screen.getByText('dragonnn')).toBeInTheDocument();
   });
 
   it('opens the poetry module from Accueil and validates a simulated recital', async () => {
