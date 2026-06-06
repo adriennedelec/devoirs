@@ -83,8 +83,13 @@ describe('Lots 5-11 complete child interface', () => {
     await user.click(within(multiplicationCard!).getByRole('button', { name: /continuer/i }));
 
     await waitFor(() => expect(screen.getByText(/question 1 sur 10/i)).toBeInTheDocument());
+    expect(screen.getByText(/chronomètre/i)).toBeInTheDocument();
+    expect(screen.getByText(/00:00/i)).toBeInTheDocument();
+    expect(screen.getByText(/démarre à la première réponse/i)).toBeInTheDocument();
+
     await user.click(screen.getByRole('button', { name: '49' }));
     await waitFor(() => expect(screen.getByText(/on retente/i)).toBeInTheDocument());
+    expect(screen.getByText(/chrono lancé/i)).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: '56' }));
 
     for (const [question, answer] of [
@@ -104,15 +109,21 @@ describe('Lots 5-11 complete child interface', () => {
 
     await waitFor(() => expect(screen.getByText(/score : 9 \/ 10/i)).toBeInTheDocument());
     expect(screen.getByRole('heading', { name: /table complète de 7/i })).toBeInTheDocument();
-    const missedFact = screen.getByText('8 × 7 = 56').closest('li');
+    const missedFact = screen.getAllByText('8 × 7 = 56').find((element) => element.tagName.toLowerCase() === 'li');
     expect(missedFact).toHaveClass('missed');
-    expect(screen.getByText('6 × 7 = 42').closest('li')).toHaveClass('mastered');
+    expect(screen.getAllByText('6 × 7 = 42').find((element) => element.tagName.toLowerCase() === 'li')).toHaveClass('mastered');
 
     const history = screen.getByRole('table', { name: /historique des tables réalisées/i });
     expect(within(history).getByText(/table de 7/i)).toBeInTheDocument();
     expect(within(history).getByText(/9 justes/i)).toBeInTheDocument();
     expect(within(history).getByText(/1 fausse/i)).toBeInTheDocument();
     expect(within(history).getByText(/9 \/ 10/i)).toBeInTheDocument();
+    expect(within(history).getByText(/temps/i)).toBeInTheDocument();
+    expect(within(history).getByText(/00:0[1-9]/i)).toBeInTheDocument();
+    const masteredDetail = within(history).getByText('1 × 7 = 7');
+    expect(masteredDetail).toHaveClass('mastered');
+    const missedDetail = within(history).getByText('8 × 7 = 56');
+    expect(missedDetail).toHaveClass('missed');
   });
 
   it('lets the child launch every available multiplication table from the picker', async () => {

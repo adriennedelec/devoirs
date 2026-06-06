@@ -44,7 +44,15 @@ type CompletedMultiplicationTable = {
   wrongCount: number;
   score: number;
   totalQuestions: number;
+  durationSeconds: number;
+  facts: MultiplicationTableReviewFact[];
 };
+
+function formatDuration(totalSeconds: number) {
+  const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
+  const seconds = Math.floor(totalSeconds % 60).toString().padStart(2, '0');
+  return `${minutes}:${seconds}`;
+}
 
 const navItems: NavItem[] = [
   { id: 'home', label: 'Accueil', icon: Home },
@@ -314,6 +322,8 @@ function MultiplicationView({ dashboard }: { dashboard: ChildDashboard }) {
   const [firstTryByQuestion, setFirstTryByQuestion] = useState<Record<string, boolean>>({});
   const [attemptHistory, setAttemptHistory] = useState<MultiplicationAttemptRecord[]>([]);
   const [completedTableHistory, setCompletedTableHistory] = useState<CompletedMultiplicationTable[]>([]);
+  const [timerStartedAt, setTimerStartedAt] = useState<number | null>(null);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -327,6 +337,14 @@ function MultiplicationView({ dashboard }: { dashboard: ChildDashboard }) {
     return () => { cancelled = true; };
   }, [dashboard.child.id]);
 
+  useEffect(() => {
+    if (!timerStartedAt || answerState?.status === 'success' && Boolean(answerState.data.sessionSummary)) return;
+    const intervalId = window.setInterval(() => {
+      setElapsedSeconds(Math.floor((Date.now() - timerStartedAt) / 1000));
+    }, 1000);
+    return () => window.clearInterval(intervalId);
+  }, [answerState, timerStartedAt]);
+
   const currentQuestion = sessionState.status === 'success' ? sessionState.data.questions[questionIndex] : null;
   const finalScore = attemptHistory.reduce((score, record) => score + record.scorePoint, 0);
   const goodAnswerCount = attemptHistory.filter((record) => record.scorePoint === 1).length;
@@ -338,19 +356,24 @@ function MultiplicationView({ dashboard }: { dashboard: ChildDashboard }) {
     return record.scorePoint === 0 ? 'missed' : 'mastered';
   }
 
-  function buildTableFacts(session: MultiplicationSession): MultiplicationTableReviewFact[] {
+  function buildTableFacts(session: MultiplicationSession, history: MultiplicationAttemptRecord[] = attemptHistory): MultiplicationTableReviewFact[] {
     return Array.from({ length: 10 }, (_, index) => {
       const rightFactor = index + 1;
       return {
         rightFactor,
         line: `${rightFactor} × ${session.selectedTable} = ${session.selectedTable * rightFactor}`,
-        status: attemptHistory.find((item) => item.rightFactor === rightFactor)?.scorePoint === 0 ? 'missed' : 'mastered',
+        status: history.find((item) => item.rightFactor === rightFactor)?.scorePoint === 0 ? 'missed' : 'mastered',
       };
     });
   }
 
   async function answerQuestion(selectedAnswer: number) {
-    if (!currentQuestion) return;
+    if (!currentQuestion || answerState?.status === 'success' && Boolean(answerState.data.sessionSummary)) return;
+    const startedAt = timerStartedAt ?? Date.now();
+    if (!timerStartedAt) {
+      setTimerStartedAt(startedAt);
+      setElapsedSeconds(0);
+    }
     setAnswerState({ status: 'loading' });
     try {
       const result = await submitMultiplicationAnswer(dashboard.child.id, { questionId: currentQuestion.id, selectedAnswer });
@@ -386,6 +409,8 @@ function MultiplicationView({ dashboard }: { dashboard: ChildDashboard }) {
       const score = nextHistory.reduce((total, record) => total + record.scorePoint, 0);
       const correctCount = nextHistory.filter((record) => record.scorePoint === 1).length;
       const wrongCount = sessionState.status === 'success' ? sessionState.data.totalQuestions - correctCount : 0;
+      const durationSeconds = Math.max(1, Math.floor((Date.now() - startedAt) / 1000));
+      setElapsedSeconds(durationSeconds);
       setCompletedTableHistory((current) => [
         ...current,
         {
@@ -395,6 +420,8 @@ function MultiplicationView({ dashboard }: { dashboard: ChildDashboard }) {
           wrongCount,
           score,
           totalQuestions: sessionState.status === 'success' ? sessionState.data.totalQuestions : nextHistory.length,
+          durationSeconds,
+          facts: sessionState.status === 'success' ? buildTableFacts(sessionState.data, nextHistory) : [],
         },
       ]);
       setAnswerState({ status: 'success', data: result });
@@ -409,6 +436,8 @@ function MultiplicationView({ dashboard }: { dashboard: ChildDashboard }) {
     setAnswerState(null);
     setFirstTryByQuestion({});
     setAttemptHistory([]);
+    setTimerStartedAt(null);
+    setElapsedSeconds(0);
     try {
       const session = await getMultiplicationSession(dashboard.child.id, table);
       setSessionState({ status: 'success', data: session });
@@ -496,6 +525,14 @@ function MultiplicationView({ dashboard }: { dashboard: ChildDashboard }) {
                 <p>{activeTable} × {currentQuestion.rightFactor} = c'est {currentQuestion.rightFactor} groupes de {activeTable}.</p>
                 <p>{Array.from({ length: currentQuestion.rightFactor }, () => activeTable).join(' + ')} = {activeTable * currentQuestion.rightFactor}</p>
               </aside>
+              <aside className="timer-card" aria-label="Chronomètre de la table">
+                <span aria-hidden="true">⏱️</span>
+                <div>
+                  <strong>Chronomètre</strong>
+                  <p className="timer-value">{formatDuration(elapsedSeconds)}</p>
+                  <small>{timerStartedAt ? 'Chrono lancé' : 'Démarre à la première réponse'}</small>
+                </div>
+              </aside>
             </div>
 
             <div className="calculation-panel">
@@ -561,12 +598,14 @@ function MultiplicationView({ dashboard }: { dashboard: ChildDashboard }) {
                     <th scope="col">Réponses justes</th>
                     <th scope="col">Réponses fausses</th>
                     <th scope="col">Score</th>
+                    <th scope="col">Temps</th>
+                    <th scope="col">Détail des calculs</th>
                   </tr>
                 </thead>
                 <tbody>
                   {completedTableHistory.length === 0 ? (
                     <tr>
-                      <td colSpan={4}>Termine une table pour remplir ton historique magique ✨</td>
+                      <td colSpan={6}>Termine une table pour remplir ton historique magique ✨</td>
                     </tr>
                   ) : completedTableHistory.map((record) => (
                     <tr key={record.id}>
@@ -574,6 +613,14 @@ function MultiplicationView({ dashboard }: { dashboard: ChildDashboard }) {
                       <td><span className="history-pill success">{record.correctCount} justes</span></td>
                       <td><span className="history-pill retry">{record.wrongCount} {record.wrongCount > 1 ? 'fausses' : 'fausse'}</span></td>
                       <td><strong>{record.score} / {record.totalQuestions}</strong></td>
+                      <td><span className="history-pill time">{formatDuration(record.durationSeconds)}</span></td>
+                      <td>
+                        <div className="history-fact-list" aria-label={`Détail de la table de ${record.table}`}>
+                          {record.facts.map((fact) => (
+                            <span className={`history-fact ${fact.status}`} key={fact.rightFactor}>{fact.line}</span>
+                          ))}
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
