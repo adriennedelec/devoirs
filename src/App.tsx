@@ -45,6 +45,7 @@ type CompletedMultiplicationTable = {
   score: number;
   totalQuestions: number;
   durationSeconds: number;
+  completedAtIso: string;
   facts: MultiplicationTableReviewFact[];
 };
 
@@ -52,6 +53,13 @@ function formatDuration(totalSeconds: number) {
   const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
   const seconds = Math.floor(totalSeconds % 60).toString().padStart(2, '0');
   return `${minutes}:${seconds}`;
+}
+
+function formatHistoryDateTime(isoDate: string) {
+  return new Intl.DateTimeFormat('fr-FR', {
+    dateStyle: 'short',
+    timeStyle: 'short',
+  }).format(new Date(isoDate)).replace(',', '');
 }
 
 const navItems: NavItem[] = [
@@ -421,6 +429,7 @@ function MultiplicationView({ dashboard }: { dashboard: ChildDashboard }) {
           score,
           totalQuestions: sessionState.status === 'success' ? sessionState.data.totalQuestions : nextHistory.length,
           durationSeconds,
+          completedAtIso: new Date().toISOString(),
           facts: sessionState.status === 'success' ? buildTableFacts(sessionState.data, nextHistory) : [],
         },
       ]);
@@ -595,6 +604,7 @@ function MultiplicationView({ dashboard }: { dashboard: ChildDashboard }) {
                 <thead>
                   <tr>
                     <th scope="col">Table</th>
+                    <th scope="col">Date et heure</th>
                     <th scope="col">Réponses justes</th>
                     <th scope="col">Réponses fausses</th>
                     <th scope="col">Score</th>
@@ -605,11 +615,12 @@ function MultiplicationView({ dashboard }: { dashboard: ChildDashboard }) {
                 <tbody>
                   {completedTableHistory.length === 0 ? (
                     <tr>
-                      <td colSpan={6}>Termine une table pour remplir ton historique magique ✨</td>
+                      <td colSpan={7}>Termine une table pour remplir ton historique magique ✨</td>
                     </tr>
                   ) : completedTableHistory.map((record) => (
                     <tr key={record.id}>
                       <td>Table de {record.table}</td>
+                      <td><span className="history-date-time">{formatHistoryDateTime(record.completedAtIso)}</span></td>
                       <td><span className="history-pill success">{record.correctCount} justes</span></td>
                       <td><span className="history-pill retry">{record.wrongCount} {record.wrongCount > 1 ? 'fausses' : 'fausse'}</span></td>
                       <td><strong>{record.score} / {record.totalQuestions}</strong></td>

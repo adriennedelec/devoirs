@@ -15,6 +15,15 @@
   margin-right: auto;
 }
 
+.multiplication-app-layout {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 12% 20%, rgba(255, 255, 255, 0.5) 0 7rem, transparent 13rem),
+    radial-gradient(circle at 78% 12%, rgba(255, 200, 61, 0.26) 0 4rem, transparent 10rem),
+    radial-gradient(circle at 25% 86%, rgba(205, 184, 255, 0.42) 0 9rem, transparent 16rem),
+    linear-gradient(135deg, #f8f1ff 0%, #cdb8ff 38%, #dff2ff 100%);
+}
+
 .multiplication-app-layout .child-app-shell {
   width: min(100%, 1280px);
   padding: 0;
@@ -25,7 +34,7 @@
   max-width: none;
   margin-left: 250px;
   margin-right: 0;
-  padding: 18px 18px 40px;
+  padding: 0;
 }
 
 .child-main {
@@ -932,7 +941,8 @@
   isolation: isolate;
   min-height: 100vh;
   overflow: hidden;
-  padding: 36px clamp(16px, 4vw, 56px) 48px;
+  padding: 22px clamp(16px, 3vw, 36px) 32px;
+  border-radius: 0;
   background:
     radial-gradient(circle at 12% 20%, rgba(255, 255, 255, 0.5) 0 7rem, transparent 13rem),
     radial-gradient(circle at 78% 12%, rgba(255, 200, 61, 0.26) 0 4rem, transparent 10rem),
@@ -972,25 +982,25 @@
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: start;
-  gap: 20px;
+  gap: 14px;
   width: 100%;
   max-width: none;
-  margin: 0 0 24px;
+  margin: 0 0 14px;
 }
 
 .math-magic-header h1 {
   margin: 0;
   color: #34246f;
-  font-size: clamp(3rem, 7vw, 5.6rem);
+  font-size: clamp(2.4rem, 5vw, 4.2rem);
   line-height: 0.95;
   letter-spacing: -0.06em;
   text-shadow: 0 12px 34px rgba(122, 90, 248, 0.18);
 }
 
 .math-magic-header p {
-  margin: 14px 0 0;
+  margin: 8px 0 0;
   color: #6756a3;
-  font-size: clamp(1.05rem, 2vw, 1.35rem);
+  font-size: clamp(0.98rem, 1.6vw, 1.18rem);
   font-weight: 800;
 }
 
@@ -999,7 +1009,7 @@
   align-items: center;
   gap: 8px;
   border-radius: 999px;
-  padding: 16px 20px;
+  padding: 12px 16px;
   background: rgba(250, 250, 255, 0.95);
   color: #4d3d9c;
   box-shadow: 0 18px 42px rgba(52, 36, 111, 0.14);
@@ -1014,25 +1024,25 @@
 .magic-table-selector {
   display: grid;
   grid-template-columns: repeat(9, minmax(54px, 1fr));
-  gap: 12px;
+  gap: 10px;
   width: 100%;
   max-width: none;
-  margin: 0 0 22px;
-  padding: 10px;
-  border-radius: 30px;
+  margin: 0 0 14px;
+  padding: 8px;
+  border-radius: 26px;
   background: rgba(250, 250, 255, 0.44);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.58);
   backdrop-filter: blur(14px);
 }
 
 .magic-table-selector button {
-  min-height: 62px;
+  min-height: 48px;
   border: 2px solid #cdb8ff;
-  border-radius: 20px;
+  border-radius: 17px;
   background: rgba(250, 250, 255, 0.96);
   color: #5b43ca;
   box-shadow: 0 10px 22px rgba(122, 90, 248, 0.12);
-  font-size: 1.35rem;
+  font-size: 1.12rem;
   font-weight: 1000;
 }
 
@@ -1046,21 +1056,21 @@
 .math-progress-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
+  gap: 14px;
   width: 100%;
   max-width: none;
-  margin: 0 0 22px;
+  margin: 0 0 14px;
 }
 
 .math-progress-card {
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: 14px;
+  gap: 12px;
   align-items: center;
-  min-height: 150px;
-  padding: 20px;
+  min-height: 104px;
+  padding: 16px;
   border: 1px solid rgba(255, 255, 255, 0.84);
-  border-radius: 30px;
+  border-radius: 26px;
   background: rgba(250, 250, 255, 0.9);
   box-shadow: 0 18px 48px rgba(68, 47, 143, 0.14);
 }
@@ -1080,12 +1090,12 @@
 .progress-icon {
   display: grid;
   place-items: center;
-  width: 58px;
-  height: 58px;
-  border-radius: 22px;
+  width: 48px;
+  height: 48px;
+  border-radius: 18px;
   background: linear-gradient(135deg, #f8f1ff, #dff2ff);
   box-shadow: inset 0 -4px 0 rgba(122, 90, 248, 0.12);
-  font-size: 1.8rem;
+  font-size: 1.5rem;
 }
 
 .progress-icon.level {
@@ -1104,14 +1114,14 @@
 .magic-exercise-card {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(260px, 0.8fr) minmax(420px, 1.25fr);
-  gap: 28px;
+  grid-template-columns: minmax(240px, 0.72fr) minmax(420px, 1.28fr);
+  gap: 18px;
   width: 100%;
   max-width: none;
-  margin: 0 0 24px;
-  padding: clamp(22px, 3vw, 34px);
+  margin: 0 0 14px;
+  padding: clamp(16px, 2.2vw, 24px);
   border: 1px solid rgba(255, 255, 255, 0.86);
-  border-radius: 32px;
+  border-radius: 28px;
   background: rgba(250, 250, 255, 0.94);
   box-shadow: 0 28px 70px rgba(52, 36, 111, 0.18);
 }
@@ -1119,18 +1129,18 @@
 .character-stage {
   display: grid;
   align-content: start;
-  gap: 16px;
+  gap: 10px;
 }
 
 .encouragement-bubble {
   position: relative;
   border: 2px solid rgba(205, 184, 255, 0.62);
-  border-radius: 28px 28px 28px 10px;
-  padding: 18px;
+  border-radius: 24px 24px 24px 10px;
+  padding: 14px;
   background: #fff;
   color: #4b3bc4;
   box-shadow: 0 14px 32px rgba(122, 90, 248, 0.14);
-  font-size: 1.05rem;
+  font-size: 0.96rem;
   font-weight: 1000;
 }
 
@@ -1138,9 +1148,9 @@
   display: flex;
   align-items: end;
   justify-content: center;
-  gap: 10px;
-  min-height: 180px;
-  border-radius: 30px;
+  gap: 8px;
+  min-height: 116px;
+  border-radius: 24px;
   background:
     radial-gradient(circle at 50% 95%, rgba(255, 200, 61, 0.22), transparent 7rem),
     linear-gradient(180deg, #dff2ff, #f8f1ff);
@@ -1152,16 +1162,16 @@
   filter: drop-shadow(0 14px 18px rgba(68, 47, 143, 0.18));
 }
 
-.kid-character { font-size: 5.8rem; }
-.robot-character { font-size: 3.6rem; }
+.kid-character { font-size: 3.9rem; }
+.robot-character { font-size: 2.7rem; }
 .treasure-chest {
   justify-self: center;
-  font-size: 3.4rem;
+  font-size: 2.5rem;
 }
 
 .help-card {
-  border-radius: 26px;
-  padding: 18px;
+  border-radius: 22px;
+  padding: 14px;
   background: linear-gradient(135deg, #fff8d6, #f8f1ff);
   color: #4d3d9c;
   box-shadow: inset 0 0 0 1px rgba(255, 200, 61, 0.24);
@@ -1170,10 +1180,10 @@
 .timer-card {
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: 12px;
+  gap: 10px;
   align-items: center;
-  border-radius: 26px;
-  padding: 18px;
+  border-radius: 22px;
+  padding: 14px;
   background: linear-gradient(135deg, #ffffff, #dff2ff);
   color: #34246f;
   box-shadow: inset 0 0 0 1px rgba(122, 90, 248, 0.18), 0 14px 32px rgba(68, 47, 143, 0.1);
@@ -1182,11 +1192,11 @@
 .timer-card > span {
   display: grid;
   place-items: center;
-  width: 48px;
-  height: 48px;
-  border-radius: 18px;
+  width: 40px;
+  height: 40px;
+  border-radius: 15px;
   background: #f8f1ff;
-  font-size: 1.6rem;
+  font-size: 1.35rem;
 }
 
 .timer-card strong {
@@ -1215,24 +1225,24 @@
 .calculation-panel {
   position: relative;
   display: grid;
-  gap: 12px;
+  gap: 10px;
 }
 
 .table-ribbon {
   justify-self: start;
   border-radius: 999px;
-  padding: 12px 22px;
+  padding: 10px 18px;
   background: linear-gradient(135deg, #7a5af8, #4b3bc4);
   color: #fff;
   box-shadow: 0 14px 26px rgba(122, 90, 248, 0.26);
-  font-size: 1.15rem;
+  font-size: 1.05rem;
   font-weight: 1000;
 }
 
 .calculation-panel h2 {
   margin: 0;
   color: #34246f;
-  font-size: clamp(1.8rem, 4vw, 2.8rem);
+  font-size: clamp(1.7rem, 3.2vw, 2.35rem);
 }
 
 .operation-stack {
@@ -1436,18 +1446,18 @@
 .magic-answer-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
-  margin: 6px 0 2px;
+  gap: 10px;
+  margin: 2px 0;
 }
 
 .magic-answer-grid button {
-  min-height: 72px;
+  min-height: 58px;
   border: 2px solid rgba(205, 184, 255, 0.86);
-  border-radius: 24px;
+  border-radius: 20px;
   background: linear-gradient(180deg, #ffffff, #f8f1ff);
   color: #4b3bc4;
   box-shadow: 0 14px 28px rgba(68, 47, 143, 0.12);
-  font-size: clamp(1.35rem, 3vw, 2rem);
+  font-size: clamp(1.25rem, 2.5vw, 1.75rem);
   font-weight: 1000;
 }
 
@@ -1496,10 +1506,10 @@
 .multiplication-history-card {
   width: 100%;
   max-width: none;
-  margin: 0 0 16px;
-  padding: clamp(20px, 3vw, 28px);
+  margin: 0 0 12px;
+  padding: clamp(16px, 2.2vw, 22px);
   border: 1px solid rgba(255, 255, 255, 0.86);
-  border-radius: 32px;
+  border-radius: 28px;
   background: rgba(250, 250, 255, 0.92);
   box-shadow: 0 24px 58px rgba(52, 36, 111, 0.14);
 }
@@ -1523,7 +1533,7 @@
 
 .multiplication-history-table {
   width: 100%;
-  min-width: 620px;
+  min-width: 720px;
   border-collapse: collapse;
   color: #34246f;
   font-weight: 900;
@@ -1531,7 +1541,7 @@
 
 .multiplication-history-table th,
 .multiplication-history-table td {
-  padding: 16px 18px;
+  padding: 12px 14px;
   text-align: left;
   border-bottom: 1px solid rgba(205, 184, 255, 0.28);
 }
@@ -1571,6 +1581,14 @@
 .history-pill.time {
   color: #4b3bc4;
   background: #f8f1ff;
+}
+
+.history-date-time {
+  display: inline-flex;
+  min-width: 112px;
+  color: #4b3bc4;
+  font-size: 0.9rem;
+  font-weight: 1000;
 }
 
 .history-fact-list {

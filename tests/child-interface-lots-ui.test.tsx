@@ -119,6 +119,8 @@ describe('Lots 5-11 complete child interface', () => {
     expect(within(history).getByText(/1 fausse/i)).toBeInTheDocument();
     expect(within(history).getByText(/9 \/ 10/i)).toBeInTheDocument();
     expect(within(history).getByText(/temps/i)).toBeInTheDocument();
+    expect(within(history).getByText(/date et heure/i)).toBeInTheDocument();
+    expect(within(history).getByText(/\d{2}\/\d{2}\/\d{4}.*\d{2}:\d{2}/i)).toBeInTheDocument();
     expect(within(history).getByText(/00:0[1-9]/i)).toBeInTheDocument();
     const masteredDetail = within(history).getByText('1 × 7 = 7');
     expect(masteredDetail).toHaveClass('mastered');

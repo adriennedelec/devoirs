@@ -190,14 +190,19 @@ Structure visuelle :
 - sélecteur horizontal de tables `2` à `10`, boutons blancs arrondis, état actif en dégradé violet ;
 - trois cartes de progression : objectif du jour, série actuelle, niveau joueur ;
 - grande carte exercice blanche `32px` avec personnage enfant, robot, coffre, bulle BD et carte aide ;
+- fond magique violet → bleu pastel appliqué à tout le layout multiplication pour éviter tout effet de “bloc” ou délimitation blanche autour de la zone ;
+- header plus compact que la première version XXL afin de réduire le scroll sans perdre l’effet premium ;
+- sélecteur de table horizontal 2 à 10 avec boutons condensés ;
+- trois cartes de progression condensées en ligne ;
+- grande carte d’exercice en 2 colonnes mais avec espacements réduits : bulle d’encouragement + personnages + aide/chrono à gauche, question QCM à droite ;
 - une **question de multiplication à la fois** (`7 × 8 = ?`) avec 4 boutons QCM larges et rassurants ;
 - bande de progression `1×` à `10×` pour montrer les facteurs déjà réussis / à revoir ;
 - bouton `Écouter la question` violet ;
 - chronomètre latéral qui affiche `00:00` au départ et démarre dès le premier clic de réponse ;
-- tableau bas `Historique des tables réalisées` listant, pour chaque table terminée, les réponses justes, les réponses fausses, le score obtenu, le temps passé et les calculs `1 × table` à `10 × table` avec chips vertes/rouges ;
+- tableau bas `Historique des tables réalisées` listant, pour chaque table terminée, la date/heure, les réponses justes, les réponses fausses, le score obtenu, le temps passé et les calculs `1 × table` à `10 × table` avec chips vertes/rouges ;
 - conservation de la navigation directe vers `Tables`, `Dictée`, `Poésie` dans le menu latéral.
 
-Règle UX : une bonne réponse avance automatiquement à la question suivante ; une erreur garde la même question active. Le chrono ne démarre pas au chargement de l’écran mais au premier essai de réponse. Le score final reste basé sur la réussite du premier coup, la table complète marque les calculs à revoir en rouge, puis le tableau d’historique sert de carnet de progrès lisible sans transformer l’écran enfant en dashboard adulte.
+Règle UX : une bonne réponse avance automatiquement à la question suivante ; une erreur garde la même question active. Le chrono ne démarre pas au chargement de l’écran mais au premier essai de réponse. Le fond magique doit se prolonger sur toute la page (y compris derrière le shell à droite du menu) sans bordure visuelle de conteneur. Le score final reste basé sur la réussite du premier coup, la table complète marque les calculs à revoir en rouge, puis le tableau d’historique sert de carnet de progrès lisible sans transformer l’écran enfant en dashboard adulte.
 
 ### Composants gamification
 

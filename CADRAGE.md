@@ -221,10 +221,11 @@ Construire une première maquette web crédible et navigable, avec une vraie str
 - correction immédiate ;
 - progression de série ;
 - session complète de 10 calculs couvrant les facteurs 1 à 10 dans le désordre ;
+- design magique compact : fond violet→bleu continu sur toute la page, header réduit, sélecteur/cartes/boutons moins hauts pour limiter le scroll ;
 - score sur 10 calculé uniquement sur les réponses réussies du premier coup ;
 - chronomètre lancé au premier clic de réponse, pas au chargement ;
 - table complète finale avec erreurs du premier essai affichées en rouge ;
-- historique bas des tables terminées avec réponses justes, réponses fausses, score obtenu, temps passé et détail `1 × table` à `10 × table` en vert/rouge ;
+- historique bas des tables terminées avec date/heure, réponses justes, réponses fausses, score obtenu, temps passé et détail `1 × table` à `10 × table` en vert/rouge ;
 - récompenses instantanées et zone aide pédagogique.
 
 #### 5. Dictée
