@@ -4,8 +4,11 @@ import type { ApiState, ChildDashboard } from './types/api';
 import type {
   DictationAnswerResult,
   DictationSession,
+  DictationMode,
   PoetryRecitalResult,
   PoetrySession,
+  VerbTense,
+  WordDictationTextResult,
 } from './types/language';
 import type {
   MultiplicationAnswerResult,
@@ -20,6 +23,8 @@ import {
   getMultiplicationSession,
   getPoetrySession,
   getReadingSession,
+  dictationVerbTenseOptions,
+  generateWordDictationText,
   submitDictationAnswer,
   submitMultiplicationAnswer,
   submitPoetryRecital,
@@ -646,6 +651,11 @@ function MultiplicationView({ dashboard }: { dashboard: ChildDashboard }) {
 
 function DictationView({ dashboard }: { dashboard: ChildDashboard }) {
   const [sessionState, setSessionState] = useState<ApiState<DictationSession>>({ status: 'loading' });
+  const [dictationMode, setDictationMode] = useState<DictationMode>('word_dictation');
+  const [wordSeries, setWordSeries] = useState('');
+  const [selectedVerbTenses, setSelectedVerbTenses] = useState<VerbTense[]>([]);
+  const [generatedTextState, setGeneratedTextState] = useState<ApiState<WordDictationTextResult> | null>(null);
+  const [showGeneratedText, setShowGeneratedText] = useState(false);
   const [answerText, setAnswerText] = useState('');
   const [answerState, setAnswerState] = useState<ApiState<DictationAnswerResult> | null>(null);
 
@@ -660,6 +670,26 @@ function DictationView({ dashboard }: { dashboard: ChildDashboard }) {
       });
     return () => { cancelled = true; };
   }, [dashboard.child.id]);
+
+  function toggleVerbTense(verbTense: VerbTense) {
+    setSelectedVerbTenses((current) => current.includes(verbTense)
+      ? current.filter((item) => item !== verbTense)
+      : [...current, verbTense]);
+  }
+
+  async function prepareWordDictationText() {
+    setGeneratedTextState({ status: 'loading' });
+    setShowGeneratedText(false);
+    try {
+      const result = await generateWordDictationText(dashboard.child.id, {
+        words: wordSeries.split(/[\n,;]+/),
+        verbTenses: selectedVerbTenses,
+      });
+      setGeneratedTextState({ status: 'success', data: result });
+    } catch (error: unknown) {
+      setGeneratedTextState({ status: 'error', message: error instanceof Error ? error.message : 'Texte impossible à préparer.' });
+    }
+  }
 
   async function correctDictation() {
     if (sessionState.status !== 'success') return;
@@ -678,38 +708,105 @@ function DictationView({ dashboard }: { dashboard: ChildDashboard }) {
       {sessionState.status === 'loading' ? <div className="state-card">Préparation de la dictée…</div> : null}
       {sessionState.status === 'error' ? <div className="state-card error">{sessionState.message}</div> : null}
       {sessionState.status === 'success' ? (
-        <section className="language-card dictation-card" aria-labelledby="dictation-title">
-          <div className="language-mascot" aria-hidden="true">✍️</div>
-          <div>
-            <p className="eyebrow">Mission orthographe</p>
-            <h2 id="dictation-title">{sessionState.data.title}</h2>
-            <p>{sessionState.data.instruction}</p>
-            <button className="audio-button" type="button">🔊 {sessionState.data.audioLabel}</button>
-            <div className="hint-list" aria-label="Indices de dictée">
-              {sessionState.data.hints.map((hint) => <span key={hint}>{hint}</span>)}
-            </div>
-            <label className="answer-field">
-              <span>Ta phrase</span>
-              <textarea value={answerText} onChange={(event) => setAnswerText(event.target.value)} rows={4} />
-            </label>
-            <button className="primary-action" type="button" onClick={correctDictation} disabled={answerState?.status === 'loading'}>Corriger ma dictée</button>
-            {answerState?.status === 'loading' ? <p className="feedback-card">La mascotte relit ta phrase…</p> : null}
-            {answerState?.status === 'error' ? <p className="feedback-card error">{answerState.message}</p> : null}
-            {answerState?.status === 'success' ? (
-              <div className={answerState.data.isCorrect ? 'feedback-card success' : 'feedback-card retry'}>
-                <h3>{answerState.data.feedbackTitle}</h3>
-                <p>{answerState.data.feedbackMessage}</p>
-                <p><strong>Correction :</strong> {answerState.data.correctedText}</p>
-                <div className="word-feedback" aria-label="Correction mot par mot">
-                  {answerState.data.wordFeedback.map((word) => (
-                    <span className={word.status} key={`${word.expected}-${word.actual}`}>{word.expected}<small>{word.hint}</small></span>
-                  ))}
-                </div>
-                <button type="button" onClick={() => { setAnswerText(''); setAnswerState(null); }}>{answerState.data.retryLabel}</button>
+        <>
+          <section className="dictation-mode-card" aria-label="Choix du type de dictée">
+            <button aria-pressed={dictationMode === 'word_dictation'} className={dictationMode === 'word_dictation' ? 'active' : ''} onClick={() => setDictationMode('word_dictation')} type="button">
+              <strong>Dictée de mots</strong>
+              <span>Je saisis une série de mots, l’app prépare un texte court.</span>
+            </button>
+            <button aria-pressed={dictationMode === 'classic_dictation'} className={dictationMode === 'classic_dictation' ? 'active' : ''} onClick={() => setDictationMode('classic_dictation')} type="button">
+              <strong>Dictée normale</strong>
+              <span>Phrase classique avec correction mot par mot.</span>
+            </button>
+          </section>
+
+          {dictationMode === 'word_dictation' ? (
+            <section className="language-card dictation-card word-dictation-card" aria-labelledby="word-dictation-title">
+              <div className="language-mascot" aria-hidden="true">🪄</div>
+              <div>
+                <p className="eyebrow">Préparation parent</p>
+                <h2 id="word-dictation-title">Dictée de mots</h2>
+                <p>Tape les mots à travailler. L’application prépare un texte court qui les contient tous, puis le garde masqué pour l’élève.</p>
+                <label className="answer-field">
+                  <span>Série de mots</span>
+                  <textarea
+                    placeholder="Ex. dragon, cartable, rivière"
+                    value={wordSeries}
+                    onChange={(event) => setWordSeries(event.target.value)}
+                    rows={3}
+                  />
+                </label>
+                <fieldset className="verb-tense-options">
+                  <legend>Temps des verbes</legend>
+                  <p>Sélection multiple possible.</p>
+                  <div>
+                    {dictationVerbTenseOptions.map((option) => (
+                      <label key={option.value}>
+                        <input
+                          checked={selectedVerbTenses.includes(option.value)}
+                          onChange={() => toggleVerbTense(option.value)}
+                          type="checkbox"
+                        />
+                        <span><strong>{option.label}</strong><small>{option.helper}</small></span>
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
+                <button className="primary-action" type="button" onClick={prepareWordDictationText} disabled={generatedTextState?.status === 'loading'}>Générer le texte</button>
+                {generatedTextState?.status === 'loading' ? <p className="feedback-card">Le hibou prépare un texte court…</p> : null}
+                {generatedTextState?.status === 'error' ? <p className="feedback-card error">{generatedTextState.message}</p> : null}
+                {generatedTextState?.status === 'success' ? (
+                  <div className="generated-dictation-card" aria-label="Texte généré pour la dictée de mots">
+                    <p className="eyebrow">{generatedTextState.data.title}</p>
+                    <h3>{showGeneratedText ? 'Texte parent' : 'Texte masqué pour l’élève'}</h3>
+                    <p>{generatedTextState.data.readingInstruction}</p>
+                    <div className="word-checklist" aria-label="Mots inclus">
+                      {generatedTextState.data.wordChecklist.map((word) => <span key={word}>{word}</span>)}
+                    </div>
+                    {showGeneratedText ? <p className="generated-dictation-text">{generatedTextState.data.text}</p> : <div className="masked-dictation-text" aria-label="Texte masqué">•••• •••• •••• •••• ••••</div>}
+                    <div className="dictation-actions">
+                      <button className="audio-button" type="button">🔊 Lire le texte à l’élève</button>
+                      <button type="button" onClick={() => setShowGeneratedText((value) => !value)}>{showGeneratedText ? 'Masquer le texte' : 'Afficher pour le parent'}</button>
+                    </div>
+                  </div>
+                ) : null}
               </div>
-            ) : null}
-          </div>
-        </section>
+            </section>
+          ) : (
+            <section className="language-card dictation-card" aria-labelledby="dictation-title">
+              <div className="language-mascot" aria-hidden="true">✍️</div>
+              <div>
+                <p className="eyebrow">Mission orthographe</p>
+                <h2 id="dictation-title">{sessionState.data.title}</h2>
+                <p>{sessionState.data.instruction}</p>
+                <button className="audio-button" type="button">🔊 {sessionState.data.audioLabel}</button>
+                <div className="hint-list" aria-label="Indices de dictée">
+                  {sessionState.data.hints.map((hint) => <span key={hint}>{hint}</span>)}
+                </div>
+                <label className="answer-field">
+                  <span>Ta phrase</span>
+                  <textarea value={answerText} onChange={(event) => setAnswerText(event.target.value)} rows={4} />
+                </label>
+                <button className="primary-action" type="button" onClick={correctDictation} disabled={answerState?.status === 'loading'}>Corriger ma dictée</button>
+                {answerState?.status === 'loading' ? <p className="feedback-card">La mascotte relit ta phrase…</p> : null}
+                {answerState?.status === 'error' ? <p className="feedback-card error">{answerState.message}</p> : null}
+                {answerState?.status === 'success' ? (
+                  <div className={answerState.data.isCorrect ? 'feedback-card success' : 'feedback-card retry'}>
+                    <h3>{answerState.data.feedbackTitle}</h3>
+                    <p>{answerState.data.feedbackMessage}</p>
+                    <p><strong>Correction :</strong> {answerState.data.correctedText}</p>
+                    <div className="word-feedback" aria-label="Correction mot par mot">
+                      {answerState.data.wordFeedback.map((word) => (
+                        <span className={word.status} key={`${word.expected}-${word.actual}`}>{word.expected}<small>{word.hint}</small></span>
+                      ))}
+                    </div>
+                    <button type="button" onClick={() => { setAnswerText(''); setAnswerState(null); }}>{answerState.data.retryLabel}</button>
+                  </div>
+                ) : null}
+              </div>
+            </section>
+          )}
+        </>
       ) : null}
     </main>
   );

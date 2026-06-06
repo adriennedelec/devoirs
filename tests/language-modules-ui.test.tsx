@@ -18,6 +18,11 @@ describe('Lot 4 dictation and poetry UI', () => {
     await user.click(within(dictationCard!).getByRole('button', { name: /continuer/i }));
 
     await waitFor(() => {
+      expect(screen.getByRole('button', { name: /dictée normale/i })).toBeInTheDocument();
+    });
+    await user.click(screen.getByRole('button', { name: /dictée normale/i }));
+
+    await waitFor(() => {
       expect(screen.getByRole('button', { name: /écouter la phrase/i })).toBeInTheDocument();
     });
     expect(screen.getByRole('heading', { name: /dictée de la forêt magique/i })).toBeInTheDocument();
@@ -30,6 +35,43 @@ describe('Lot 4 dictation and poetry UI', () => {
       expect(screen.getByText(/très proche/i)).toBeInTheDocument();
     });
     expect(screen.getAllByText(/le petit renard traverse la forêt/i).length).toBeGreaterThan(0);
+  });
+
+  it('opens the dictation module from Accueil and lets the parent prepare a hidden word dictation text', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /bonjour emma/i })).toBeInTheDocument();
+    });
+
+    const dictationCard = screen.getByRole('heading', { name: /dictée/i }).closest('article');
+    expect(dictationCard).not.toBeNull();
+
+    await user.click(within(dictationCard!).getByRole('button', { name: /continuer/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /dictée de mots/i })).toBeInTheDocument();
+    });
+    expect(screen.getByRole('heading', { name: /dictée magique/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /dictée de mots/i })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: /dictée normale/i })).toBeInTheDocument();
+
+    await user.type(screen.getByLabelText(/série de mots/i), 'dragon, cartable, rivière');
+    await user.click(screen.getByRole('checkbox', { name: /présent/i }));
+    await user.click(screen.getByRole('checkbox', { name: /futur/i }));
+    await user.click(screen.getByRole('button', { name: /générer le texte/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/texte masqué pour l’élève/i)).toBeInTheDocument();
+    });
+    expect(screen.queryByText(/Aujourd’hui.*dragon/i)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /lire le texte à l’élève/i })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /afficher pour le parent/i }));
+    expect(screen.getByText(/Aujourd’hui, Emma observe le dragon/i)).toBeInTheDocument();
+    expect(screen.getByText(/range le cartable/i)).toBeInTheDocument();
+    expect(screen.getByText(/dessine la rivière/i)).toBeInTheDocument();
   });
 
   it('opens the poetry module from Accueil and validates a simulated recital', async () => {

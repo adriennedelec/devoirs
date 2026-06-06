@@ -230,11 +230,13 @@ Construire une première maquette web crédible et navigable, avec une vraie str
 
 #### 5. Dictée
 
-- audio ;
-- zone d’écriture ;
-- indice ;
-- correction ;
-- récompense.
+- deux modes visibles : `Dictée de mots` et `Dictée normale` ;
+- dictée de mots travaillée en priorité : saisie parent d’une série de mots ;
+- génération d’un texte court contenant tous les mots demandés ;
+- options de temps verbaux en sélection multiple (`Présent`, `Imparfait`, `Passé composé`, `Futur`) ;
+- texte généré masqué par défaut pour l’élève et destiné à être lu par l’application ;
+- bouton de lecture à l’élève + bouton secondaire d’affichage parent ;
+- dictée normale conservée avec audio, zone d’écriture, indice, correction et récompense.
 
 #### 6. Poésie
 

@@ -4,6 +4,10 @@ import type {
   DictationAnswerSubmission,
   DictationSession,
   DictationWordFeedback,
+  VerbTense,
+  VerbTenseOption,
+  WordDictationTextRequest,
+  WordDictationTextResult,
   PoetryRecitalResult,
   PoetryRecitalSubmission,
   PoetrySession,
@@ -183,6 +187,62 @@ export async function getDictationSession(childId: string): Promise<DictationSes
   assertKnownChild(childId);
 
   return cloneApiPayload(dictationSessionMock);
+}
+
+export const dictationVerbTenseOptions: VerbTenseOption[] = [
+  { value: 'present', label: 'Présent', helper: 'Aujourd’hui, je raconte ce qui se passe maintenant.' },
+  { value: 'imparfait', label: 'Imparfait', helper: 'Avant, je décris une habitude ou un décor.' },
+  { value: 'passe_compose', label: 'Passé composé', helper: 'Hier, je raconte une action terminée.' },
+  { value: 'futur', label: 'Futur', helper: 'Demain, je prépare la suite.' },
+];
+
+function cleanWordList(words: string[]) {
+  return words
+    .flatMap((item) => item.split(/[\n,;]+/))
+    .map((word) => word.trim())
+    .filter(Boolean)
+    .filter((word, index, allWords) => allWords.findIndex((candidate) => candidate.toLocaleLowerCase('fr-FR') === word.toLocaleLowerCase('fr-FR')) === index);
+}
+
+function buildTenseSentences(words: string[], verbTenses: VerbTense[]) {
+  const [first = 'mot', second = 'phrase', third = 'histoire'] = words;
+  const extraWords = words.slice(3);
+  const sentenceByTense: Record<VerbTense, string> = {
+    present: `Aujourd’hui, Emma observe le ${first}, range le ${second} et dessine la ${third}.`,
+    imparfait: `Autrefois, le ${first} brillait près du ${second} pendant que la ${third} murmurait doucement.`,
+    passe_compose: `Hier, Emma a trouvé le ${first}, a ouvert le ${second} et a suivi la ${third}.`,
+    futur: `Demain, Emma cherchera le ${first}, préparera le ${second} et traversera la ${third}.`,
+  };
+  const chosenTenses: VerbTense[] = verbTenses.length > 0 ? verbTenses : ['present'];
+  const baseText = chosenTenses.map((tense) => sentenceByTense[tense]).join(' ');
+  const extraText = extraWords.length > 0 ? ` Elle utilisera aussi ces mots : ${extraWords.join(', ')}.` : '';
+
+  return `${baseText}${extraText}`.replace(/\s+/g, ' ').trim();
+}
+
+export async function generateWordDictationText(
+  childId: string,
+  request: WordDictationTextRequest,
+): Promise<WordDictationTextResult> {
+  await apiDelay();
+  assertKnownChild(childId);
+
+  const words = cleanWordList(request.words);
+  if (words.length === 0) {
+    throw new Error('Ajoute au moins un mot pour préparer la dictée.');
+  }
+
+  const selectedVerbTenses: VerbTense[] = request.verbTenses.length > 0 ? request.verbTenses : ['present'];
+
+  return {
+    mode: 'word_dictation',
+    title: 'Dictée de mots préparée',
+    text: buildTenseSentences(words, selectedVerbTenses).slice(0, 280),
+    isHiddenByDefault: true,
+    wordChecklist: words,
+    selectedVerbTenses,
+    readingInstruction: 'Texte masqué par défaut : lance la lecture pour l’élève, puis affiche-le seulement côté parent si besoin.',
+  };
 }
 
 export async function submitDictationAnswer(

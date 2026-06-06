@@ -150,6 +150,8 @@ describe('Lots 5-11 complete child interface', () => {
     await waitFor(() => expect(screen.getByRole('heading', { name: /bonjour emma/i })).toBeInTheDocument());
     const dictationCard = screen.getByRole('heading', { name: /dictée/i }).closest('article');
     await user.click(within(dictationCard!).getByRole('button', { name: /continuer/i }));
+    await waitFor(() => expect(screen.getByRole('button', { name: /dictée normale/i })).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: /dictée normale/i }));
     await waitFor(() => expect(screen.getByRole('heading', { name: /dictée de la forêt magique/i })).toBeInTheDocument());
     await user.type(screen.getByLabelText(/ta phrase/i), 'Le petit renard traverse la foret');
     await user.click(screen.getByRole('button', { name: /corriger ma dictée/i }));

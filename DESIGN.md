@@ -179,6 +179,21 @@ Sur desktop :
 - `StepProgress`
 - `RewardToast`
 
+### Écran Dictée — modes mots / normale
+
+Le module `Dictée magique` doit distinguer clairement deux usages :
+
+- **Dictée de mots** (mode affiché en premier) : espace parent pour saisir une série de mots séparés par virgules, points-virgules ou lignes ;
+- **Dictée normale** : conservation du flux existant avec phrase à écouter, zone d’écriture et correction mot par mot ;
+- sélecteur de mode en deux cartes arrondies, état actif violet ;
+- choix des temps verbaux sous forme de cases à cocher multi-sélection : `Présent`, `Imparfait`, `Passé composé`, `Futur` ;
+- bouton `Générer le texte` qui produit un texte court contenant tous les mots demandés ;
+- carte de résultat masquée par défaut : titre `Texte masqué pour l’élève`, bloc occulté, liste de mots inclus visible pour le parent ;
+- action `Lire le texte à l’élève` mise en avant ;
+- action secondaire `Afficher pour le parent` pour vérifier le texte généré sans l’exposer immédiatement à l’enfant.
+
+Règle UX : le texte généré par l’app est fait pour être lu/oralisé à l’élève et ne doit pas s’afficher en clair par défaut. Le parent garde le contrôle de la préparation ; l’enfant voit surtout un environnement rassurant et une action de lecture.
+
 ### Écran Tables de multiplication — refonte magique
 
 L’écran `Tables de multiplication` doit garder le **design magique premium** tout en restant dans le shell enfant standard : le **menu latéral fixe reste visible** pour ne pas casser la navigation globale.

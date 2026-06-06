@@ -1,3 +1,28 @@
+export type DictationMode = 'word_dictation' | 'classic_dictation';
+
+export type VerbTense = 'present' | 'imparfait' | 'passe_compose' | 'futur';
+
+export type VerbTenseOption = {
+  value: VerbTense;
+  label: string;
+  helper: string;
+};
+
+export type WordDictationTextRequest = {
+  words: string[];
+  verbTenses: VerbTense[];
+};
+
+export type WordDictationTextResult = {
+  mode: 'word_dictation';
+  title: string;
+  text: string;
+  isHiddenByDefault: boolean;
+  wordChecklist: string[];
+  selectedVerbTenses: VerbTense[];
+  readingInstruction: string;
+};
+
 export type DictationSession = {
   childId: string;
   id: string;
