@@ -1,0 +1,318 @@
+.child-app-shell {
+  width: min(100%, 980px);
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: 24px 18px 110px;
+}
+
+.child-main {
+  display: grid;
+  gap: 20px;
+}
+
+.child-topbar {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 14px;
+}
+
+.avatar-bubble,
+.activity-icon {
+  display: grid;
+  place-items: center;
+  border-radius: 24px;
+  background: linear-gradient(135deg, #fff, #fff1ca);
+  box-shadow: var(--shadow-card);
+}
+
+.avatar-bubble {
+  width: 64px;
+  height: 64px;
+  font-size: 2rem;
+}
+
+.child-topbar h1,
+.section-heading h2,
+.hero-card h2,
+.daily-goal-card h2 {
+  margin: 0;
+  letter-spacing: -0.03em;
+}
+
+.eyebrow {
+  margin: 0 0 4px;
+  color: var(--color-primary-dark);
+  font-weight: 800;
+  text-transform: uppercase;
+  font-size: 0.76rem;
+  letter-spacing: 0.08em;
+}
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.star-pill,
+.icon-button {
+  border: 0;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--color-primary-dark);
+  box-shadow: var(--shadow-card);
+}
+
+.star-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 11px 14px;
+  font-weight: 900;
+}
+
+.icon-button {
+  position: relative;
+  width: 45px;
+  height: 45px;
+}
+
+.icon-button span {
+  position: absolute;
+  top: -5px;
+  right: -4px;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  color: #fff;
+  background: var(--color-error);
+  font-size: 0.75rem;
+  font-weight: 900;
+}
+
+.hero-card,
+.daily-goal-card,
+.card-panel,
+.activity-card,
+.state-card {
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: var(--radius-xl);
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: var(--shadow-card);
+}
+
+.hero-card {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 18px;
+  padding: 26px;
+}
+
+.hero-card p,
+.daily-goal-card p,
+.activity-card p,
+.challenge-card p {
+  color: var(--color-text-muted);
+}
+
+.hero-stats {
+  display: grid;
+  place-items: center;
+  min-width: 130px;
+  border-radius: 26px;
+  background: linear-gradient(135deg, #ffe8a5, #fff4cf);
+  color: var(--color-primary-dark);
+}
+
+.hero-stats strong {
+  font-size: 2.4rem;
+}
+
+.daily-goal-card {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 18px;
+  padding: 24px;
+}
+
+.mascot-tip {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  max-width: 170px;
+  padding: 14px;
+  border-radius: 22px;
+  background: #f0ebff;
+  color: var(--color-primary-dark);
+  font-weight: 800;
+  text-align: center;
+}
+
+.mascot-tip:first-letter {
+  font-size: 2.6rem;
+}
+
+.progress-bar {
+  height: 12px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #ece7ff;
+}
+
+.progress-bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--color-primary), var(--color-secondary));
+}
+
+.section-heading {
+  margin: 0 0 12px;
+}
+
+.activity-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.activity-card {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 14px;
+  padding: 18px;
+}
+
+.activity-icon {
+  width: 54px;
+  height: 54px;
+  font-size: 1.6rem;
+}
+
+.activity-card h3,
+.challenge-card h3 {
+  margin: 0 0 6px;
+}
+
+.activity-card button {
+  grid-column: 2;
+  width: fit-content;
+  border: 0;
+  border-radius: 999px;
+  padding: 10px 16px;
+  color: #fff;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+  font-weight: 900;
+}
+
+.activity-meta {
+  display: inline-block;
+  margin-top: 8px;
+  color: var(--color-primary-dark);
+  font-weight: 900;
+}
+
+.dashboard-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.card-panel {
+  padding: 18px;
+}
+
+.badge-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 999px;
+  padding: 10px 12px;
+  background: #fff7dc;
+  color: var(--color-primary-dark);
+  font-weight: 900;
+}
+
+.child-bottom-nav {
+  position: fixed;
+  left: 50%;
+  bottom: 18px;
+  z-index: 10;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  width: min(calc(100% - 24px), 720px);
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.82);
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: var(--shadow-card);
+  transform: translateX(-50%);
+  backdrop-filter: blur(18px);
+}
+
+.child-bottom-nav button {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  border: 0;
+  border-radius: 20px;
+  padding: 9px 6px;
+  color: var(--color-text-muted);
+  background: transparent;
+  font-weight: 900;
+  font-size: 0.78rem;
+}
+
+.child-bottom-nav button.active {
+  color: #fff;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+}
+
+.state-card {
+  margin: 20vh auto 0;
+  width: min(100%, 420px);
+  padding: 24px;
+  text-align: center;
+  font-weight: 900;
+}
+
+.state-card.error {
+  color: #fff;
+  background: var(--color-error);
+}
+
+@media (max-width: 720px) {
+  .child-topbar,
+  .hero-card,
+  .daily-goal-card,
+  .dashboard-columns {
+    grid-template-columns: 1fr;
+  }
+
+  .topbar-actions {
+    justify-content: space-between;
+  }
+
+  .activity-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .activity-card {
+    grid-template-columns: auto 1fr;
+  }
+
+  .child-bottom-nav span {
+    font-size: 0.7rem;
+  }
+}

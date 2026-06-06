@@ -1,0 +1,29 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  color: var(--color-text);
+  background:
+    radial-gradient(circle at top left, rgba(255, 191, 63, 0.24), transparent 34rem),
+    radial-gradient(circle at top right, rgba(76, 201, 240, 0.24), transparent 28rem),
+    linear-gradient(135deg, var(--color-bg), var(--color-bg-soft));
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+#root {
+  min-height: 100vh;
+}
