@@ -69,9 +69,9 @@ describe('Lot 4 dictation and poetry UI', () => {
     expect(screen.getByRole('button', { name: /lire le texte à l’élève/i })).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /afficher pour le parent/i }));
-    expect(screen.getByText(/Aujourd’hui, Emma invente une petite aventure avec dragon, cartable et rivière/i)).toBeInTheDocument();
+    expect(screen.getByText(/Aujourd’hui, Emma range dans son cartable des cartes avec dragon et rivière/i)).toBeInTheDocument();
     expect(screen.getByText(/La phrase reste courte pour une dictée facile à écouter/i)).toBeInTheDocument();
-    expect(screen.queryByText(/utilise aussi|écrit aussi|mot dragon|mot cartable|mot rivière/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/utilise aussi|écrit aussi|mot dragon|mot cartable|mot rivière|rencontre.*rivière/i)).not.toBeInTheDocument();
   });
 
   it('asks the parent to confirm an unknown typed word before generating the text', async () => {

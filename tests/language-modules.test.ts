@@ -106,7 +106,10 @@ describe('Lot 4 dictation and poetry services', () => {
 
     expect(result.text).not.toMatch(/mot\s+(cartable|dragon|autruche|citrouille|banane|escargot|se|coucher|laver)/iu);
     expect(result.text).not.toMatch(/utilise aussi|écrit aussi|mot\s+\w+/iu);
-    expect(result.text).toMatch(/Emma|école|histoire|aventure|soir|dormir/i);
+    expect(result.text).not.toMatch(/rencontre\s+citrouille|rencontre\s+[^.]*banane|rencontre\s+[^.]*escargot/iu);
+    expect(result.text).toMatch(/cartable[^.]+(carte|image|dessin|étiquette)/iu);
+    expect(result.text).toMatch(/dragon[^.]+autruche[^.]+citrouille[^.]+banane[^.]+escargot/iu);
+    expect(result.text).toMatch(/se coucher[^.]+laver/i);
     expect(result.text.split(/[.!?]+/).filter((sentence) => sentence.trim().length > 0).length).toBeLessThanOrEqual(3);
     expect(result.text.length).toBeLessThanOrEqual(260);
     for (const word of requestedWords) {

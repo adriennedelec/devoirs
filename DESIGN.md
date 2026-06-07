@@ -191,7 +191,7 @@ Le module `Dictée magique` doit distinguer clairement deux usages :
 - retour OCR doux (`3 mots détectés par OCR...`) puis remplissage automatique du champ `Série de mots` ;
 - comparer chaque mot découpé au dictionnaire français embarqué/API-ready (environ 336 000 mots via `an-array-of-french-words`) ; si un mot saisi ou OCRisé n’est pas reconnu, afficher une carte douce `Mot à confirmer` avec le ou les mots concernés et un bouton `Confirmer et générer` ;
 - choix des temps verbaux sous forme de cases à cocher multi-sélection : `Présent`, `Imparfait`, `Passé composé`, `Futur` ;
-- bouton `Générer le texte` qui produit une mini-histoire courte, naturelle et adaptée à un enfant du primaire, contenant tous les mots demandés **une seule fois chacun**, sans répétition mécanique de formules comme “le mot …” ou “elle utilise aussi …” ;
+- bouton `Générer le texte` qui produit une mini-histoire courte, naturelle, logique et adaptée à un enfant du primaire, contenant tous les mots demandés **une seule fois chacun**, sans répétition mécanique de formules comme “le mot …” ou “elle utilise aussi …”, et sans associations absurdes (`rencontrer une citrouille`, `rencontrer une banane`, etc.) ; pour les listes de noms très hétérogènes, préférer un cadre cohérent comme des cartes/images rangées ou observées par l’enfant ;
 - carte de résultat masquée par défaut : titre `Texte masqué pour l’élève`, bloc occulté, liste de mots inclus visible pour le parent ;
 - action `Lire le texte à l’élève` mise en avant ;
 - action secondaire `Afficher pour le parent` pour vérifier le texte généré sans l’exposer immédiatement à l’enfant.

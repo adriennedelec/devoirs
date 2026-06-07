@@ -303,22 +303,20 @@ function buildTenseSentences(words: string[], verbTenses: VerbTense[]) {
   const hasSe = takeWord(remainingWords, 'se');
   const hasCoucher = takeWord(remainingWords, 'coucher');
   const hasLaver = takeWord(remainingWords, 'laver');
+  const hasCartable = takeWord(remainingWords, 'cartable');
   const opening = getDictationOpening(chosenTenses);
-  const firstScene = remainingWords.slice(0, 3);
-  const secondScene = remainingWords.slice(3);
   const sentences: string[] = [];
 
-  if (firstScene.length > 0) {
-    sentences.push(`${opening}, Emma invente une petite aventure avec ${formatFrenchWordList(firstScene)}.`);
-  }
-  if (secondScene.length > 0) {
-    sentences.push(`Sur le chemin, elle rencontre ${formatFrenchWordList(secondScene)}.`);
+  if (hasCartable && remainingWords.length > 0) {
+    sentences.push(`${opening}, Emma range dans son cartable des cartes avec ${formatFrenchWordList(remainingWords)}.`);
+  } else if (remainingWords.length > 0) {
+    sentences.push(`${opening}, Emma prépare des images avec ${formatFrenchWordList(remainingWords)}.`);
   }
 
   if (hasSe && hasCoucher && hasLaver) {
-    sentences.push('Le soir, elle va se coucher après avoir pensé à laver ses mains.');
+    sentences.push('Avant de se coucher, elle pense à laver ses mains.');
   } else if (hasSe && hasCoucher) {
-    sentences.push('Le soir, elle va se coucher en souriant.');
+    sentences.push('Avant de se coucher, elle relit doucement sa phrase.');
   } else if (hasLaver) {
     sentences.push('Avant de dormir, elle pense à laver ses mains.');
   } else if (sentences.length === 1 && words.length <= 3) {
