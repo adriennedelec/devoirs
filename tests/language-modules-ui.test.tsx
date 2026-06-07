@@ -40,7 +40,7 @@ describe('Lot 4 dictation and poetry UI', () => {
     expect(screen.getAllByText(/le petit renard traverse la forêt/i).length).toBeGreaterThan(0);
   });
 
-  it('opens the dictation module from Accueil and lets the parent prepare a hidden word dictation text', async () => {
+  it('opens the dictation module from Accueil and shows the Ollama text before parent controls without regenerating automatically', async () => {
     const user = userEvent.setup();
     render(<App />);
 
@@ -63,23 +63,40 @@ describe('Lot 4 dictation and poetry UI', () => {
     expect(screen.queryByRole('radio', { name: /ia locale ollama/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('radio', { name: /local secours/i })).not.toBeInTheDocument();
 
-    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response(JSON.stringify({
-      response: 'Aujourd’hui, Emma range dans son cartable des cartes avec dragon et rivière.',
-    }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+    const fetchMock = vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        response: 'Aujourd’hui, Emma range dans son cartable des cartes avec dragon et rivière.',
+      }), { status: 200, headers: { 'Content-Type': 'application/json' } }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        response: 'Demain, Emma mettra dans son cartable un dragon près de la rivière.',
+      }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
 
     await user.type(screen.getByLabelText(/série de mots/i), 'dragon, cartable, rivière');
     await user.click(screen.getByRole('checkbox', { name: /présent/i }));
-    await user.click(screen.getByRole('checkbox', { name: /futur/i }));
     await user.click(screen.getByRole('button', { name: /générer le texte/i }));
 
-    await waitFor(() => {
-      expect(screen.getByText(/texte masqué pour l’élève/i)).toBeInTheDocument();
-    });
-    expect(screen.queryByText(/Aujourd’hui.*dragon/i)).not.toBeInTheDocument();
+    const generatedText = await screen.findByText(/Aujourd’hui, Emma range dans son cartable des cartes avec dragon et rivière/i);
+    expect(screen.getByRole('heading', { name: /texte produit par ollama/i })).toBeInTheDocument();
+    expect(screen.queryByText(/texte masqué pour l’élève/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/texte masqué/i)).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /lire le texte à l’élève/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /relancer ollama/i })).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: /afficher pour le parent/i }));
+    const controls = screen.getByRole('group', { name: /contrôles parent/i });
+    expect(generatedText.compareDocumentPosition(controls)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(within(controls).getByText('dragon')).toBeInTheDocument();
+    expect(within(controls).getByText('cartable')).toBeInTheDocument();
+    expect(within(controls).getByText('rivière')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('checkbox', { name: /futur/i }));
+    expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(screen.getByText(/Aujourd’hui, Emma range dans son cartable des cartes avec dragon et rivière/i)).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /relancer ollama/i }));
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    });
+    expect(await screen.findByText(/Demain, Emma mettra dans son cartable un dragon près de la rivière/i)).toBeInTheDocument();
     expect(screen.queryByText(/utilise aussi|écrit aussi|mot dragon|mot cartable|mot rivière|rencontre.*rivière/i)).not.toBeInTheDocument();
   });
 
@@ -115,8 +132,9 @@ describe('Lot 4 dictation and poetry UI', () => {
     await user.click(screen.getByRole('button', { name: /confirmer et générer/i }));
 
     await waitFor(() => {
-      expect(screen.getByText(/texte masqué pour l’élève/i)).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /texte produit par ollama/i })).toBeInTheDocument();
     });
+    expect(screen.queryByText(/texte masqué pour l’élève/i)).not.toBeInTheDocument();
     expect(screen.getByText('dragon')).toBeInTheDocument();
     expect(screen.getByText('cartable')).toBeInTheDocument();
     expect(screen.getByText('rivière')).toBeInTheDocument();

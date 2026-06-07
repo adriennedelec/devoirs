@@ -53,7 +53,7 @@ describe('Lot 4 dictation and poetry services', () => {
     });
   });
 
-  it('generates a short well-written hidden-ready text that uses every requested word exactly once', async () => {
+  it('generates a short well-written parent-visible text that uses every requested word exactly once', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response(JSON.stringify({
       response: 'Aujourd’hui, Emma range dans son cartable des cartes avec dragon et rivière.',
     }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
@@ -67,7 +67,8 @@ describe('Lot 4 dictation and poetry services', () => {
     expect(result.mode).toBe('word_dictation');
     expect(result.title).toBe('Dictée IA locale préparée');
     expect(result.generationProvider).toBe('ollama');
-    expect(result.isHiddenByDefault).toBe(true);
+    expect(result.isHiddenByDefault).toBe(false);
+    expect(result.readingInstruction).toMatch(/contrôles parent sous le texte/i);
     expect(result.wordChecklist).toEqual(['dragon', 'cartable', 'rivière']);
     expect(result.selectedVerbTenses).toEqual(['present', 'futur']);
     expect(result.text.length).toBeLessThanOrEqual(220);

@@ -670,7 +670,6 @@ function DictationView({ dashboard }: { dashboard: ChildDashboard }) {
   const [confirmedUnknownWords, setConfirmedUnknownWords] = useState<string[]>([]);
   const [pendingUnknownWords, setPendingUnknownWords] = useState<string[]>([]);
   const [generatedTextState, setGeneratedTextState] = useState<ApiState<WordDictationTextResult> | null>(null);
-  const [showGeneratedText, setShowGeneratedText] = useState(false);
   const [answerText, setAnswerText] = useState('');
   const [answerState, setAnswerState] = useState<ApiState<DictationAnswerResult> | null>(null);
 
@@ -718,7 +717,6 @@ function DictationView({ dashboard }: { dashboard: ChildDashboard }) {
 
   async function prepareWordDictationText(wordsConfirmedForGeneration = confirmedUnknownWords) {
     setGeneratedTextState({ status: 'loading' });
-    setShowGeneratedText(false);
     try {
       const result = await generateWordDictationText(dashboard.child.id, {
         words: wordSeries.split(/[\n,;]+/),
@@ -780,7 +778,7 @@ function DictationView({ dashboard }: { dashboard: ChildDashboard }) {
               <div>
                 <p className="eyebrow">Préparation parent</p>
                 <h2 id="word-dictation-title">Dictée de mots</h2>
-                <p>Tape les mots à travailler. L’application prépare un texte court qui les contient tous, puis le garde masqué pour l’élève.</p>
+                <p>Tape les mots à travailler. L’application prépare un texte court qui les contient tous, l’affiche au parent, puis place les contrôles de lecture et de vérification dessous.</p>
                 <label className="answer-field">
                   <span>Série de mots</span>
                   <textarea
@@ -856,15 +854,17 @@ function DictationView({ dashboard }: { dashboard: ChildDashboard }) {
                 {generatedTextState?.status === 'success' ? (
                   <div className="generated-dictation-card" aria-label="Texte généré pour la dictée de mots">
                     <p className="eyebrow">{generatedTextState.data.title}</p>
-                    <h3>{showGeneratedText ? 'Texte parent' : 'Texte masqué pour l’élève'}</h3>
-                    <p>{generatedTextState.data.readingInstruction}</p>
-                    <div className="word-checklist" aria-label="Mots inclus">
-                      {generatedTextState.data.wordChecklist.map((word) => <span key={word}>{word}</span>)}
-                    </div>
-                    {showGeneratedText ? <p className="generated-dictation-text">{generatedTextState.data.text}</p> : <div className="masked-dictation-text" aria-label="Texte masqué">•••• •••• •••• •••• ••••</div>}
-                    <div className="dictation-actions">
-                      <button className="audio-button" type="button">🔊 Lire le texte à l’élève</button>
-                      <button type="button" onClick={() => setShowGeneratedText((value) => !value)}>{showGeneratedText ? 'Masquer le texte' : 'Afficher pour le parent'}</button>
+                    <h3>Texte produit par Ollama</h3>
+                    <p className="generated-dictation-text">{generatedTextState.data.text}</p>
+                    <div className="dictation-parent-controls" role="group" aria-label="Contrôles parent">
+                      <p>{generatedTextState.data.readingInstruction}</p>
+                      <div className="word-checklist" aria-label="Mots inclus">
+                        {generatedTextState.data.wordChecklist.map((word) => <span key={word}>{word}</span>)}
+                      </div>
+                      <div className="dictation-actions">
+                        <button className="audio-button" type="button">🔊 Lire le texte à l’élève</button>
+                        <button type="button" onClick={() => void prepareWordDictationText()}>Relancer Ollama</button>
+                      </div>
                     </div>
                   </div>
                 ) : null}

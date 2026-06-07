@@ -411,11 +411,11 @@ export async function generateWordDictationText(
     mode: 'word_dictation',
     title: 'Dictée IA locale préparée',
     text,
-    isHiddenByDefault: true,
+    isHiddenByDefault: false,
     wordChecklist: words,
     selectedVerbTenses,
     generationProvider: 'ollama',
-    readingInstruction: 'Texte masqué par défaut : lance la lecture pour l’élève, puis affiche-le seulement côté parent si besoin.',
+    readingInstruction: 'Contrôles parent sous le texte : vérifie les mots inclus, lance la lecture pour l’élève ou relance Ollama si tu veux une nouvelle proposition.',
   };
 }
 
