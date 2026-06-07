@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   getDictationSession,
   getPoetrySession,
@@ -9,6 +9,10 @@ import {
 } from '../src/services/childService';
 
 describe('Lot 4 dictation and poetry services', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it('returns an API-shaped dictation session with audio, prompt and reward contract', async () => {
     const session = await getDictationSession('emma-demo');
 
@@ -116,6 +120,43 @@ describe('Lot 4 dictation and poetry services', () => {
       const occurrences = result.text.toLocaleLowerCase('fr-FR').match(new RegExp(`\\b${word}\\b`, 'gu')) ?? [];
       expect(occurrences).toHaveLength(1);
     }
+  });
+
+  it('calls the local Ollama provider and returns the validated coherent text', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response(JSON.stringify({
+      response: 'Dans son cartable, Emma garde un dessin de dragon, une image d’autruche et une petite citrouille en papier. Au goûter, elle mange une banane puis regarde un escargot avancer dans le jardin. Avant de se coucher, elle va laver ses mains.',
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+
+    const result = await generateWordDictationText('emma-demo', {
+      words: ['cartable dragon autruche citrouille banane escargot se coucher laver'],
+      verbTenses: ['present'],
+      confirmedUnknownWords: [],
+      generationProvider: 'ollama',
+    });
+
+    expect(fetch).toHaveBeenCalledWith('/api/ollama/generate', expect.objectContaining({ method: 'POST' }));
+    expect(result.generationProvider).toBe('ollama');
+    expect(result.text).toContain('Dans son cartable');
+    expect(result.text).toContain('Avant de se coucher');
+  });
+
+  it('retries Ollama when a generated text misses a requested word', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        response: 'Emma range un dragon dans son cartable.',
+      }), { status: 200, headers: { 'Content-Type': 'application/json' } }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        response: 'Dans son cartable, Emma dessine un dragon près de la rivière.',
+      }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+
+    const result = await generateWordDictationText('emma-demo', {
+      words: ['dragon cartable rivière'],
+      verbTenses: ['present'],
+      generationProvider: 'ollama',
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(result.text).toContain('rivière');
   });
 
   it('extracts OCR words from an imported document or photo payload for word dictation', async () => {

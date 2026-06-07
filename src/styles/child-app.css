@@ -925,6 +925,57 @@
   font-weight: 700;
 }
 
+.generation-provider-options,
+.verb-tense-options {
+  display: grid;
+  gap: 10px;
+  margin: 14px 0;
+  border: 0;
+  border-radius: 24px;
+  padding: 14px;
+  background: #f7f2ff;
+}
+
+.generation-provider-options legend,
+.verb-tense-options legend {
+  color: var(--color-primary-dark);
+  font-weight: 1000;
+}
+
+.generation-provider-options p,
+.verb-tense-options p {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-weight: 700;
+}
+
+.generation-provider-options > div,
+.verb-tense-options > div {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.generation-provider-options label,
+.verb-tense-options label {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px;
+  align-items: start;
+  border: 1px solid #e4def8;
+  border-radius: 18px;
+  padding: 10px;
+  background: #fff;
+}
+
+.generation-provider-options small,
+.verb-tense-options small {
+  display: block;
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
 .poem-lines {
   display: grid;
   gap: 8px;

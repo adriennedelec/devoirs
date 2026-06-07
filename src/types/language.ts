@@ -23,10 +23,13 @@ export type WordDictationOcrResult = {
   helperText: string;
 };
 
+export type WordDictationGenerationProvider = 'local' | 'ollama';
+
 export type WordDictationTextRequest = {
   words: string[];
   verbTenses: VerbTense[];
   confirmedUnknownWords?: string[];
+  generationProvider?: WordDictationGenerationProvider;
 };
 
 export type WordDictationTextResult = {
@@ -36,6 +39,7 @@ export type WordDictationTextResult = {
   isHiddenByDefault: boolean;
   wordChecklist: string[];
   selectedVerbTenses: VerbTense[];
+  generationProvider: WordDictationGenerationProvider;
   readingInstruction: string;
 };
 

@@ -56,6 +56,8 @@ describe('Lot 4 dictation and poetry UI', () => {
     expect(screen.getByRole('heading', { name: /dictée magique/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /dictée de mots/i })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByRole('button', { name: /dictée normale/i })).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: /local secours/i })).toBeChecked();
+    expect(screen.getByRole('radio', { name: /ia locale ollama/i })).toBeInTheDocument();
 
     await user.type(screen.getByLabelText(/série de mots/i), 'dragon, cartable, rivière');
     await user.click(screen.getByRole('checkbox', { name: /présent/i }));

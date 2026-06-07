@@ -4,6 +4,7 @@ import type {
   DictationAnswerSubmission,
   DictationSession,
   DictationWordFeedback,
+  WordDictationGenerationProvider,
   VerbTense,
   VerbTenseOption,
   WordDictationOcrRequest,
@@ -329,6 +330,119 @@ function buildTenseSentences(words: string[], verbTenses: VerbTense[]) {
     .trim();
 }
 
+function escapeRegex(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function countWordOccurrences(text: string, word: string) {
+  const normalizedText = text.toLocaleLowerCase('fr-FR');
+  const normalizedWord = normalizeDictionaryWord(word);
+  const matches = normalizedText.match(new RegExp(`(^|[^\\p{L}\\p{M}])${escapeRegex(normalizedWord)}($|[^\\p{L}\\p{M}])`, 'giu'));
+  return matches?.length ?? 0;
+}
+
+function getDictationGenerationErrors(text: string, words: string[]) {
+  const errors: string[] = [];
+  const cleanText = text.trim();
+  if (!cleanText) errors.push('texte vide');
+  if (cleanText.length > 320) errors.push('texte trop long');
+  const sentenceCount = cleanText.split(/[.!?]+/).filter((sentence) => sentence.trim().length > 0).length;
+  if (sentenceCount > 4) errors.push('plus de 4 phrases');
+
+  for (const word of words) {
+    const count = countWordOccurrences(cleanText, word);
+    if (count === 0) errors.push(`mot absent : ${word}`);
+    if (count > 1) errors.push(`mot répété : ${word}`);
+  }
+
+  if (/^```|```$/.test(cleanText) || /^\s*[{[]/.test(cleanText)) errors.push('réponse non textuelle');
+
+  return errors;
+}
+
+function buildGenerationTerms(words: string[]) {
+  const terms: string[] = [];
+  for (let index = 0; index < words.length; index += 1) {
+    const current = normalizeDictionaryWord(words[index]);
+    const next = normalizeDictionaryWord(words[index + 1] ?? '');
+    if (current === 'se' && next === 'coucher') {
+      terms.push('se coucher');
+      index += 1;
+    } else {
+      terms.push(words[index]);
+    }
+  }
+
+  return terms;
+}
+
+function buildOllamaDictationPrompt(words: string[], verbTenses: VerbTense[], previousErrors: string[] = []) {
+  const tenseLabels = verbTenses.length > 0 ? verbTenses.join(', ') : 'present';
+  const generationTerms = buildGenerationTerms(words);
+  const correctionBlock = previousErrors.length > 0
+    ? `\nLe texte précédent était refusé pour ces raisons : ${previousErrors.join('; ')}. Corrige strictement ces points.`
+    : '';
+
+  return `Tu es professeur des écoles et tu écris une courte dictée en français pour un enfant de CE2.\n\nMots ou expressions obligatoires à copier exactement une seule fois :\n${generationTerms.map((word) => `- ${word}`).join('\n')}\n\nScène conseillée : un enfant range dans son cartable des images, dessins ou cartes représentant les noms, puis fait une action du soir.\n\nContraintes obligatoires :\n- Le texte final doit contenir tous les mots ou expressions obligatoires, sans synonyme.\n- Le texte doit être logique, naturel et scolaire.\n- Évite les listes mécaniques et les formules comme "le mot ...".\n- N'invente pas de rencontre absurde avec des objets inanimés.\n- Longueur : 2 ou 3 phrases courtes.\n- Temps dominant demandé : ${tenseLabels}.\n- Style : simple, bienveillant, adapté à 8 ans.\n- Réponds uniquement avec le texte de la dictée, sans guillemets, sans titre, sans explication.${correctionBlock}`;
+}
+
+function stripLlmEnvelope(text: string) {
+  return text
+    .trim()
+    .replace(/^```(?:text|txt|fr|markdown)?/i, '')
+    .replace(/```$/i, '')
+    .replace(/^\s*["“”]|["“”]\s*$/g, '')
+    .trim();
+}
+
+async function callOllamaDictation(words: string[], verbTenses: VerbTense[], previousErrors: string[] = []) {
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), 90_000);
+  try {
+    const response = await fetch('/api/ollama/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'llama3.1:8b',
+        prompt: buildOllamaDictationPrompt(words, verbTenses, previousErrors),
+        stream: false,
+        options: {
+          temperature: 0.2,
+          num_predict: 220,
+        },
+      }),
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      throw new Error(`Ollama a répondu ${response.status}. Vérifie que le modèle local est disponible.`);
+    }
+
+    const payload = await response.json() as { response?: string; error?: string };
+    if (payload.error) throw new Error(payload.error);
+    return stripLlmEnvelope(payload.response ?? '');
+  } catch (error: unknown) {
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      throw new Error('Ollama met trop de temps à répondre. Réessaie ou repasse en mode local.');
+    }
+    throw error;
+  } finally {
+    window.clearTimeout(timeout);
+  }
+}
+
+async function generateOllamaWordDictationText(words: string[], verbTenses: VerbTense[]) {
+  let previousErrors: string[] = [];
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const candidate = await callOllamaDictation(words, verbTenses, previousErrors);
+    const errors = getDictationGenerationErrors(candidate, words);
+    if (errors.length === 0) return candidate;
+    previousErrors = errors;
+  }
+
+  throw new Error(`Ollama n’a pas encore produit un texte conforme : ${previousErrors.join(', ')}.`);
+}
+
 export async function generateWordDictationText(
   childId: string,
   request: WordDictationTextRequest,
@@ -347,13 +461,19 @@ export async function generateWordDictationText(
     throw new Error(`Confirme ces mots avant de générer : ${unknownWords.join(', ')}`);
   }
 
+  const generationProvider: WordDictationGenerationProvider = request.generationProvider ?? 'local';
+  const text = generationProvider === 'ollama'
+    ? await generateOllamaWordDictationText(words, selectedVerbTenses)
+    : buildTenseSentences(words, selectedVerbTenses);
+
   return {
     mode: 'word_dictation',
-    title: 'Dictée de mots préparée',
-    text: buildTenseSentences(words, selectedVerbTenses),
+    title: generationProvider === 'ollama' ? 'Dictée IA locale préparée' : 'Dictée de mots préparée',
+    text,
     isHiddenByDefault: true,
     wordChecklist: words,
     selectedVerbTenses,
+    generationProvider,
     readingInstruction: 'Texte masqué par défaut : lance la lecture pour l’élève, puis affiche-le seulement côté parent si besoin.',
   };
 }
