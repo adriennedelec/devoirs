@@ -237,8 +237,8 @@ Construire une première maquette web crédible et navigable, avec une vraie str
 - mots détectés automatiquement par OCR et recopiés dans le champ `Série de mots` ;
 - contrôle de chaque mot saisi ou OCRisé via dictionnaire français embarqué/API-ready (`an-array-of-french-words`, environ 336 000 mots), avec demande de confirmation parent si un mot paraît inconnu ;
 - génération d’une mini-histoire courte, bien formulée en français, logique, adaptée à l’âge de l’enfant, contenant tous les mots demandés une seule fois chacun et évitant les répétitions mécaniques ou associations absurdes ;
-- choix du moteur de génération : `IA locale Ollama` cochée par défaut (`llama3.1:8b`) via le proxy dev `/api/ollama/generate`, ou `Local secours` déterministe pour la démo/offline ;
-- validation logicielle après génération Ollama : tous les mots doivent être présents une seule fois, texte court, réponse textuelle uniquement ; si le modèle oublie/répète un mot, le service relance avec les erreurs détectées puis bascule sur un texte de secours validé si nécessaire pour éviter un blocage parent ;
+- génération uniquement via `IA locale Ollama` (`llama3.1:8b`) avec le proxy dev `/api/ollama/generate` ; l’option `Local secours` déterministe est supprimée ;
+- validation logicielle après génération Ollama : tous les mots doivent être présents une seule fois, texte court, réponse textuelle uniquement ; si le modèle oublie/répète un mot, le service relance avec les erreurs détectées puis affiche une erreur explicite si Ollama n’atteint toujours pas le contrat après les relances ;
 - feedback d’attente explicite pendant l’appel LLM : bouton `Génération en cours` et trois points animés ;
 - options de temps verbaux en sélection multiple (`Présent`, `Imparfait`, `Passé composé`, `Futur`) ;
 - texte généré masqué par défaut pour l’élève et destiné à être lu par l’application ;

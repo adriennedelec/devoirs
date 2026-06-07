@@ -59,10 +59,13 @@ describe('Lot 4 dictation and poetry UI', () => {
     expect(screen.getByRole('heading', { name: /dictée magique/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /dictée de mots/i })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByRole('button', { name: /dictée normale/i })).toBeInTheDocument();
-    expect(screen.getByRole('radio', { name: /ia locale ollama/i })).toBeChecked();
-    expect(screen.getByRole('radio', { name: /local secours/i })).toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: /moteur de génération/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('radio', { name: /ia locale ollama/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('radio', { name: /local secours/i })).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole('radio', { name: /local secours/i }));
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response(JSON.stringify({
+      response: 'Aujourd’hui, Emma range dans son cartable des cartes avec dragon et rivière.',
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
 
     await user.type(screen.getByLabelText(/série de mots/i), 'dragon, cartable, rivière');
     await user.click(screen.getByRole('checkbox', { name: /présent/i }));
@@ -77,7 +80,6 @@ describe('Lot 4 dictation and poetry UI', () => {
 
     await user.click(screen.getByRole('button', { name: /afficher pour le parent/i }));
     expect(screen.getByText(/Aujourd’hui, Emma range dans son cartable des cartes avec dragon et rivière/i)).toBeInTheDocument();
-    expect(screen.getByText(/La phrase reste courte pour une dictée facile à écouter/i)).toBeInTheDocument();
     expect(screen.queryByText(/utilise aussi|écrit aussi|mot dragon|mot cartable|mot rivière|rencontre.*rivière/i)).not.toBeInTheDocument();
   });
 
@@ -98,7 +100,6 @@ describe('Lot 4 dictation and poetry UI', () => {
     });
 
     await user.type(screen.getByLabelText(/série de mots/i), 'dragon cartable/rivière. dragonnn');
-    await user.click(screen.getByRole('radio', { name: /local secours/i }));
     await user.click(screen.getByRole('button', { name: /générer le texte/i }));
 
     await waitFor(() => {
@@ -106,6 +107,10 @@ describe('Lot 4 dictation and poetry UI', () => {
     });
     expect(screen.getByText('dragonnn')).toBeInTheDocument();
     expect(screen.queryByText(/texte masqué pour l’élève/i)).not.toBeInTheDocument();
+
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response(JSON.stringify({
+      response: 'Aujourd’hui, Emma range dans son cartable des cartes avec dragon, rivière et dragonnn.',
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
 
     await user.click(screen.getByRole('button', { name: /confirmer et générer/i }));
 
@@ -131,8 +136,10 @@ describe('Lot 4 dictation and poetry UI', () => {
     await user.click(within(dictationCard!).getByRole('button', { name: /continuer/i }));
 
     await waitFor(() => {
-      expect(screen.getByRole('radio', { name: /ia locale ollama/i })).toBeChecked();
+      expect(screen.getByLabelText(/série de mots/i)).toBeInTheDocument();
     });
+    expect(screen.queryByRole('radio', { name: /local secours/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('radio', { name: /ia locale ollama/i })).not.toBeInTheDocument();
 
     await user.type(screen.getByLabelText(/série de mots/i), 'dragon cartable rivière');
     await user.click(screen.getByRole('button', { name: /générer le texte/i }));

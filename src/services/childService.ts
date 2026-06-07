@@ -274,62 +274,6 @@ export async function extractWordDictationWordsFromOcr(
   };
 }
 
-function formatFrenchWordList(words: string[]) {
-  if (words.length === 0) return '';
-  if (words.length === 1) return words[0];
-  if (words.length === 2) return `${words[0]} et ${words[1]}`;
-
-  return `${words.slice(0, -1).join(', ')} et ${words[words.length - 1]}`;
-}
-
-function takeWord(words: string[], searchedWord: string) {
-  const index = words.findIndex((word) => normalizeDictionaryWord(word) === searchedWord);
-  if (index === -1) return false;
-
-  words.splice(index, 1);
-  return true;
-}
-
-function getDictationOpening(verbTenses: VerbTense[]) {
-  if (verbTenses.includes('futur') && !verbTenses.includes('present')) return 'Demain';
-  if (verbTenses.includes('passe_compose') && !verbTenses.includes('present')) return 'Hier';
-  if (verbTenses.includes('imparfait') && !verbTenses.includes('present')) return 'Avant';
-
-  return 'Aujourd’hui';
-}
-
-function buildTenseSentences(words: string[], verbTenses: VerbTense[]) {
-  const chosenTenses: VerbTense[] = verbTenses.length > 0 ? verbTenses : ['present'];
-  const remainingWords = [...words];
-  const hasSe = takeWord(remainingWords, 'se');
-  const hasCoucher = takeWord(remainingWords, 'coucher');
-  const hasLaver = takeWord(remainingWords, 'laver');
-  const hasCartable = takeWord(remainingWords, 'cartable');
-  const opening = getDictationOpening(chosenTenses);
-  const sentences: string[] = [];
-
-  if (hasCartable && remainingWords.length > 0) {
-    sentences.push(`${opening}, Emma range dans son cartable des cartes avec ${formatFrenchWordList(remainingWords)}.`);
-  } else if (remainingWords.length > 0) {
-    sentences.push(`${opening}, Emma prépare des images avec ${formatFrenchWordList(remainingWords)}.`);
-  }
-
-  if (hasSe && hasCoucher && hasLaver) {
-    sentences.push('Avant de se coucher, elle pense à laver ses mains.');
-  } else if (hasSe && hasCoucher) {
-    sentences.push('Avant de se coucher, elle relit doucement sa phrase.');
-  } else if (hasLaver) {
-    sentences.push('Avant de dormir, elle pense à laver ses mains.');
-  } else if (sentences.length === 1 && words.length <= 3) {
-    sentences.push('La phrase reste courte pour une dictée facile à écouter.');
-  }
-
-  return sentences
-    .join(' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
 function escapeRegex(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
@@ -423,7 +367,7 @@ async function callOllamaDictation(words: string[], verbTenses: VerbTense[], pre
     return stripLlmEnvelope(payload.response ?? '');
   } catch (error: unknown) {
     if (error instanceof DOMException && error.name === 'AbortError') {
-      throw new Error('Ollama met trop de temps à répondre. Réessaie ou repasse en mode local.');
+      throw new Error('Ollama met trop de temps à répondre. Réessaie quand le modèle local est disponible.');
     }
     throw error;
   } finally {
@@ -439,10 +383,6 @@ async function generateOllamaWordDictationText(words: string[], verbTenses: Verb
     if (errors.length === 0) return candidate;
     previousErrors = errors;
   }
-
-  const deterministicFallback = buildTenseSentences(words, verbTenses);
-  const fallbackErrors = getDictationGenerationErrors(deterministicFallback, words);
-  if (fallbackErrors.length === 0) return deterministicFallback;
 
   throw new Error(`Ollama n’a pas encore produit un texte conforme : ${previousErrors.join(', ')}.`);
 }
@@ -465,19 +405,16 @@ export async function generateWordDictationText(
     throw new Error(`Confirme ces mots avant de générer : ${unknownWords.join(', ')}`);
   }
 
-  const generationProvider: WordDictationGenerationProvider = request.generationProvider ?? 'local';
-  const text = generationProvider === 'ollama'
-    ? await generateOllamaWordDictationText(words, selectedVerbTenses)
-    : buildTenseSentences(words, selectedVerbTenses);
+  const text = await generateOllamaWordDictationText(words, selectedVerbTenses);
 
   return {
     mode: 'word_dictation',
-    title: generationProvider === 'ollama' ? 'Dictée IA locale préparée' : 'Dictée de mots préparée',
+    title: 'Dictée IA locale préparée',
     text,
     isHiddenByDefault: true,
     wordChecklist: words,
     selectedVerbTenses,
-    generationProvider,
+    generationProvider: 'ollama',
     readingInstruction: 'Texte masqué par défaut : lance la lecture pour l’élève, puis affiche-le seulement côté parent si besoin.',
   };
 }

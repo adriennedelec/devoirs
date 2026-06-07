@@ -775,6 +775,26 @@
   font-weight: 1000;
 }
 
+.ollama-generation-note {
+  display: grid;
+  gap: 4px;
+  margin: 14px 0;
+  border-radius: 20px;
+  padding: 14px 16px;
+  background: #f4f0ff;
+  color: var(--color-primary-dark);
+  box-shadow: inset 0 0 0 2px rgba(92, 73, 194, 0.1);
+}
+
+.ollama-generation-note strong {
+  font-weight: 1000;
+}
+
+.ollama-generation-note span {
+  color: var(--color-text-muted);
+  font-weight: 800;
+}
+
 .verb-tense-options {
   display: grid;
   gap: 10px;

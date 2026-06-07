@@ -54,6 +54,10 @@ describe('Lot 4 dictation and poetry services', () => {
   });
 
   it('generates a short well-written hidden-ready text that uses every requested word exactly once', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response(JSON.stringify({
+      response: 'Aujourd’hui, Emma range dans son cartable des cartes avec dragon et rivière.',
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+
     const result = await generateWordDictationText('emma-demo', {
       words: ['dragon', 'cartable', 'rivière'],
       verbTenses: ['present', 'futur'],
@@ -61,7 +65,8 @@ describe('Lot 4 dictation and poetry services', () => {
     });
 
     expect(result.mode).toBe('word_dictation');
-    expect(result.title).toBe('Dictée de mots préparée');
+    expect(result.title).toBe('Dictée IA locale préparée');
+    expect(result.generationProvider).toBe('ollama');
     expect(result.isHiddenByDefault).toBe(true);
     expect(result.wordChecklist).toEqual(['dragon', 'cartable', 'rivière']);
     expect(result.selectedVerbTenses).toEqual(['present', 'futur']);
@@ -81,6 +86,10 @@ describe('Lot 4 dictation and poetry services', () => {
       confirmedUnknownWords: [],
     })).rejects.toThrow(/Confirme ces mots avant de générer : dragonnn/);
 
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response(JSON.stringify({
+      response: 'Aujourd’hui, Emma range dans son cartable des cartes avec dragon, rivière et dragonnn.',
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+
     const confirmedResult = await generateWordDictationText('emma-demo', {
       words: ['dragon cartable/rivière. dragonnn'],
       verbTenses: ['present'],
@@ -91,6 +100,10 @@ describe('Lot 4 dictation and poetry services', () => {
   });
 
   it('accepts common French words from the full dictionary without parent confirmation', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response(JSON.stringify({
+      response: 'Aujourd’hui, Emma écrit bonjour dans son cahier, puis elle montre un chocolat à maman et papa.',
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+
     const result = await generateWordDictationText('emma-demo', {
       words: ['bonjour maman papa chocolat cahier'],
       verbTenses: ['present'],
@@ -101,6 +114,10 @@ describe('Lot 4 dictation and poetry services', () => {
   });
 
   it('generates an age-appropriate mini story instead of repeating word labels', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response(JSON.stringify({
+      response: 'Aujourd’hui, Emma range dans son cartable des cartes avec dragon, autruche, citrouille, banane et escargot. Avant de se coucher, elle pense à laver ses mains.',
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+
     const requestedWords = ['cartable', 'dragon', 'autruche', 'citrouille', 'banane', 'escargot', 'se', 'coucher', 'laver'];
     const result = await generateWordDictationText('emma-demo', {
       words: requestedWords,
@@ -159,23 +176,19 @@ describe('Lot 4 dictation and poetry services', () => {
     expect(result.text).toContain('rivière');
   });
 
-  it('returns a validated fallback text instead of blocking the parent after repeated Ollama failures', async () => {
+  it('keeps Ollama as the only generator and fails after repeated invalid responses', async () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch')
       .mockImplementation(() => Promise.resolve(new Response(JSON.stringify({
         response: 'Emma prépare une histoire très longue avec son cartable et un dragon, mais le texte oublie plusieurs images importantes et continue avec trop de détails inutiles pour une dictée courte du soir.'.repeat(3),
       }), { status: 200, headers: { 'Content-Type': 'application/json' } })));
 
-    const result = await generateWordDictationText('emma-demo', {
+    await expect(generateWordDictationText('emma-demo', {
       words: ['cartable dragon autruche citrouille banane escargot se coucher laver'],
       verbTenses: ['present'],
       generationProvider: 'ollama',
-    });
+    })).rejects.toThrow(/Ollama n’a pas encore produit un texte conforme/);
 
     expect(fetchMock).toHaveBeenCalledTimes(3);
-    expect(result.generationProvider).toBe('ollama');
-    expect(result.text).toContain('autruche');
-    expect(result.text).toContain('Avant de se coucher');
-    expect(result.text.length).toBeLessThanOrEqual(320);
   });
 
   it('extracts OCR words from an imported document or photo payload for word dictation', async () => {

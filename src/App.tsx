@@ -8,7 +8,6 @@ import type {
   PoetryRecitalResult,
   PoetrySession,
   VerbTense,
-  WordDictationGenerationProvider,
   WordDictationOcrResult,
   WordDictationTextResult,
 } from './types/language';
@@ -668,7 +667,6 @@ function DictationView({ dashboard }: { dashboard: ChildDashboard }) {
   const [wordSeries, setWordSeries] = useState('');
   const [ocrState, setOcrState] = useState<ApiState<WordDictationOcrResult> | null>(null);
   const [selectedVerbTenses, setSelectedVerbTenses] = useState<VerbTense[]>([]);
-  const [generationProvider, setGenerationProvider] = useState<WordDictationGenerationProvider>('ollama');
   const [confirmedUnknownWords, setConfirmedUnknownWords] = useState<string[]>([]);
   const [pendingUnknownWords, setPendingUnknownWords] = useState<string[]>([]);
   const [generatedTextState, setGeneratedTextState] = useState<ApiState<WordDictationTextResult> | null>(null);
@@ -726,7 +724,6 @@ function DictationView({ dashboard }: { dashboard: ChildDashboard }) {
         words: wordSeries.split(/[\n,;]+/),
         verbTenses: selectedVerbTenses,
         confirmedUnknownWords: wordsConfirmedForGeneration,
-        generationProvider,
       });
       setPendingUnknownWords([]);
       setGeneratedTextState({ status: 'success', data: result });
@@ -831,36 +828,10 @@ function DictationView({ dashboard }: { dashboard: ChildDashboard }) {
                     <button type="button" onClick={() => void confirmUnknownWordsAndGenerate()}>Confirmer et générer</button>
                   </div>
                 ) : null}
-                <fieldset className="generation-provider-options">
-                  <legend>Moteur de génération</legend>
-                  <p>Le mode Ollama teste ton LLM local via le serveur Vite, puis l’app vérifie que tous les mots sont présents une seule fois.</p>
-                  <div>
-                    <label>
-                      <input
-                        checked={generationProvider === 'local'}
-                        onChange={() => {
-                          setGenerationProvider('local');
-                          setGeneratedTextState(null);
-                        }}
-                        name="generation-provider"
-                        type="radio"
-                      />
-                      <span><strong>Local secours</strong><small>Rapide, sans IA, limité.</small></span>
-                    </label>
-                    <label>
-                      <input
-                        checked={generationProvider === 'ollama'}
-                        onChange={() => {
-                          setGenerationProvider('ollama');
-                          setGeneratedTextState(null);
-                        }}
-                        name="generation-provider"
-                        type="radio"
-                      />
-                      <span><strong>IA locale Ollama</strong><small>llama3.1:8b sur http://127.0.0.1:11434.</small></span>
-                    </label>
-                  </div>
-                </fieldset>
+                <div className="ollama-generation-note" aria-label="Moteur de génération Ollama">
+                  <strong>IA locale Ollama</strong>
+                  <span>llama3.1:8b sur http://127.0.0.1:11434. L’app vérifie ensuite que tous les mots sont présents une seule fois.</span>
+                </div>
                 <fieldset className="verb-tense-options">
                   <legend>Temps des verbes</legend>
                   <p>Sélection multiple possible.</p>

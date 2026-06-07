@@ -23,7 +23,7 @@ export type WordDictationOcrResult = {
   helperText: string;
 };
 
-export type WordDictationGenerationProvider = 'local' | 'ollama';
+export type WordDictationGenerationProvider = 'ollama';
 
 export type WordDictationTextRequest = {
   words: string[];
