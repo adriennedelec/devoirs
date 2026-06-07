@@ -976,6 +976,38 @@
   font-weight: 700;
 }
 
+.loading-feedback,
+.primary-action:disabled {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.loading-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 26px;
+  vertical-align: middle;
+}
+
+.loading-dots span {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: currentColor;
+  animation: loadingDotPulse 1s infinite ease-in-out;
+}
+
+.loading-dots span:nth-child(2) { animation-delay: 0.16s; }
+.loading-dots span:nth-child(3) { animation-delay: 0.32s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .loading-dots span {
+    animation: none;
+  }
+}
+
 .poem-lines {
   display: grid;
   gap: 8px;
@@ -1685,6 +1717,11 @@
   color: #fff;
   background: linear-gradient(135deg, #7a5af8, #4b3bc4);
   box-shadow: 0 14px 28px rgba(122, 90, 248, 0.28);
+}
+
+@keyframes loadingDotPulse {
+  0%, 80%, 100% { opacity: 0.28; transform: translateY(0); }
+  40% { opacity: 1; transform: translateY(-3px); }
 }
 
 @keyframes magicTwinkle {

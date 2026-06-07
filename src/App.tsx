@@ -81,6 +81,16 @@ const navItems: NavItem[] = [
   { id: 'profile', label: 'Profil', icon: UserRound },
 ];
 
+function LoadingDots() {
+  return (
+    <span className="loading-dots" aria-hidden="true">
+      <span />
+      <span />
+      <span />
+    </span>
+  );
+}
+
 function ProgressBar({ value }: { value: number }) {
   return (
     <div className="progress-bar" aria-label={`Progression ${Math.round(value)}%`}>
@@ -658,7 +668,7 @@ function DictationView({ dashboard }: { dashboard: ChildDashboard }) {
   const [wordSeries, setWordSeries] = useState('');
   const [ocrState, setOcrState] = useState<ApiState<WordDictationOcrResult> | null>(null);
   const [selectedVerbTenses, setSelectedVerbTenses] = useState<VerbTense[]>([]);
-  const [generationProvider, setGenerationProvider] = useState<WordDictationGenerationProvider>('local');
+  const [generationProvider, setGenerationProvider] = useState<WordDictationGenerationProvider>('ollama');
   const [confirmedUnknownWords, setConfirmedUnknownWords] = useState<string[]>([]);
   const [pendingUnknownWords, setPendingUnknownWords] = useState<string[]>([]);
   const [generatedTextState, setGeneratedTextState] = useState<ApiState<WordDictationTextResult> | null>(null);
@@ -867,8 +877,10 @@ function DictationView({ dashboard }: { dashboard: ChildDashboard }) {
                     ))}
                   </div>
                 </fieldset>
-                <button className="primary-action" type="button" onClick={() => void prepareWordDictationText()} disabled={generatedTextState?.status === 'loading'}>Générer le texte</button>
-                {generatedTextState?.status === 'loading' ? <p className="feedback-card">Le hibou prépare un texte court…</p> : null}
+                <button className="primary-action" type="button" onClick={() => void prepareWordDictationText()} disabled={generatedTextState?.status === 'loading'}>
+                  {generatedTextState?.status === 'loading' ? <>Génération en cours <LoadingDots /></> : 'Générer le texte'}
+                </button>
+                {generatedTextState?.status === 'loading' ? <p className="feedback-card loading-feedback">Ollama écrit puis l’app vérifie les mots <LoadingDots /></p> : null}
                 {generatedTextState?.status === 'error' ? <p className="feedback-card error">{generatedTextState.message}</p> : null}
                 {generatedTextState?.status === 'success' ? (
                   <div className="generated-dictation-card" aria-label="Texte généré pour la dictée de mots">

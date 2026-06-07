@@ -159,6 +159,25 @@ describe('Lot 4 dictation and poetry services', () => {
     expect(result.text).toContain('rivière');
   });
 
+  it('returns a validated fallback text instead of blocking the parent after repeated Ollama failures', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch')
+      .mockImplementation(() => Promise.resolve(new Response(JSON.stringify({
+        response: 'Emma prépare une histoire très longue avec son cartable et un dragon, mais le texte oublie plusieurs images importantes et continue avec trop de détails inutiles pour une dictée courte du soir.'.repeat(3),
+      }), { status: 200, headers: { 'Content-Type': 'application/json' } })));
+
+    const result = await generateWordDictationText('emma-demo', {
+      words: ['cartable dragon autruche citrouille banane escargot se coucher laver'],
+      verbTenses: ['present'],
+      generationProvider: 'ollama',
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(result.generationProvider).toBe('ollama');
+    expect(result.text).toContain('autruche');
+    expect(result.text).toContain('Avant de se coucher');
+    expect(result.text.length).toBeLessThanOrEqual(320);
+  });
+
   it('extracts OCR words from an imported document or photo payload for word dictation', async () => {
     const result = await extractWordDictationWordsFromOcr('emma-demo', {
       fileName: 'liste-mots-photo.jpg',

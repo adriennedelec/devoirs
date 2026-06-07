@@ -440,6 +440,10 @@ async function generateOllamaWordDictationText(words: string[], verbTenses: Verb
     previousErrors = errors;
   }
 
+  const deterministicFallback = buildTenseSentences(words, verbTenses);
+  const fallbackErrors = getDictationGenerationErrors(deterministicFallback, words);
+  if (fallbackErrors.length === 0) return deterministicFallback;
+
   throw new Error(`Ollama n’a pas encore produit un texte conforme : ${previousErrors.join(', ')}.`);
 }
 

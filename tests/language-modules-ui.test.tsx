@@ -1,9 +1,12 @@
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import App from '../src/App';
 
 describe('Lot 4 dictation and poetry UI', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
   it('opens the dictation module from Accueil and gives corrective feedback', async () => {
     const user = userEvent.setup();
     render(<App />);
@@ -56,8 +59,10 @@ describe('Lot 4 dictation and poetry UI', () => {
     expect(screen.getByRole('heading', { name: /dictée magique/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /dictée de mots/i })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByRole('button', { name: /dictée normale/i })).toBeInTheDocument();
-    expect(screen.getByRole('radio', { name: /local secours/i })).toBeChecked();
-    expect(screen.getByRole('radio', { name: /ia locale ollama/i })).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: /ia locale ollama/i })).toBeChecked();
+    expect(screen.getByRole('radio', { name: /local secours/i })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('radio', { name: /local secours/i }));
 
     await user.type(screen.getByLabelText(/série de mots/i), 'dragon, cartable, rivière');
     await user.click(screen.getByRole('checkbox', { name: /présent/i }));
@@ -93,6 +98,7 @@ describe('Lot 4 dictation and poetry UI', () => {
     });
 
     await user.type(screen.getByLabelText(/série de mots/i), 'dragon cartable/rivière. dragonnn');
+    await user.click(screen.getByRole('radio', { name: /local secours/i }));
     await user.click(screen.getByRole('button', { name: /générer le texte/i }));
 
     await waitFor(() => {
@@ -109,6 +115,33 @@ describe('Lot 4 dictation and poetry UI', () => {
     expect(screen.getByText('dragon')).toBeInTheDocument();
     expect(screen.getByText('cartable')).toBeInTheDocument();
     expect(screen.getByText('rivière')).toBeInTheDocument();
+  });
+
+  it('shows an animated waiting label while the default Ollama generation is running', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(globalThis, 'fetch').mockReturnValue(new Promise<Response>(() => undefined));
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /bonjour emma/i })).toBeInTheDocument();
+    });
+
+    const dictationCard = screen.getByRole('heading', { name: /dictée/i }).closest('article');
+    expect(dictationCard).not.toBeNull();
+    await user.click(within(dictationCard!).getByRole('button', { name: /continuer/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('radio', { name: /ia locale ollama/i })).toBeChecked();
+    });
+
+    await user.type(screen.getByLabelText(/série de mots/i), 'dragon cartable rivière');
+    await user.click(screen.getByRole('button', { name: /générer le texte/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /génération en cours/i })).toBeDisabled();
+    });
+    expect(screen.getByText(/ollama écrit puis l’app vérifie les mots/i)).toBeInTheDocument();
+    expect(document.querySelector('.loading-dots')).toBeInTheDocument();
   });
 
   it('uses full page width and imports OCR words from a file into the word series field', async () => {
