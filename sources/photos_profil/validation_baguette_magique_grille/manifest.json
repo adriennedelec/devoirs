@@ -1,0 +1,186 @@
+[
+  {
+    "code": "02.04",
+    "source": "porfil_métier.PNG",
+    "index": 4,
+    "cell": [
+      922,
+      0,
+      1229,
+      341
+    ],
+    "bbox_after_magic": [
+      0,
+      26,
+      307,
+      338
+    ],
+    "destination": "/Users/nedelecadrien/Documents/REPO/devoirs/sources/photos_profil/02_profils_metiers/04_cuisiniere.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA"
+  },
+  {
+    "code": "03.14",
+    "source": "3C318020-02A0-489D-BF54-C554558064B7.PNG",
+    "index": 14,
+    "cell": [
+      841,
+      748,
+      1122,
+      1122
+    ],
+    "bbox_after_magic": [
+      0,
+      0,
+      281,
+      280
+    ],
+    "destination": "/Users/nedelecadrien/Documents/REPO/devoirs/sources/photos_profil/03_profils_fantastiques/14_chevaliere.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA"
+  },
+  {
+    "code": "02.14",
+    "source": "porfil_métier.PNG",
+    "index": 14,
+    "cell": [
+      922,
+      683,
+      1229,
+      1024
+    ],
+    "bbox_after_magic": [
+      0,
+      0,
+      307,
+      309
+    ],
+    "destination": "/Users/nedelecadrien/Documents/REPO/devoirs/sources/photos_profil/02_profils_metiers/14_pompiere.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA"
+  },
+  {
+    "code": "01.14",
+    "source": "profil_niveau1.PNG",
+    "index": 14,
+    "cell": [
+      922,
+      683,
+      1229,
+      1024
+    ],
+    "bbox_after_magic": [
+      0,
+      0,
+      307,
+      297
+    ],
+    "destination": "/Users/nedelecadrien/Documents/REPO/devoirs/sources/photos_profil/01_profils_enfants/14_fille_queue_rose.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA"
+  },
+  {
+    "code": "02.09",
+    "source": "porfil_métier.PNG",
+    "index": 9,
+    "cell": [
+      922,
+      341,
+      1229,
+      683
+    ],
+    "bbox_after_magic": [
+      0,
+      17,
+      307,
+      342
+    ],
+    "destination": "/Users/nedelecadrien/Documents/REPO/devoirs/sources/photos_profil/02_profils_metiers/09_veterinaire.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA"
+  },
+  {
+    "code": "02.13",
+    "source": "porfil_métier.PNG",
+    "index": 13,
+    "cell": [
+      614,
+      683,
+      922,
+      1024
+    ],
+    "bbox_after_magic": [
+      0,
+      0,
+      308,
+      309
+    ],
+    "destination": "/Users/nedelecadrien/Documents/REPO/devoirs/sources/photos_profil/02_profils_metiers/13_mecanicien.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA"
+  },
+  {
+    "code": "02.08",
+    "source": "porfil_métier.PNG",
+    "index": 8,
+    "cell": [
+      614,
+      341,
+      922,
+      683
+    ],
+    "bbox_after_magic": [
+      2,
+      17,
+      308,
+      342
+    ],
+    "destination": "/Users/nedelecadrien/Documents/REPO/devoirs/sources/photos_profil/02_profils_metiers/08_astronaute.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA"
+  },
+  {
+    "code": "04.04",
+    "source": "C0FC1245-734A-4ED4-B228-A534187CFD19.PNG",
+    "index": 4,
+    "cell": [
+      841,
+      0,
+      1121,
+      374
+    ],
+    "bbox_after_magic": [
+      0,
+      80,
+      280,
+      358
+    ],
+    "destination": "/Users/nedelecadrien/Documents/REPO/devoirs/sources/photos_profil/04_profils_animaux/04_lion.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA"
+  }
+]

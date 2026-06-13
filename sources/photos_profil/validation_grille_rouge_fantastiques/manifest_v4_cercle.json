@@ -1,0 +1,335 @@
+{
+  "method": "red-grid crop + fitted ellipse mask",
+  "items": [
+    {
+      "index": 1,
+      "name": "01_phenix.png",
+      "crop_box": [
+        26,
+        31,
+        299,
+        331
+      ],
+      "circle_box": [
+        20,
+        24,
+        256,
+        260
+      ],
+      "bbox_after_mask": [
+        20,
+        24,
+        256,
+        260
+      ]
+    },
+    {
+      "index": 2,
+      "name": "02_dragon_violet.png",
+      "crop_box": [
+        306,
+        31,
+        604,
+        331
+      ],
+      "circle_box": [
+        30,
+        24,
+        266,
+        260
+      ],
+      "bbox_after_mask": [
+        30,
+        24,
+        266,
+        260
+      ]
+    },
+    {
+      "index": 3,
+      "name": "03_licorne_arc_en_ciel.png",
+      "crop_box": [
+        611,
+        31,
+        910,
+        331
+      ],
+      "circle_box": [
+        36,
+        25,
+        270,
+        259
+      ],
+      "bbox_after_mask": [
+        36,
+        25,
+        270,
+        259
+      ]
+    },
+    {
+      "index": 4,
+      "name": "04_fee_baguette.png",
+      "crop_box": [
+        918,
+        31,
+        1212,
+        331
+      ],
+      "circle_box": [
+        34,
+        24,
+        266,
+        257
+      ],
+      "bbox_after_mask": [
+        34,
+        24,
+        266,
+        257
+      ]
+    },
+    {
+      "index": 5,
+      "name": "05_dragon_glace.png",
+      "crop_box": [
+        1219,
+        31,
+        1508,
+        331
+      ],
+      "circle_box": [
+        36,
+        24,
+        270,
+        257
+      ],
+      "bbox_after_mask": [
+        36,
+        24,
+        270,
+        257
+      ]
+    },
+    {
+      "index": 6,
+      "name": "06_licorne_ailee_violette.png",
+      "crop_box": [
+        26,
+        339,
+        299,
+        647
+      ],
+      "circle_box": [
+        16,
+        29,
+        254,
+        267
+      ],
+      "bbox_after_mask": [
+        16,
+        29,
+        254,
+        267
+      ]
+    },
+    {
+      "index": 7,
+      "name": "07_magicien.png",
+      "crop_box": [
+        306,
+        339,
+        604,
+        647
+      ],
+      "circle_box": [
+        29,
+        26,
+        268,
+        265
+      ],
+      "bbox_after_mask": [
+        29,
+        26,
+        268,
+        265
+      ]
+    },
+    {
+      "index": 8,
+      "name": "08_dragon_vert.png",
+      "crop_box": [
+        611,
+        339,
+        910,
+        647
+      ],
+      "circle_box": [
+        32,
+        26,
+        270,
+        265
+      ],
+      "bbox_after_mask": [
+        32,
+        26,
+        270,
+        265
+      ]
+    },
+    {
+      "index": 9,
+      "name": "09_fee_violette.png",
+      "crop_box": [
+        918,
+        339,
+        1212,
+        647
+      ],
+      "circle_box": [
+        29,
+        27,
+        266,
+        264
+      ],
+      "bbox_after_mask": [
+        29,
+        27,
+        266,
+        264
+      ]
+    },
+    {
+      "index": 10,
+      "name": "10_dragon_rouge.png",
+      "crop_box": [
+        1219,
+        339,
+        1508,
+        647
+      ],
+      "circle_box": [
+        32,
+        29,
+        268,
+        266
+      ],
+      "bbox_after_mask": [
+        32,
+        29,
+        268,
+        266
+      ]
+    },
+    {
+      "index": 11,
+      "name": "11_griffon.png",
+      "crop_box": [
+        26,
+        654,
+        299,
+        988
+      ],
+      "circle_box": [
+        10,
+        25,
+        256,
+        272
+      ],
+      "bbox_after_mask": [
+        10,
+        25,
+        256,
+        272
+      ]
+    },
+    {
+      "index": 12,
+      "name": "12_licorne_ailee.png",
+      "crop_box": [
+        306,
+        654,
+        604,
+        988
+      ],
+      "circle_box": [
+        24,
+        28,
+        272,
+        276
+      ],
+      "bbox_after_mask": [
+        24,
+        28,
+        272,
+        276
+      ]
+    },
+    {
+      "index": 13,
+      "name": "13_sorciere.png",
+      "crop_box": [
+        611,
+        654,
+        910,
+        988
+      ],
+      "circle_box": [
+        26,
+        29,
+        274,
+        277
+      ],
+      "bbox_after_mask": [
+        26,
+        29,
+        274,
+        277
+      ]
+    },
+    {
+      "index": 14,
+      "name": "14_chevaliere.png",
+      "crop_box": [
+        918,
+        654,
+        1212,
+        988
+      ],
+      "circle_box": [
+        24,
+        28,
+        272,
+        276
+      ],
+      "bbox_after_mask": [
+        24,
+        28,
+        272,
+        276
+      ]
+    },
+    {
+      "index": 15,
+      "name": "15_chevalier.png",
+      "crop_box": [
+        1219,
+        654,
+        1508,
+        988
+      ],
+      "circle_box": [
+        24,
+        30,
+        275,
+        281
+      ],
+      "bbox_after_mask": [
+        24,
+        30,
+        275,
+        281
+      ]
+    }
+  ]
+}

@@ -46,24 +46,24 @@ describe('Lots 5-11 child experience service contracts', () => {
     expect(result.earnedStars).toBe(session.rewardStars);
   });
 
-  it('runs multiplication as a ten-calculation magical table session with final summary', async () => {
+  it('runs multiplication as a 2-to-10 magical table session with final summary', async () => {
     const session = await getMultiplicationSession('emma-demo');
 
-    expect(session.questions).toHaveLength(10);
-    expect(session.totalQuestions).toBe(10);
-    expect(session.questions.map((question) => question.rightFactor).sort((left, right) => left - right)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
-    expect(session.questions.map((question) => question.rightFactor)).not.toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    expect(session.questions).toHaveLength(9);
+    expect(session.totalQuestions).toBe(9);
+    expect(session.questions.map((question) => question.rightFactor).sort((left, right) => left - right)).toEqual([2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    expect(session.questions.map((question) => question.rightFactor)).not.toEqual([2, 3, 4, 5, 6, 7, 8, 9, 10]);
 
-    const finalQuestion = session.questions[9];
+    const finalQuestion = session.questions[8];
     const result = await submitMultiplicationAnswer('emma-demo', {
       questionId: finalQuestion.id,
       selectedAnswer: finalQuestion.leftFactor * finalQuestion.rightFactor,
     });
 
-    expect(result.sessionProgress.currentIndex).toBe(10);
-    expect(result.sessionProgress.totalQuestions).toBe(10);
+    expect(result.sessionProgress.currentIndex).toBe(9);
+    expect(result.sessionProgress.totalQuestions).toBe(9);
     expect(result.sessionSummary?.title).toBe('Série terminée !');
-    expect(result.sessionSummary?.message).toMatch(/10 calculs/i);
+    expect(result.sessionSummary?.message).toMatch(/2 à 10/i);
   });
 
   it('makes every displayed multiplication table playable with its own generated series', async () => {
@@ -74,8 +74,8 @@ describe('Lots 5-11 child experience service contracts', () => {
       availableTableValues.map(async (tableValue) => {
         const session = await getMultiplicationSession('emma-demo', tableValue);
         expect(session.selectedTable).toBe(tableValue);
-        expect(session.questions).toHaveLength(10);
-        expect(session.questions.map((question) => question.rightFactor).sort((left, right) => left - right)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+        expect(session.questions).toHaveLength(9);
+        expect(session.questions.map((question) => question.rightFactor).sort((left, right) => left - right)).toEqual([2, 3, 4, 5, 6, 7, 8, 9, 10]);
         expect(session.questions.every((question) => question.table === tableValue)).toBe(true);
         expect(session.questions.every((question) => question.leftFactor === tableValue)).toBe(true);
 

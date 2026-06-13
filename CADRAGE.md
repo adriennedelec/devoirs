@@ -220,12 +220,13 @@ Construire une première maquette web crédible et navigable, avec une vraie str
 - exercice par question QCM, une multiplication affichée à la fois ;
 - correction immédiate ;
 - progression de série ;
-- session complète de 10 calculs couvrant les facteurs 1 à 10 dans le désordre ;
+- session complète de 9 calculs couvrant uniquement les facteurs 2 à 10 dans le désordre ;
 - design magique compact : fond violet→bleu continu sur toute la page, header réduit, sélecteur/cartes/boutons moins hauts pour limiter le scroll ;
-- score sur 10 calculé uniquement sur les réponses réussies du premier coup ;
+- score sur 9 calculé uniquement sur les réponses réussies du premier coup ;
 - chronomètre lancé au premier clic de réponse, pas au chargement ;
 - table complète finale avec erreurs du premier essai affichées en rouge ;
-- historique bas des tables terminées avec date/heure, réponses justes, réponses fausses, score obtenu, temps passé et détail `1 × table` à `10 × table` en vert/rouge ;
+- historique bas des tables terminées conservé dans une base locale `localStorage`, avec nom de l’élève, date/heure, réponses justes, réponses fausses, score obtenu, temps passé et détail `2 × table` à `10 × table` en vert/rouge ;
+- réponses QCM mélangées par question pour que la bonne réponse ne reste pas au même emplacement ;
 - récompenses instantanées et zone aide pédagogique.
 
 #### 5. Dictée

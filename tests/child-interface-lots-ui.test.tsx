@@ -1,9 +1,13 @@
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import App from '../src/App';
 
 describe('Lots 5-11 complete child interface', () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+  });
+
   it('shows a final child cockpit and starts the primary mission', async () => {
     const user = userEvent.setup();
     render(<App />);
@@ -15,7 +19,7 @@ describe('Lots 5-11 complete child interface', () => {
     await user.click(screen.getByRole('button', { name: /je commence ma mission/i }));
 
     await waitFor(() => expect(screen.getByRole('heading', { name: /tables de multiplication/i })).toBeInTheDocument());
-    await waitFor(() => expect(screen.getByText(/question 1 sur 10/i)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/question 1 sur 9/i)).toBeInTheDocument());
   });
 
   it('renders gamified path worlds and dynamic rewards', async () => {
@@ -54,7 +58,7 @@ describe('Lots 5-11 complete child interface', () => {
     await waitFor(() => expect(screen.getByText(/bravo, tu as compris l’histoire/i)).toBeInTheDocument());
   });
 
-  it('enriches multiplication into a ten-calculation magical mastery session', async () => {
+  it('enriches multiplication into a 2-to-10 magical mastery session', async () => {
     const user = userEvent.setup();
     render(<App />);
 
@@ -62,7 +66,7 @@ describe('Lots 5-11 complete child interface', () => {
     const multiplicationCard = screen.getByRole('heading', { name: /tables de multiplication/i }).closest('article');
     await user.click(within(multiplicationCard!).getByRole('button', { name: /continuer/i }));
 
-    await waitFor(() => expect(screen.getByText(/question 1 sur 10/i)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/question 1 sur 9/i)).toBeInTheDocument());
     expect(screen.getByRole('navigation', { name: /navigation enfant/i })).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: '49' }));
 
@@ -70,7 +74,7 @@ describe('Lots 5-11 complete child interface', () => {
     expect(screen.getByRole('heading', { name: /7 × 8 = \?/i })).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: '56' }));
-    await waitFor(() => expect(screen.getByText(/question 2 sur 10/i)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/question 2 sur 9/i)).toBeInTheDocument());
     expect(screen.queryByRole('button', { name: /question suivante/i })).not.toBeInTheDocument();
   });
 
@@ -82,7 +86,7 @@ describe('Lots 5-11 complete child interface', () => {
     const multiplicationCard = screen.getByRole('heading', { name: /tables de multiplication/i }).closest('article');
     await user.click(within(multiplicationCard!).getByRole('button', { name: /continuer/i }));
 
-    await waitFor(() => expect(screen.getByText(/question 1 sur 10/i)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/question 1 sur 9/i)).toBeInTheDocument());
     expect(screen.getByText(/chronomètre/i)).toBeInTheDocument();
     expect(screen.getByText(/00:00/i)).toBeInTheDocument();
     expect(screen.getByText(/démarre à la première réponse/i)).toBeInTheDocument();
@@ -100,14 +104,13 @@ describe('Lots 5-11 complete child interface', () => {
       [/7 × 2 = \?/i, '14'],
       [/7 × 5 = \?/i, '35'],
       [/7 × 3 = \?/i, '21'],
-      [/7 × 1 = \?/i, '7'],
       [/7 × 10 = \?/i, '70'],
     ] as const) {
       await waitFor(() => expect(screen.getByRole('heading', { name: question })).toBeInTheDocument());
       await user.click(screen.getByRole('button', { name: answer }));
     }
 
-    await waitFor(() => expect(screen.getByText(/score : 9 \/ 10/i)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/score : 8 \/ 9/i)).toBeInTheDocument());
     expect(screen.getByRole('heading', { name: /table complète de 7/i })).toBeInTheDocument();
     const missedFact = screen.getAllByText('8 × 7 = 56').find((element) => element.tagName.toLowerCase() === 'li');
     expect(missedFact).toHaveClass('missed');
@@ -115,14 +118,14 @@ describe('Lots 5-11 complete child interface', () => {
 
     const history = screen.getByRole('table', { name: /historique des tables réalisées/i });
     expect(within(history).getByText(/table de 7/i)).toBeInTheDocument();
-    expect(within(history).getByText(/9 justes/i)).toBeInTheDocument();
+    expect(within(history).getByText(/8 justes/i)).toBeInTheDocument();
     expect(within(history).getByText(/1 fausse/i)).toBeInTheDocument();
-    expect(within(history).getByText(/9 \/ 10/i)).toBeInTheDocument();
+    expect(within(history).getByText(/8 \/ 9/i)).toBeInTheDocument();
     expect(within(history).getByText(/temps/i)).toBeInTheDocument();
     expect(within(history).getByText(/date et heure/i)).toBeInTheDocument();
     expect(within(history).getByText(/\d{2}\/\d{2}\/\d{4}.*\d{2}:\d{2}/i)).toBeInTheDocument();
     expect(within(history).getByText(/00:0[1-9]/i)).toBeInTheDocument();
-    const masteredDetail = within(history).getByText('1 × 7 = 7');
+    const masteredDetail = within(history).getByText('2 × 7 = 14');
     expect(masteredDetail).toHaveClass('mastered');
     const missedDetail = within(history).getByText('8 × 7 = 56');
     expect(missedDetail).toHaveClass('missed');
@@ -136,7 +139,7 @@ describe('Lots 5-11 complete child interface', () => {
     const multiplicationCard = screen.getByRole('heading', { name: /tables de multiplication/i }).closest('article');
     await user.click(within(multiplicationCard!).getByRole('button', { name: /continuer/i }));
 
-    await waitFor(() => expect(screen.getByText(/question 1 sur 10/i)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/question 1 sur 9/i)).toBeInTheDocument());
     await user.click(screen.getByRole('button', { name: /table de 8/i }));
 
     await waitFor(() => expect(screen.getByRole('heading', { name: /8 × 8 = \?/i })).toBeInTheDocument());

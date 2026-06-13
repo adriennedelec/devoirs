@@ -4,6 +4,7 @@ import {
   getPoetrySession,
   extractWordDictationWordsFromOcr,
   generateWordDictationText,
+  getDefaultOllamaDictationPromptTemplate,
   submitDictationAnswer,
   submitPoetryRecital,
 } from '../src/services/childService';
@@ -51,6 +52,19 @@ describe('Lot 4 dictation and poetry services', () => {
       feedbackTitle: 'Très proche !',
       correctedText: 'Le petit renard traverse la forêt.',
     });
+  });
+
+  it('keeps the default Ollama prompt as a placeholder template without output labels', () => {
+    const prompt = getDefaultOllamaDictationPromptTemplate();
+
+    expect(prompt).toContain('{{mots}}');
+    expect(prompt).toContain('{{verbes}}');
+    expect(prompt).toContain('{{temps}}');
+    expect(prompt).not.toMatch(/TITRE\s*:\s*<|DICTEE\s*:\s*<|DICTÉE\s*:\s*</iu);
+    expect(prompt).toMatch(/Réponds uniquement avec le texte final de la dictée/i);
+    expect(prompt).toMatch(/cartes, dessins, images, étiquettes/i);
+    expect(prompt).toMatch(/présent de l’indicatif/i);
+    expect(prompt).toMatch(/Ne fais pas rencontrer un objet ou un aliment comme une personne/i);
   });
 
   it('generates a short well-written parent-visible text that uses every requested word exactly once', async () => {
@@ -140,22 +154,70 @@ describe('Lot 4 dictation and poetry services', () => {
     }
   });
 
-  it('calls the local Ollama provider and returns the validated coherent text', async () => {
-    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response(JSON.stringify({
-      response: 'Dans son cartable, Emma garde un dessin de dragon, une image d’autruche et une petite citrouille en papier. Au goûter, elle mange une banane puis regarde un escargot avancer dans le jardin. Avant de se coucher, elle va laver ses mains.',
+  it('passes a custom Llama prompt and interpolates MOTS/VERBES/TEMPS placeholders', async () => {
+    const customPrompt = `Tu es un enseignant de français spécialisé dans la création de dictées pour les élèves de CM1 (9-10 ans).\n\nMOTS:\n{{mots}}\n\nVERBES:\n{{verbes}}\n\nTEMPS:\n{{temps}}`;
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response(JSON.stringify({
+      response: 'Aujourd’hui, Emma range un petit mot dragon dans son cartable.',
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+
+    await generateWordDictationText('emma-demo', {
+      words: ['dragon', 'cartable'],
+      verbTenses: ['present'],
+      verbs: ['courir', 'manger'],
+      generationProvider: 'ollama',
+      prompt: customPrompt,
+    });
+
+    const request = fetchMock.mock.calls[0]?.[1];
+    const body = request?.body ? JSON.parse(request.body as string) : {};
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledWith('/api/ollama/generate', expect.any(Object));
+    expect(body.prompt).toContain('- dragon');
+    expect(body.prompt).toContain('- cartable');
+    expect(body.prompt).toContain('- courir');
+    expect(body.prompt).toContain('- manger');
+    expect(body.prompt).toContain('present');
+  });
+
+  it('uses the custom prompt word-count bounds to reject texts above 70 words', async () => {
+    const longText = Array.from({ length: 85 }, (_, index) => {
+      if (index === 4) return 'dragon';
+      if (index === 14) return 'cartable';
+      return `mot${index}`;
+    }).join(' ');
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(() => Promise.resolve(new Response(JSON.stringify({
+      response: longText,
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } })));
+
+    const result = await generateWordDictationText('emma-demo', {
+      words: ['dragon', 'cartable'],
+      verbTenses: ['present'],
+      prompt: 'Crée une dictée entre 50 et 70 mots. MOTS: {{mots}} VERBES: {{verbes}} TEMPS: {{temps}}',
+    });
+
+    const request = fetchMock.mock.calls[0]?.[1];
+    const body = request?.body ? JSON.parse(request.body as string) : {};
+    expect(body.prompt).toContain('- dragon');
+    expect(body.prompt).toContain('- cartable');
+    expect(result.controlResult.isValid).toBe(false);
+    expect(result.controlResult.checks).toContain('texte trop long : 85 mots (maximum 70)');
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
+  it('accepts noun and adjective agreement variants during generated text controls', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response(JSON.stringify({
+      response: 'Aujourd’hui, Emma colle des petits dragons sur son cartable.',
     }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
 
     const result = await generateWordDictationText('emma-demo', {
-      words: ['cartable dragon autruche citrouille banane escargot se coucher laver'],
+      words: ['dragon petit cartable'],
       verbTenses: ['present'],
-      confirmedUnknownWords: [],
       generationProvider: 'ollama',
     });
 
-    expect(fetch).toHaveBeenCalledWith('/api/ollama/generate', expect.objectContaining({ method: 'POST' }));
-    expect(result.generationProvider).toBe('ollama');
-    expect(result.text).toContain('Dans son cartable');
-    expect(result.text).toContain('Avant de se coucher');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(result.controlResult.isValid).toBe(true);
+    expect(result.controlResult.checks).toEqual([]);
   });
 
   it('retries Ollama when a generated text misses a requested word', async () => {
@@ -177,18 +239,47 @@ describe('Lot 4 dictation and poetry services', () => {
     expect(result.text).toContain('rivière');
   });
 
-  it('keeps Ollama as the only generator and fails after repeated invalid responses', async () => {
+  it('retries Ollama when present tense generation contains obvious future or past markers', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        response: 'Demain, Emma mettra dans son cartable une image de dragon et elle a lavé ses mains.',
+      }), { status: 200, headers: { 'Content-Type': 'application/json' } }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        response: 'Aujourd’hui, Emma range dans son cartable une image de dragon et elle lave ses mains.',
+      }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+
+    const result = await generateWordDictationText('emma-demo', {
+      words: ['cartable dragon'],
+      verbs: ['laver'],
+      verbTenses: ['present'],
+      generationProvider: 'ollama',
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(result.controlResult.isValid).toBe(true);
+    expect(result.text).toContain('lave');
+    const firstRequest = fetchMock.mock.calls[0]?.[1];
+    const secondRequest = fetchMock.mock.calls[1]?.[1];
+    const firstPrompt = firstRequest?.body ? JSON.parse(firstRequest.body as string).prompt : '';
+    const secondPrompt = secondRequest?.body ? JSON.parse(secondRequest.body as string).prompt : '';
+    expect(firstPrompt).toContain('présent de l’indicatif UNIQUEMENT');
+    expect(secondPrompt).toContain('temps incorrect');
+  });
+
+  it('returns generated text even after repeated invalid responses, with failed control checks', async () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch')
       .mockImplementation(() => Promise.resolve(new Response(JSON.stringify({
         response: 'Emma prépare une histoire très longue avec son cartable et un dragon, mais le texte oublie plusieurs images importantes et continue avec trop de détails inutiles pour une dictée courte du soir.'.repeat(3),
       }), { status: 200, headers: { 'Content-Type': 'application/json' } })));
 
-    await expect(generateWordDictationText('emma-demo', {
+    const result = await generateWordDictationText('emma-demo', {
       words: ['cartable dragon autruche citrouille banane escargot se coucher laver'],
       verbTenses: ['present'],
       generationProvider: 'ollama',
-    })).rejects.toThrow(/Ollama n’a pas encore produit un texte conforme/);
+    });
 
+    expect(result.controlResult.isValid).toBe(false);
+    expect(result.controlResult.checks.length).toBeGreaterThan(0);
     expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 

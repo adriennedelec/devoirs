@@ -20,3 +20,28 @@ export type ActivitySummary = {
   route: string;
   icon: string;
 };
+
+export type StoredActivityModule = 'multiplication' | 'dictation' | 'poetry' | 'reading';
+
+export type StoredActivityStatus = 'completed' | 'partial' | 'abandoned';
+
+export type ActivityRecordDetails = Record<string, unknown>;
+
+export type ActivityRecord = {
+  id: string;
+  profileId: string;
+  profileName: string;
+  module: StoredActivityModule;
+  moduleLabel: string;
+  exerciseLabel: string;
+  startedAtIso: string;
+  completedAtIso: string;
+  durationSeconds: number;
+  status: StoredActivityStatus;
+  score: number;
+  totalQuestions: number;
+  correctCount: number;
+  wrongCount: number;
+  starsEarned: number;
+  details: ActivityRecordDetails;
+};

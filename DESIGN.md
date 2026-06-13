@@ -215,10 +215,12 @@ Structure visuelle :
 - trois cartes de progression condensées en ligne ;
 - grande carte d’exercice en 2 colonnes mais avec espacements réduits : bulle d’encouragement + personnages + aide/chrono à gauche, question QCM à droite ;
 - une **question de multiplication à la fois** (`7 × 8 = ?`) avec 4 boutons QCM larges et rassurants ;
-- bande de progression `1×` à `10×` pour montrer les facteurs déjà réussis / à revoir ;
+- bande de progression `2×` à `10×` pour montrer les facteurs déjà réussis / à revoir ;
 - bouton `Écouter la question` violet ;
 - chronomètre latéral qui affiche `00:00` au départ et démarre dès le premier clic de réponse ;
-- tableau bas `Historique des tables réalisées` listant, pour chaque table terminée, la date/heure, les réponses justes, les réponses fausses, le score obtenu, le temps passé et les calculs `1 × table` à `10 × table` avec chips vertes/rouges ;
+- tableau bas `Historique des tables réalisées` listant, pour chaque table terminée, le nom de l’élève, la date/heure, les réponses justes, les réponses fausses, le score obtenu, le temps passé et les calculs `2 × table` à `10 × table` avec chips vertes/rouges ;
+- historique conservé dans une base locale `localStorage` pour survivre aux changements de page / rechargements ;
+- position des réponses QCM mélangée par question pour que la bonne réponse ne soit pas toujours au même emplacement ;
 - conservation de la navigation directe vers `Tables`, `Dictée`, `Poésie` dans le menu latéral.
 
 Règle UX : une bonne réponse avance automatiquement à la question suivante ; une erreur garde la même question active. Le chrono ne démarre pas au chargement de l’écran mais au premier essai de réponse. Le fond magique doit se prolonger sur toute la page (y compris derrière le shell à droite du menu) sans bordure visuelle de conteneur. Le score final reste basé sur la réussite du premier coup, la table complète marque les calculs à revoir en rouge, puis le tableau d’historique sert de carnet de progrès lisible sans transformer l’écran enfant en dashboard adulte.
@@ -310,14 +312,14 @@ Implémentation Lot 3 puis Lot 9 :
 
 - entrée depuis la carte `Tables de multiplication` ;
 - hub de tables en chips larges avec progression ;
-- mini-série de 8 questions avec indicateur `Question N sur 8` ;
-- chaque série couvre toute la table de `2 × table` à `9 × table`, dans un ordre mélangé ;
+- mini-série de 9 questions avec indicateur `Question N sur 9` ;
+- chaque série couvre toute la table de `2 × table` à `10 × table`, dans un ordre mélangé ;
 - carte QCM centrale avec mascotte hibou ;
 - réponses sous forme de gros boutons tactiles ;
 - feedback `Bravo` / `Presque` jamais culpabilisant ;
 - une erreur garde la même question active jusqu’à ce que l’enfant trouve juste ;
 - une bonne réponse intermédiaire fait avancer automatiquement, sans bouton manuel `Question suivante` ;
-- résumé final `Série terminée !` avec score sur 8 ;
+- résumé final `Série terminée !` avec score sur 9 ;
 - table complète affichée en fin de session, avec calculs manqués au premier essai en rouge ;
 - état `loading` pendant la préparation et la soumission.
 

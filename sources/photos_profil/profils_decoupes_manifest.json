@@ -1,0 +1,1877 @@
+[
+  {
+    "file": "01_garcon_hoodie_bleu.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 216,
+    "crop_box": [
+      40,
+      40,
+      472,
+      472
+    ],
+    "white_ring_rays": 360,
+    "folder": "01_profils_enfants"
+  },
+  {
+    "file": "02_fille_couettes_violettes.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 147,
+    "crop_box": [
+      108,
+      108,
+      402,
+      402
+    ],
+    "white_ring_rays": 360,
+    "folder": "01_profils_enfants"
+  },
+  {
+    "file": "03_garcon_lunettes_vert.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 210,
+    "crop_box": [
+      46,
+      46,
+      466,
+      466
+    ],
+    "white_ring_rays": 360,
+    "folder": "01_profils_enfants"
+  },
+  {
+    "file": "04_fille_barrette_salopette.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 216,
+    "crop_box": [
+      40,
+      40,
+      472,
+      472
+    ],
+    "white_ring_rays": 360,
+    "folder": "01_profils_enfants"
+  },
+  {
+    "file": "05_garcon_casquette_rouge.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 211,
+    "crop_box": [
+      44,
+      44,
+      466,
+      466
+    ],
+    "white_ring_rays": 360,
+    "folder": "01_profils_enfants"
+  },
+  {
+    "file": "06_garcon_hoodie_turquoise.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 218,
+    "crop_box": [
+      38,
+      38,
+      474,
+      474
+    ],
+    "white_ring_rays": 360,
+    "folder": "01_profils_enfants"
+  },
+  {
+    "file": "07_fille_couettes_jaunes.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 145,
+    "crop_box": [
+      110,
+      110,
+      400,
+      400
+    ],
+    "white_ring_rays": 360,
+    "folder": "01_profils_enfants"
+  },
+  {
+    "file": "08_garcon_boucles_hoodie_bleu.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 215,
+    "crop_box": [
+      40,
+      40,
+      470,
+      470
+    ],
+    "white_ring_rays": 360,
+    "folder": "01_profils_enfants"
+  },
+  {
+    "file": "09_fille_bandeau_violet.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 192,
+    "crop_box": [
+      64,
+      64,
+      448,
+      448
+    ],
+    "white_ring_rays": 360,
+    "folder": "01_profils_enfants"
+  },
+  {
+    "file": "10_garcon_tshirt_vert.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 199,
+    "crop_box": [
+      56,
+      56,
+      454,
+      454
+    ],
+    "white_ring_rays": 360,
+    "folder": "01_profils_enfants"
+  },
+  {
+    "file": "11_garcon_blond_hoodie_bleu.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 218,
+    "crop_box": [
+      38,
+      38,
+      474,
+      474
+    ],
+    "white_ring_rays": 294,
+    "folder": "01_profils_enfants"
+  },
+  {
+    "file": "12_fille_blonde_hoodie_rose.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 224,
+    "crop_box": [
+      32,
+      32,
+      480,
+      480
+    ],
+    "white_ring_rays": 286,
+    "folder": "01_profils_enfants"
+  },
+  {
+    "file": "13_garcon_cheveux_chatain.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 217,
+    "crop_box": [
+      38,
+      38,
+      472,
+      472
+    ],
+    "white_ring_rays": 305,
+    "folder": "01_profils_enfants"
+  },
+  {
+    "file": "14_fille_queue_rose.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 200,
+    "crop_box": [
+      56,
+      56,
+      456,
+      456
+    ],
+    "white_ring_rays": 302,
+    "folder": "01_profils_enfants"
+  },
+  {
+    "file": "15_garcon_boucles_bleu.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 210,
+    "crop_box": [
+      46,
+      46,
+      466,
+      466
+    ],
+    "white_ring_rays": 280,
+    "folder": "01_profils_enfants"
+  },
+  {
+    "file": "01_docteur.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 206,
+    "crop_box": [
+      50,
+      50,
+      462,
+      462
+    ],
+    "white_ring_rays": 360,
+    "folder": "02_profils_metiers"
+  },
+  {
+    "file": "02_infirmiere.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 136,
+    "crop_box": [
+      120,
+      120,
+      392,
+      392
+    ],
+    "white_ring_rays": 360,
+    "folder": "02_profils_metiers"
+  },
+  {
+    "file": "03_scientifique.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 202,
+    "crop_box": [
+      54,
+      54,
+      458,
+      458
+    ],
+    "white_ring_rays": 360,
+    "folder": "02_profils_metiers"
+  },
+  {
+    "file": "04_cuisiniere.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 188,
+    "crop_box": [
+      68,
+      68,
+      444,
+      444
+    ],
+    "white_ring_rays": 360,
+    "folder": "02_profils_metiers"
+  },
+  {
+    "file": "05_pompier.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 194,
+    "crop_box": [
+      62,
+      62,
+      450,
+      450
+    ],
+    "white_ring_rays": 360,
+    "folder": "02_profils_metiers"
+  },
+  {
+    "file": "06_policiere.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 210,
+    "crop_box": [
+      46,
+      46,
+      466,
+      466
+    ],
+    "white_ring_rays": 360,
+    "folder": "02_profils_metiers"
+  },
+  {
+    "file": "07_architecte.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 204,
+    "crop_box": [
+      52,
+      52,
+      460,
+      460
+    ],
+    "white_ring_rays": 360,
+    "folder": "02_profils_metiers"
+  },
+  {
+    "file": "08_astronaute.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 200,
+    "crop_box": [
+      56,
+      56,
+      456,
+      456
+    ],
+    "white_ring_rays": 360,
+    "folder": "02_profils_metiers"
+  },
+  {
+    "file": "09_veterinaire.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 194,
+    "crop_box": [
+      62,
+      62,
+      450,
+      450
+    ],
+    "white_ring_rays": 360,
+    "folder": "02_profils_metiers"
+  },
+  {
+    "file": "10_footballeur.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 188,
+    "crop_box": [
+      68,
+      68,
+      444,
+      444
+    ],
+    "white_ring_rays": 360,
+    "folder": "02_profils_metiers"
+  },
+  {
+    "file": "11_pilote.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 208,
+    "crop_box": [
+      48,
+      48,
+      464,
+      464
+    ],
+    "white_ring_rays": 358,
+    "folder": "02_profils_metiers"
+  },
+  {
+    "file": "12_journaliste.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 206,
+    "crop_box": [
+      50,
+      50,
+      462,
+      462
+    ],
+    "white_ring_rays": 360,
+    "folder": "02_profils_metiers"
+  },
+  {
+    "file": "13_mecanicien.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 204,
+    "crop_box": [
+      52,
+      52,
+      460,
+      460
+    ],
+    "white_ring_rays": 360,
+    "folder": "02_profils_metiers"
+  },
+  {
+    "file": "14_pompiere.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 190,
+    "crop_box": [
+      66,
+      66,
+      446,
+      446
+    ],
+    "white_ring_rays": 356,
+    "folder": "02_profils_metiers"
+  },
+  {
+    "file": "15_professeur.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 185,
+    "crop_box": [
+      70,
+      70,
+      440,
+      440
+    ],
+    "white_ring_rays": 301,
+    "folder": "02_profils_metiers"
+  },
+  {
+    "file": "01_phenix.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 206,
+    "crop_box": [
+      50,
+      50,
+      462,
+      462
+    ],
+    "white_ring_rays": 360,
+    "folder": "03_profils_fantastiques"
+  },
+  {
+    "file": "02_dragon_violet.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 205,
+    "crop_box": [
+      50,
+      50,
+      460,
+      460
+    ],
+    "white_ring_rays": 360,
+    "folder": "03_profils_fantastiques"
+  },
+  {
+    "file": "03_licorne_arc_en_ciel.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 205,
+    "crop_box": [
+      50,
+      50,
+      460,
+      460
+    ],
+    "white_ring_rays": 360,
+    "folder": "03_profils_fantastiques"
+  },
+  {
+    "file": "04_fee_baguette.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 207,
+    "crop_box": [
+      48,
+      48,
+      462,
+      462
+    ],
+    "white_ring_rays": 360,
+    "folder": "03_profils_fantastiques"
+  },
+  {
+    "file": "05_dragon_glace.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 150,
+    "crop_box": [
+      106,
+      106,
+      406,
+      406
+    ],
+    "white_ring_rays": 360,
+    "folder": "03_profils_fantastiques"
+  },
+  {
+    "file": "06_licorne_ailee_violette.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 190,
+    "crop_box": [
+      66,
+      66,
+      446,
+      446
+    ],
+    "white_ring_rays": 360,
+    "folder": "03_profils_fantastiques"
+  },
+  {
+    "file": "07_magicien.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 204,
+    "crop_box": [
+      52,
+      52,
+      460,
+      460
+    ],
+    "white_ring_rays": 360,
+    "folder": "03_profils_fantastiques"
+  },
+  {
+    "file": "08_dragon_vert.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 206,
+    "crop_box": [
+      50,
+      50,
+      462,
+      462
+    ],
+    "white_ring_rays": 360,
+    "folder": "03_profils_fantastiques"
+  },
+  {
+    "file": "09_fee_violette.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 204,
+    "crop_box": [
+      52,
+      52,
+      460,
+      460
+    ],
+    "white_ring_rays": 360,
+    "folder": "03_profils_fantastiques"
+  },
+  {
+    "file": "10_dragon_rouge.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 208,
+    "crop_box": [
+      48,
+      48,
+      464,
+      464
+    ],
+    "white_ring_rays": 360,
+    "folder": "03_profils_fantastiques"
+  },
+  {
+    "file": "11_griffon.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 214,
+    "crop_box": [
+      42,
+      42,
+      470,
+      470
+    ],
+    "white_ring_rays": 295,
+    "folder": "03_profils_fantastiques"
+  },
+  {
+    "file": "12_licorne_ailee.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 161,
+    "crop_box": [
+      94,
+      94,
+      416,
+      416
+    ],
+    "white_ring_rays": 313,
+    "folder": "03_profils_fantastiques"
+  },
+  {
+    "file": "13_sorciere.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 214,
+    "crop_box": [
+      42,
+      42,
+      470,
+      470
+    ],
+    "white_ring_rays": 282,
+    "folder": "03_profils_fantastiques"
+  },
+  {
+    "file": "14_chevaliere.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 215,
+    "crop_box": [
+      40,
+      40,
+      470,
+      470
+    ],
+    "white_ring_rays": 280,
+    "folder": "03_profils_fantastiques"
+  },
+  {
+    "file": "15_chevalier.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 208,
+    "crop_box": [
+      48,
+      48,
+      464,
+      464
+    ],
+    "white_ring_rays": 312,
+    "folder": "03_profils_fantastiques"
+  },
+  {
+    "file": "01_panda.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 115,
+    "crop_box": [
+      140,
+      140,
+      370,
+      370
+    ],
+    "white_ring_rays": 360,
+    "folder": "04_profils_animaux"
+  },
+  {
+    "file": "02_renard.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 216,
+    "crop_box": [
+      40,
+      40,
+      472,
+      472
+    ],
+    "white_ring_rays": 360,
+    "folder": "04_profils_animaux"
+  },
+  {
+    "file": "03_koala.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 219,
+    "crop_box": [
+      36,
+      36,
+      474,
+      474
+    ],
+    "white_ring_rays": 360,
+    "folder": "04_profils_animaux"
+  },
+  {
+    "file": "04_lion.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 219,
+    "crop_box": [
+      36,
+      36,
+      474,
+      474
+    ],
+    "white_ring_rays": 360,
+    "folder": "04_profils_animaux"
+  },
+  {
+    "file": "05_elephant.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 218,
+    "crop_box": [
+      38,
+      38,
+      474,
+      474
+    ],
+    "white_ring_rays": 360,
+    "folder": "04_profils_animaux"
+  },
+  {
+    "file": "06_pingouin.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 140,
+    "crop_box": [
+      116,
+      116,
+      396,
+      396
+    ],
+    "white_ring_rays": 360,
+    "folder": "04_profils_animaux"
+  },
+  {
+    "file": "07_girafe.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 218,
+    "crop_box": [
+      38,
+      38,
+      474,
+      474
+    ],
+    "white_ring_rays": 360,
+    "folder": "04_profils_animaux"
+  },
+  {
+    "file": "08_lapin.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 216,
+    "crop_box": [
+      40,
+      40,
+      472,
+      472
+    ],
+    "white_ring_rays": 360,
+    "folder": "04_profils_animaux"
+  },
+  {
+    "file": "09_tortue.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 216,
+    "crop_box": [
+      40,
+      40,
+      472,
+      472
+    ],
+    "white_ring_rays": 360,
+    "folder": "04_profils_animaux"
+  },
+  {
+    "file": "10_loup.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 211,
+    "crop_box": [
+      44,
+      44,
+      466,
+      466
+    ],
+    "white_ring_rays": 360,
+    "folder": "04_profils_animaux"
+  },
+  {
+    "file": "11_dauphin.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 215,
+    "crop_box": [
+      40,
+      40,
+      470,
+      470
+    ],
+    "white_ring_rays": 360,
+    "folder": "04_profils_animaux"
+  },
+  {
+    "file": "12_herisson.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 215,
+    "crop_box": [
+      40,
+      40,
+      470,
+      470
+    ],
+    "white_ring_rays": 360,
+    "folder": "04_profils_animaux"
+  },
+  {
+    "file": "13_chouette.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 121,
+    "crop_box": [
+      134,
+      134,
+      376,
+      376
+    ],
+    "white_ring_rays": 360,
+    "folder": "04_profils_animaux"
+  },
+  {
+    "file": "14_raton_laveur.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 213,
+    "crop_box": [
+      42,
+      42,
+      468,
+      468
+    ],
+    "white_ring_rays": 360,
+    "folder": "04_profils_animaux"
+  },
+  {
+    "file": "15_tigre.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 211,
+    "crop_box": [
+      44,
+      44,
+      466,
+      466
+    ],
+    "white_ring_rays": 360,
+    "folder": "04_profils_animaux"
+  },
+  {
+    "file": "01_phenix.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 203,
+    "crop_box": [
+      52,
+      52,
+      458,
+      458
+    ],
+    "white_ring_rays": 360,
+    "folder": "05_profils_aventure_magique"
+  },
+  {
+    "file": "02_dragon_violet.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 208,
+    "crop_box": [
+      48,
+      48,
+      464,
+      464
+    ],
+    "white_ring_rays": 360,
+    "folder": "05_profils_aventure_magique"
+  },
+  {
+    "file": "03_licorne_arc_en_ciel.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 208,
+    "crop_box": [
+      48,
+      48,
+      464,
+      464
+    ],
+    "white_ring_rays": 360,
+    "folder": "05_profils_aventure_magique"
+  },
+  {
+    "file": "04_fee_baguette.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 210,
+    "crop_box": [
+      46,
+      46,
+      466,
+      466
+    ],
+    "white_ring_rays": 360,
+    "folder": "05_profils_aventure_magique"
+  },
+  {
+    "file": "05_robot_blanc.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 128,
+    "crop_box": [
+      128,
+      128,
+      384,
+      384
+    ],
+    "white_ring_rays": 360,
+    "folder": "05_profils_aventure_magique"
+  },
+  {
+    "file": "06_dragon_glace.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 162,
+    "crop_box": [
+      94,
+      94,
+      418,
+      418
+    ],
+    "white_ring_rays": 360,
+    "folder": "05_profils_aventure_magique"
+  },
+  {
+    "file": "07_licorne_violette.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 206,
+    "crop_box": [
+      50,
+      50,
+      462,
+      462
+    ],
+    "white_ring_rays": 360,
+    "folder": "05_profils_aventure_magique"
+  },
+  {
+    "file": "08_magicien.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 208,
+    "crop_box": [
+      48,
+      48,
+      464,
+      464
+    ],
+    "white_ring_rays": 360,
+    "folder": "05_profils_aventure_magique"
+  },
+  {
+    "file": "09_dragon_vert.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 208,
+    "crop_box": [
+      48,
+      48,
+      464,
+      464
+    ],
+    "white_ring_rays": 360,
+    "folder": "05_profils_aventure_magique"
+  },
+  {
+    "file": "10_fee_violette.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 208,
+    "crop_box": [
+      48,
+      48,
+      464,
+      464
+    ],
+    "white_ring_rays": 360,
+    "folder": "05_profils_aventure_magique"
+  },
+  {
+    "file": "11_dragon_rouge.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 211,
+    "crop_box": [
+      44,
+      44,
+      466,
+      466
+    ],
+    "white_ring_rays": 287,
+    "folder": "05_profils_aventure_magique"
+  },
+  {
+    "file": "12_griffon.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 214,
+    "crop_box": [
+      42,
+      42,
+      470,
+      470
+    ],
+    "white_ring_rays": 300,
+    "folder": "05_profils_aventure_magique"
+  },
+  {
+    "file": "13_licorne_ailee.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 157,
+    "crop_box": [
+      98,
+      98,
+      412,
+      412
+    ],
+    "white_ring_rays": 323,
+    "folder": "05_profils_aventure_magique"
+  },
+  {
+    "file": "14_chevalier.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 216,
+    "crop_box": [
+      40,
+      40,
+      472,
+      472
+    ],
+    "white_ring_rays": 307,
+    "folder": "05_profils_aventure_magique"
+  },
+  {
+    "file": "15_robot_vintage.png",
+    "size": [
+      512,
+      512
+    ],
+    "mode": "RGBA",
+    "source_size": [
+      512,
+      512
+    ],
+    "center": [
+      255.5,
+      255.5
+    ],
+    "radius": 216,
+    "crop_box": [
+      40,
+      40,
+      472,
+      472
+    ],
+    "white_ring_rays": 285,
+    "folder": "05_profils_aventure_magique"
+  }
+]

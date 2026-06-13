@@ -28,8 +28,15 @@ export type WordDictationGenerationProvider = 'ollama';
 export type WordDictationTextRequest = {
   words: string[];
   verbTenses: VerbTense[];
+  verbs?: string[];
   confirmedUnknownWords?: string[];
   generationProvider?: WordDictationGenerationProvider;
+  prompt?: string;
+};
+
+export type WordDictationControlResult = {
+  isValid: boolean;
+  checks: string[];
 };
 
 export type WordDictationTextResult = {
@@ -41,6 +48,7 @@ export type WordDictationTextResult = {
   selectedVerbTenses: VerbTense[];
   generationProvider: WordDictationGenerationProvider;
   readingInstruction: string;
+  controlResult: WordDictationControlResult;
 };
 
 export type DictationSession = {
@@ -95,6 +103,16 @@ export type PoetryPracticeLine = {
   status: 'known' | 'practice' | 'locked';
 };
 
+export type PoetryLineRecitalFeedback = {
+  lineIndex: number;
+  expectedText: string;
+  spokenText: string;
+  isCorrect: boolean;
+  accuracy: number;
+  missingWords: string[];
+  extraWords: string[];
+};
+
 export type PoetrySession = {
   childId: string;
   poemId: string;
@@ -109,7 +127,11 @@ export type PoetrySession = {
 
 export type PoetryRecitalSubmission = {
   poemId: string;
-  confidence: 'needs_help' | 'ready';
+  poemText?: string;
+  transcriptText?: string;
+  recitationMode?: 'line' | 'full';
+  lineIndex?: number;
+  confidence?: 'needs_help' | 'ready';
 };
 
 export type PoetryRecitalResult = {
@@ -118,4 +140,8 @@ export type PoetryRecitalResult = {
   earnedStars: number;
   feedbackTitle: string;
   feedbackMessage: string;
+  nextLineToPractice?: number;
+  overallAccuracy?: number;
+  lineFeedback?: PoetryLineRecitalFeedback[];
+  recognizedText?: string;
 };

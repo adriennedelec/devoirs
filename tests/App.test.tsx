@@ -12,7 +12,8 @@ describe('child app first screen', () => {
       expect(screen.getByRole('heading', { name: /bonjour emma/i })).toBeInTheDocument();
     });
 
-    expect(screen.getByText(/125 étoiles/i)).toBeInTheDocument();
+    expect(screen.queryByText(/125 étoiles/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /notifications/i })).not.toBeInTheDocument();
     expect(screen.getByText(/mon objectif du jour/i)).toBeInTheDocument();
     expect(screen.getByText(/tables de multiplication/i)).toBeInTheDocument();
     expect(screen.getByRole('navigation', { name: /navigation enfant/i })).toBeInTheDocument();

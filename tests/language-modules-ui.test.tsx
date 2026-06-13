@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import App from '../src/App';
@@ -6,7 +6,73 @@ import App from '../src/App';
 describe('Lot 4 dictation and poetry UI', () => {
   afterEach(() => {
     vi.restoreAllMocks();
+    window.localStorage.clear();
   });
+
+  it('saves the edited Llama dictation prompt as the new default and confirms it below the editor', async () => {
+    const user = userEvent.setup();
+    const customPrompt = 'PROMPT PARENT SAUVEGARDE {{mots}} {{verbes}} {{temps}}';
+    const { unmount } = render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /bonjour emma/i })).toBeInTheDocument();
+    });
+
+    const dictationCard = screen.getByRole('heading', { name: /dictée/i }).closest('article');
+    expect(dictationCard).not.toBeNull();
+    await user.click(within(dictationCard!).getByRole('button', { name: /continuer/i }));
+
+    const promptEditor = await screen.findByLabelText(/template du prompt llama/i);
+    fireEvent.change(promptEditor, { target: { value: customPrompt } });
+
+    expect(screen.getByText(/nouveau prompt enregistré/i)).toBeInTheDocument();
+    expect(window.localStorage.getItem('devoirs.wordDictation.llamaPrompt')).toBe(customPrompt);
+
+    unmount();
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /bonjour emma/i })).toBeInTheDocument();
+    });
+    const reopenedDictationCard = screen.getByRole('heading', { name: /dictée/i }).closest('article');
+    expect(reopenedDictationCard).not.toBeNull();
+    await user.click(within(reopenedDictationCard!).getByRole('button', { name: /continuer/i }));
+
+    expect(await screen.findByLabelText(/template du prompt llama/i)).toHaveValue(customPrompt);
+  });
+
+  it('keeps generic placeholders visible in the default Llama prompt editor while words change', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /bonjour emma/i })).toBeInTheDocument();
+    });
+
+    const dictationCard = screen.getByRole('heading', { name: /dictée/i }).closest('article');
+    expect(dictationCard).not.toBeNull();
+    await user.click(within(dictationCard!).getByRole('button', { name: /continuer/i }));
+
+    const promptEditor = await screen.findByLabelText(/template du prompt llama/i);
+    expect((promptEditor as HTMLTextAreaElement).value).toContain('{{mots}}');
+    expect((promptEditor as HTMLTextAreaElement).value).toContain('{{verbes}}');
+    expect((promptEditor as HTMLTextAreaElement).value).toContain('{{temps}}');
+
+    await user.type(screen.getByLabelText(/série de mots/i), 'dragon, cartable');
+    await user.type(screen.getByLabelText(/^verbes \(séparateur virgule\)$/i), 'courir');
+    await user.click(screen.getByRole('checkbox', { name: /présent/i }));
+
+    expect((promptEditor as HTMLTextAreaElement).value).toContain('{{mots}}');
+    expect((promptEditor as HTMLTextAreaElement).value).toContain('{{verbes}}');
+    expect((promptEditor as HTMLTextAreaElement).value).toContain('{{temps}}');
+    expect((promptEditor as HTMLTextAreaElement).value).not.toContain('- dragon');
+
+    await user.click(screen.getByText(/aperçu réel envoyé à ollama/i));
+    expect(screen.getByText(/- dragon/)).toBeInTheDocument();
+    expect(screen.getByText(/- cartable/)).toBeInTheDocument();
+    expect(screen.getByText(/- courir/)).toBeInTheDocument();
+  });
+
   it('opens the dictation module from Accueil and gives corrective feedback', async () => {
     const user = userEvent.setup();
     render(<App />);

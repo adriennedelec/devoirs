@@ -1,0 +1,309 @@
+{
+  "source": "/Users/nedelecadrien/.hermes/image_cache/img_2a7d55381c7d.png",
+  "image_size": [
+    1536,
+    1024
+  ],
+  "x_lines": [
+    [
+      22,
+      22
+    ],
+    [
+      302,
+      302
+    ],
+    [
+      607,
+      607
+    ],
+    [
+      913,
+      914
+    ],
+    [
+      1215,
+      1215
+    ],
+    [
+      1511,
+      1511
+    ]
+  ],
+  "y_lines": [
+    [
+      27,
+      27
+    ],
+    [
+      334,
+      335
+    ],
+    [
+      650,
+      650
+    ],
+    [
+      991,
+      991
+    ]
+  ],
+  "safety_px": 4,
+  "items": [
+    {
+      "index": 1,
+      "name": "01_phenix.png",
+      "crop_box": [
+        26,
+        31,
+        299,
+        331
+      ],
+      "bbox_after_bg_remove": [
+        32,
+        0,
+        273,
+        254
+      ],
+      "dest": "/Users/nedelecadrien/Documents/REPO/devoirs/sources/photos_profil/03_profils_fantastiques/01_phenix.png"
+    },
+    {
+      "index": 2,
+      "name": "02_dragon_violet.png",
+      "crop_box": [
+        306,
+        31,
+        604,
+        331
+      ],
+      "bbox_after_bg_remove": [
+        42,
+        30,
+        255,
+        254
+      ],
+      "dest": "/Users/nedelecadrien/Documents/REPO/devoirs/sources/photos_profil/03_profils_fantastiques/02_dragon_violet.png"
+    },
+    {
+      "index": 3,
+      "name": "03_licorne_arc_en_ciel.png",
+      "crop_box": [
+        611,
+        31,
+        910,
+        331
+      ],
+      "bbox_after_bg_remove": [
+        0,
+        0,
+        259,
+        253
+      ],
+      "dest": "/Users/nedelecadrien/Documents/REPO/devoirs/sources/photos_profil/03_profils_fantastiques/03_licorne_arc_en_ciel.png"
+    },
+    {
+      "index": 4,
+      "name": "04_fee_baguette.png",
+      "crop_box": [
+        918,
+        31,
+        1212,
+        331
+      ],
+      "bbox_after_bg_remove": [
+        46,
+        30,
+        254,
+        251
+      ],
+      "dest": "/Users/nedelecadrien/Documents/REPO/devoirs/sources/photos_profil/03_profils_fantastiques/04_fee_baguette.png"
+    },
+    {
+      "index": 5,
+      "name": "05_dragon_glace.png",
+      "crop_box": [
+        1219,
+        31,
+        1508,
+        331
+      ],
+      "bbox_after_bg_remove": [
+        48,
+        0,
+        288,
+        251
+      ],
+      "dest": "/Users/nedelecadrien/Documents/REPO/devoirs/sources/photos_profil/03_profils_fantastiques/05_dragon_glace.png"
+    },
+    {
+      "index": 6,
+      "name": "06_licorne_ailee_violette.png",
+      "crop_box": [
+        26,
+        339,
+        299,
+        647
+      ],
+      "bbox_after_bg_remove": [
+        28,
+        35,
+        243,
+        261
+      ],
+      "dest": "/Users/nedelecadrien/Documents/REPO/devoirs/sources/photos_profil/03_profils_fantastiques/06_licorne_ailee_violette.png"
+    },
+    {
+      "index": 7,
+      "name": "07_magicien.png",
+      "crop_box": [
+        306,
+        339,
+        604,
+        647
+      ],
+      "bbox_after_bg_remove": [
+        40,
+        32,
+        257,
+        259
+      ],
+      "dest": "/Users/nedelecadrien/Documents/REPO/devoirs/sources/photos_profil/03_profils_fantastiques/07_magicien.png"
+    },
+    {
+      "index": 8,
+      "name": "08_dragon_vert.png",
+      "crop_box": [
+        611,
+        339,
+        910,
+        647
+      ],
+      "bbox_after_bg_remove": [
+        42,
+        32,
+        260,
+        259
+      ],
+      "dest": "/Users/nedelecadrien/Documents/REPO/devoirs/sources/photos_profil/03_profils_fantastiques/08_dragon_vert.png"
+    },
+    {
+      "index": 9,
+      "name": "09_fee_violette.png",
+      "crop_box": [
+        918,
+        339,
+        1212,
+        647
+      ],
+      "bbox_after_bg_remove": [
+        41,
+        33,
+        254,
+        258
+      ],
+      "dest": "/Users/nedelecadrien/Documents/REPO/devoirs/sources/photos_profil/03_profils_fantastiques/09_fee_violette.png"
+    },
+    {
+      "index": 10,
+      "name": "10_dragon_rouge.png",
+      "crop_box": [
+        1219,
+        339,
+        1508,
+        647
+      ],
+      "bbox_after_bg_remove": [
+        43,
+        35,
+        257,
+        260
+      ],
+      "dest": "/Users/nedelecadrien/Documents/REPO/devoirs/sources/photos_profil/03_profils_fantastiques/10_dragon_rouge.png"
+    },
+    {
+      "index": 11,
+      "name": "11_griffon.png",
+      "crop_box": [
+        26,
+        654,
+        299,
+        988
+      ],
+      "bbox_after_bg_remove": [
+        24,
+        31,
+        242,
+        266
+      ],
+      "dest": "/Users/nedelecadrien/Documents/REPO/devoirs/sources/photos_profil/03_profils_fantastiques/11_griffon.png"
+    },
+    {
+      "index": 12,
+      "name": "12_licorne_ailee.png",
+      "crop_box": [
+        306,
+        654,
+        604,
+        988
+      ],
+      "bbox_after_bg_remove": [
+        39,
+        34,
+        257,
+        270
+      ],
+      "dest": "/Users/nedelecadrien/Documents/REPO/devoirs/sources/photos_profil/03_profils_fantastiques/12_licorne_ailee.png"
+    },
+    {
+      "index": 13,
+      "name": "13_sorciere.png",
+      "crop_box": [
+        611,
+        654,
+        910,
+        988
+      ],
+      "bbox_after_bg_remove": [
+        40,
+        35,
+        259,
+        271
+      ],
+      "dest": "/Users/nedelecadrien/Documents/REPO/devoirs/sources/photos_profil/03_profils_fantastiques/13_sorciere.png"
+    },
+    {
+      "index": 14,
+      "name": "14_chevaliere.png",
+      "crop_box": [
+        918,
+        654,
+        1212,
+        988
+      ],
+      "bbox_after_bg_remove": [
+        38,
+        34,
+        258,
+        270
+      ],
+      "dest": "/Users/nedelecadrien/Documents/REPO/devoirs/sources/photos_profil/03_profils_fantastiques/14_chevaliere.png"
+    },
+    {
+      "index": 15,
+      "name": "15_chevalier.png",
+      "crop_box": [
+        1219,
+        654,
+        1508,
+        988
+      ],
+      "bbox_after_bg_remove": [
+        40,
+        36,
+        259,
+        275
+      ],
+      "dest": "/Users/nedelecadrien/Documents/REPO/devoirs/sources/photos_profil/03_profils_fantastiques/15_chevalier.png"
+    }
+  ]
+}

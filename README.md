@@ -126,7 +126,7 @@ Lots 1 à 11 réalisés : socle React/Vite TypeScript API-ready, shell enfant na
 
 Évolution dictée validée ensuite : le module `Dictée magique` propose maintenant deux modes explicites, **Dictée de mots** et **Dictée normale**. La dictée de mots est le mode prioritaire et utilise toute la largeur disponible à droite du menu latéral : le parent saisit une série de mots ou les importe via **fichier/photo** ; un flux OCR API-ready détecte automatiquement les mots et remplit le champ `Série de mots`. La saisie est découpée en mots distincts dès qu’un séparateur apparaît (espace, retour ligne, virgule, point, slash, tiret, etc.), puis chaque mot est comparé à un dictionnaire français embarqué d’environ **336 000 mots** (`an-array-of-french-words`), derrière une couche service remplaçable par API. Si un mot saisi ou OCRisé paraît inconnu, une carte **Mot à confirmer** demande au parent de vérifier/valider avant de continuer. Le parent choisit ensuite un ou plusieurs temps verbaux (`Présent`, `Imparfait`, `Passé composé`, `Futur`), puis l’app génère une **mini-histoire courte, naturelle, logique et adaptée au primaire** uniquement avec **`IA locale Ollama`** via le proxy Vite `/api/ollama/generate` vers `http://127.0.0.1:11434` (`llama3.1:8b`). Il n’y a plus d’option `Local secours`, jugée trop mauvaise pour être exploitable. Le moteur Ollama reçoit un prompt professoral et le service valide ensuite automatiquement que tous les mots sont présents **une seule fois chacun** ; si le modèle oublie ou répète un mot, l’app relance jusqu’à trois fois avec les erreurs détectées, puis affiche une erreur explicite si Ollama n’atteint toujours pas le contrat. Pendant l’attente, le bouton affiche `Génération en cours` avec trois points animés. Le texte produit par Ollama est affiché directement au parent, puis les contrôles de lecture / checklist des mots apparaissent dessous. Les changements de temps verbaux ne relancent pas automatiquement le modèle ; un bouton dédié `Relancer Ollama` permet de demander volontairement une nouvelle proposition.
 
-Évolution multiplication validée ensuite : l’écran `Tables de multiplication` garde le **design magique/premium** (fond violet→bleu pastel nuageux **continu sur toute la page**, étoiles, header compact, carte d’étoiles, sélecteur 2 à 10, cartes de progression condensées, personnages/robot/coffre et aide pédagogique) tout en conservant les fonctionnalités cœur : **menu latéral fixe visible**, navigation directe vers Tables/Dictée/Poésie, exercice par **question QCM** avec 4 réponses, auto-avance après bonne réponse et feedback doux en cas d’erreur. Chaque table de 2 à 10 lance désormais 10 calculs couvrant les facteurs 1 à 10 dans le désordre. Une erreur laisse l’enfant sur la même question jusqu’à réussite. Le score final compte uniquement les réussites du premier coup (`1` ou `0` par calcul), affiche la table complète avec les calculs à retravailler en rouge et ajoute en bas de l’écran un **historique des tables réalisées** avec date/heure, réponses justes, réponses fausses, score obtenu, temps passé et détail des calculs `1 × table` à `10 × table` en vert/rouge.
+Évolution multiplication validée ensuite : l’écran `Tables de multiplication` garde le **design magique/premium** (fond violet→bleu pastel nuageux **continu sur toute la page**, étoiles, header compact, carte d’étoiles, sélecteur 2 à 10, cartes de progression condensées, personnages/robot/coffre et aide pédagogique) tout en conservant les fonctionnalités cœur : **menu latéral fixe visible**, navigation directe vers Tables/Dictée/Poésie, exercice par **question QCM** avec 4 réponses, auto-avance après bonne réponse et feedback doux en cas d’erreur. Chaque table de 2 à 10 lance désormais 9 calculs couvrant uniquement les facteurs 2 à 10 dans le désordre. Les 4 réponses QCM sont mélangées par session et par question pour éviter que la bonne réponse reste toujours au même emplacement. Une erreur laisse l’enfant sur la même question jusqu’à réussite. Le score final compte uniquement les réussites du premier coup (`1` ou `0` par calcul), affiche la table complète avec les calculs à retravailler en rouge et ajoute en bas de l’écran un **historique des tables réalisées** persistant dans une base locale `localStorage` (`devoirs.multiplicationTableHistory.v1`) avec nom de l’élève, date/heure, réponses justes, réponses fausses, score obtenu, temps passé et détail des calculs `2 × table` à `10 × table` en vert/rouge.
 
 Le projet contient maintenant :
 
@@ -264,3 +264,47 @@ tests/child-interface-lots-ui.test.tsx
 ```
 
 Ces lots restent API-compatibles : les nouvelles données sont typées, mockées dans `mockData.ts` et consommées via `childService.ts`.
+
+## Lot activité réelle réalisé
+
+Les bases des futurs menus `Base de données` et `Paramétrage` sont amorcées côté données :
+
+- ajout d’un contrat `ActivityRecord` dans `src/types/activity.ts` pour historiser les activités de tous les profils ;
+- ajout du service local/API-ready `src/services/activityDatabase.ts` avec lecture, écriture, normalisation et ajout d’activités dans `localStorage` ;
+- branchement de la fin d’une table de multiplication sur cette base commune : profil, table, durée, score, bonnes/mauvaises réponses, étoiles gagnées et détail des calculs sont enregistrés ;
+- l’historique visuel existant des tables est conservé, mais les mêmes sessions alimentent maintenant la future base globale.
+
+## Lots `Base de données` et `Paramétrage` réalisés
+
+Deux menus parent/admin ont été ajoutés au menu latéral :
+
+- `Base de données` affiche un tableau des activités stockées dans `devoirs.activityRecords.v1`, avec date, profil, module, exercice, durée, score, étoiles et statut ;
+- le tableau propose un filtre par module pour contrôler rapidement les données utilisées par les futurs graphiques de profil ;
+- `Paramétrage` permet de définir les étoiles gagnées par exercice pour les modules Tables, Dictée, Poésie et Lecture ;
+- les paramètres sont persistés dans `devoirs.rewardSettings.v1` ;
+- la fin d’une table de multiplication lit désormais ce paramétrage pour calculer les étoiles stockées dans l’activité.
+
+Tests ajoutés ou renforcés :
+
+```txt
+tests/activity-database.test.ts
+tests/admin-pages.test.tsx
+tests/reward-settings.test.ts
+tests/multiplication-ui.test.tsx
+```
+
+## Lots Profil réel et modules connectés réalisés
+
+La page `Profil` n’utilise plus uniquement les graphiques simulés dès que des activités existent dans la base commune :
+
+- `Aperçu des activités` agrège `devoirs.activityRecords.v1` par profil et par jour pour le temps d’activité, les exercices réalisés et les étoiles gagnées ;
+- l’`Historique détaillé des activités` affiche les exercices réels stockés, avec filtres, tri et pagination existants conservés ;
+- les matières sont déduites du module stocké : `Mathématiques` pour les tables, `Français` pour la dictée, `Lecture` pour la lecture et `Poésie` pour la poésie ;
+- si aucune activité réelle n’est encore stockée, la page garde les données de démonstration pour ne pas afficher une page vide au premier lancement ;
+- les modules `Lecture`, `Dictée` et `Poésie` écrivent maintenant aussi des lignes `ActivityRecord` dans `devoirs.activityRecords.v1`, avec score, statut, étoiles calculées depuis `Paramétrage` et libellé d’exercice.
+
+Tests ajoutés :
+
+```txt
+tests/profile-activity-database.test.tsx
+```

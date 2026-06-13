@@ -1,0 +1,2402 @@
+[
+  {
+    "folder": "01_profils_enfants",
+    "file": "01_garcon_hoodie_bleu.png",
+    "source": "profil_niveau1.PNG",
+    "grid": [
+      0,
+      0
+    ],
+    "center": [
+      162.5,
+      173.0
+    ],
+    "radius": 140,
+    "crop_box": [
+      22,
+      33,
+      302,
+      313
+    ],
+    "detect": {
+      "cell": [
+        0,
+        0,
+        307,
+        341
+      ],
+      "rx": 141.5,
+      "ry": 154.0,
+      "max_width": 283,
+      "max_height": 310
+    }
+  },
+  {
+    "folder": "01_profils_enfants",
+    "file": "02_fille_couettes_violettes.png",
+    "source": "profil_niveau1.PNG",
+    "grid": [
+      0,
+      1
+    ],
+    "center": [
+      460.5,
+      173.5
+    ],
+    "radius": 142,
+    "crop_box": [
+      318,
+      32,
+      602,
+      316
+    ],
+    "detect": {
+      "cell": [
+        307,
+        0,
+        614,
+        341
+      ],
+      "rx": 144.0,
+      "ry": 154.0,
+      "max_width": 288,
+      "max_height": 309
+    }
+  },
+  {
+    "folder": "01_profils_enfants",
+    "file": "03_garcon_lunettes_vert.png",
+    "source": "profil_niveau1.PNG",
+    "grid": [
+      0,
+      2
+    ],
+    "center": [
+      759.5,
+      173.0
+    ],
+    "radius": 147,
+    "crop_box": [
+      612,
+      26,
+      906,
+      320
+    ],
+    "detect": {
+      "cell": [
+        614,
+        0,
+        921,
+        341
+      ],
+      "rx": 151.5,
+      "ry": 154.0,
+      "max_width": 303,
+      "max_height": 308
+    }
+  },
+  {
+    "folder": "01_profils_enfants",
+    "file": "04_fille_barrette_salopette.png",
+    "source": "profil_niveau1.PNG",
+    "grid": [
+      0,
+      3
+    ],
+    "center": [
+      1074.0,
+      172.5
+    ],
+    "radius": 147,
+    "crop_box": [
+      927,
+      26,
+      1221,
+      320
+    ],
+    "detect": {
+      "cell": [
+        921,
+        0,
+        1228,
+        341
+      ],
+      "rx": 153.5,
+      "ry": 154.0,
+      "max_width": 307,
+      "max_height": 308
+    }
+  },
+  {
+    "folder": "01_profils_enfants",
+    "file": "05_garcon_casquette_rouge.png",
+    "source": "profil_niveau1.PNG",
+    "grid": [
+      0,
+      4
+    ],
+    "center": [
+      1355.0,
+      173.0
+    ],
+    "radius": 132,
+    "crop_box": [
+      1223,
+      41,
+      1487,
+      305
+    ],
+    "detect": {
+      "cell": [
+        1228,
+        0,
+        1536,
+        341
+      ],
+      "rx": 133.5,
+      "ry": 154.18,
+      "max_width": 267,
+      "max_height": 310
+    }
+  },
+  {
+    "folder": "01_profils_enfants",
+    "file": "06_garcon_hoodie_turquoise.png",
+    "source": "profil_niveau1.PNG",
+    "grid": [
+      1,
+      0
+    ],
+    "center": [
+      162.0,
+      512.5
+    ],
+    "radius": 140,
+    "crop_box": [
+      22,
+      372,
+      302,
+      652
+    ],
+    "detect": {
+      "cell": [
+        0,
+        341,
+        307,
+        682
+      ],
+      "rx": 141.5,
+      "ry": 169.0,
+      "max_width": 284,
+      "max_height": 338
+    }
+  },
+  {
+    "folder": "01_profils_enfants",
+    "file": "07_fille_couettes_jaunes.png",
+    "source": "profil_niveau1.PNG",
+    "grid": [
+      1,
+      1
+    ],
+    "center": [
+      460.5,
+      512.5
+    ],
+    "radius": 142,
+    "crop_box": [
+      318,
+      370,
+      602,
+      654
+    ],
+    "detect": {
+      "cell": [
+        307,
+        341,
+        614,
+        682
+      ],
+      "rx": 144.0,
+      "ry": 169.5,
+      "max_width": 289,
+      "max_height": 339
+    }
+  },
+  {
+    "folder": "01_profils_enfants",
+    "file": "08_garcon_boucles_hoodie_bleu.png",
+    "source": "profil_niveau1.PNG",
+    "grid": [
+      1,
+      2
+    ],
+    "center": [
+      763.75,
+      513.0
+    ],
+    "radius": 147,
+    "crop_box": [
+      617,
+      366,
+      911,
+      660
+    ],
+    "detect": {
+      "cell": [
+        614,
+        341,
+        921,
+        682
+      ],
+      "rx": 151.5,
+      "ry": 168.5,
+      "max_width": 304,
+      "max_height": 338
+    }
+  },
+  {
+    "folder": "01_profils_enfants",
+    "file": "09_fille_bandeau_violet.png",
+    "source": "profil_niveau1.PNG",
+    "grid": [
+      1,
+      3
+    ],
+    "center": [
+      1074.0,
+      513.0
+    ],
+    "radius": 147,
+    "crop_box": [
+      927,
+      366,
+      1221,
+      660
+    ],
+    "detect": {
+      "cell": [
+        921,
+        341,
+        1228,
+        682
+      ],
+      "rx": 153.5,
+      "ry": 169.0,
+      "max_width": 307,
+      "max_height": 338
+    }
+  },
+  {
+    "folder": "01_profils_enfants",
+    "file": "10_garcon_tshirt_vert.png",
+    "source": "profil_niveau1.PNG",
+    "grid": [
+      1,
+      4
+    ],
+    "center": [
+      1355.0,
+      512.5
+    ],
+    "radius": 132,
+    "crop_box": [
+      1223,
+      380,
+      1487,
+      644
+    ],
+    "detect": {
+      "cell": [
+        1228,
+        341,
+        1536,
+        682
+      ],
+      "rx": 133.5,
+      "ry": 169.5,
+      "max_width": 267,
+      "max_height": 339
+    }
+  },
+  {
+    "folder": "01_profils_enfants",
+    "file": "11_garcon_blond_hoodie_bleu.png",
+    "source": "profil_niveau1.PNG",
+    "grid": [
+      2,
+      0
+    ],
+    "center": [
+      161.5,
+      824.0
+    ],
+    "radius": 140,
+    "crop_box": [
+      22,
+      684,
+      302,
+      964
+    ],
+    "detect": {
+      "cell": [
+        0,
+        682,
+        307,
+        1024
+      ],
+      "rx": 141.5,
+      "ry": 149.0,
+      "max_width": 283,
+      "max_height": 298
+    }
+  },
+  {
+    "folder": "01_profils_enfants",
+    "file": "12_fille_blonde_hoodie_rose.png",
+    "source": "profil_niveau1.PNG",
+    "grid": [
+      2,
+      1
+    ],
+    "center": [
+      458.0,
+      824.75
+    ],
+    "radius": 142,
+    "crop_box": [
+      316,
+      683,
+      600,
+      967
+    ],
+    "detect": {
+      "cell": [
+        307,
+        682,
+        614,
+        1024
+      ],
+      "rx": 144.0,
+      "ry": 149.0,
+      "max_width": 289,
+      "max_height": 299
+    }
+  },
+  {
+    "folder": "01_profils_enfants",
+    "file": "13_garcon_cheveux_chatain.png",
+    "source": "profil_niveau1.PNG",
+    "grid": [
+      2,
+      2
+    ],
+    "center": [
+      768.5,
+      823.5
+    ],
+    "radius": 147,
+    "crop_box": [
+      622,
+      676,
+      916,
+      970
+    ],
+    "detect": {
+      "cell": [
+        614,
+        682,
+        921,
+        1024
+      ],
+      "rx": 152.0,
+      "ry": 148.5,
+      "max_width": 304,
+      "max_height": 297
+    }
+  },
+  {
+    "folder": "01_profils_enfants",
+    "file": "14_fille_queue_rose.png",
+    "source": "profil_niveau1.PNG",
+    "grid": [
+      2,
+      3
+    ],
+    "center": [
+      1074.0,
+      824.0
+    ],
+    "radius": 147,
+    "crop_box": [
+      927,
+      677,
+      1221,
+      971
+    ],
+    "detect": {
+      "cell": [
+        921,
+        682,
+        1228,
+        1024
+      ],
+      "rx": 153.5,
+      "ry": 149.0,
+      "max_width": 307,
+      "max_height": 298
+    }
+  },
+  {
+    "folder": "01_profils_enfants",
+    "file": "15_garcon_boucles_bleu.png",
+    "source": "profil_niveau1.PNG",
+    "grid": [
+      2,
+      4
+    ],
+    "center": [
+      1356.0,
+      825.0
+    ],
+    "radius": 132,
+    "crop_box": [
+      1224,
+      693,
+      1488,
+      957
+    ],
+    "detect": {
+      "cell": [
+        1228,
+        682,
+        1536,
+        1024
+      ],
+      "rx": 134.0,
+      "ry": 149.0,
+      "max_width": 268,
+      "max_height": 299
+    }
+  },
+  {
+    "folder": "02_profils_metiers",
+    "file": "01_docteur.png",
+    "source": "porfil_métier.PNG",
+    "grid": [
+      0,
+      0
+    ],
+    "center": [
+      166.5,
+      182.0
+    ],
+    "radius": 139,
+    "crop_box": [
+      28,
+      43,
+      306,
+      321
+    ],
+    "detect": {
+      "cell": [
+        0,
+        0,
+        307,
+        341
+      ],
+      "rx": 140.24,
+      "ry": 156.5,
+      "max_width": 281,
+      "max_height": 314
+    }
+  },
+  {
+    "folder": "02_profils_metiers",
+    "file": "02_infirmiere.png",
+    "source": "porfil_métier.PNG",
+    "grid": [
+      0,
+      1
+    ],
+    "center": [
+      462.0,
+      180.0
+    ],
+    "radius": 136,
+    "crop_box": [
+      326,
+      44,
+      598,
+      316
+    ],
+    "detect": {
+      "cell": [
+        307,
+        0,
+        614,
+        341
+      ],
+      "rx": 138.0,
+      "ry": 154.5,
+      "max_width": 293,
+      "max_height": 309
+    }
+  },
+  {
+    "folder": "02_profils_metiers",
+    "file": "03_scientifique.png",
+    "source": "porfil_métier.PNG",
+    "grid": [
+      0,
+      2
+    ],
+    "center": [
+      769.5,
+      179.5
+    ],
+    "radius": 147,
+    "crop_box": [
+      622,
+      32,
+      916,
+      326
+    ],
+    "detect": {
+      "cell": [
+        614,
+        0,
+        921,
+        341
+      ],
+      "rx": 152.0,
+      "ry": 154.0,
+      "max_width": 304,
+      "max_height": 308
+    }
+  },
+  {
+    "folder": "02_profils_metiers",
+    "file": "04_cuisiniere.png",
+    "source": "porfil_métier.PNG",
+    "grid": [
+      0,
+      3
+    ],
+    "center": [
+      1074.0,
+      181.5
+    ],
+    "radius": 147,
+    "crop_box": [
+      927,
+      34,
+      1221,
+      328
+    ],
+    "detect": {
+      "cell": [
+        921,
+        0,
+        1228,
+        341
+      ],
+      "rx": 153.5,
+      "ry": 156.0,
+      "max_width": 307,
+      "max_height": 312
+    }
+  },
+  {
+    "folder": "02_profils_metiers",
+    "file": "05_pompier.png",
+    "source": "porfil_métier.PNG",
+    "grid": [
+      0,
+      4
+    ],
+    "center": [
+      1342.75,
+      183.5
+    ],
+    "radius": 120,
+    "crop_box": [
+      1223,
+      64,
+      1463,
+      304
+    ],
+    "detect": {
+      "cell": [
+        1228,
+        0,
+        1536,
+        341
+      ],
+      "rx": 121.5,
+      "ry": 157.5,
+      "max_width": 243,
+      "max_height": 315
+    }
+  },
+  {
+    "folder": "02_profils_metiers",
+    "file": "06_policiere.png",
+    "source": "porfil_métier.PNG",
+    "grid": [
+      1,
+      0
+    ],
+    "center": [
+      163.5,
+      514.0
+    ],
+    "radius": 136,
+    "crop_box": [
+      28,
+      378,
+      300,
+      650
+    ],
+    "detect": {
+      "cell": [
+        0,
+        341,
+        307,
+        682
+      ],
+      "rx": 138.0,
+      "ry": 162.0,
+      "max_width": 276,
+      "max_height": 325
+    }
+  },
+  {
+    "folder": "02_profils_metiers",
+    "file": "07_architecte.png",
+    "source": "porfil_métier.PNG",
+    "grid": [
+      1,
+      1
+    ],
+    "center": [
+      458.0,
+      511.5
+    ],
+    "radius": 136,
+    "crop_box": [
+      322,
+      376,
+      594,
+      648
+    ],
+    "detect": {
+      "cell": [
+        307,
+        341,
+        614,
+        682
+      ],
+      "rx": 137.5,
+      "ry": 162.5,
+      "max_width": 275,
+      "max_height": 325
+    }
+  },
+  {
+    "folder": "02_profils_metiers",
+    "file": "08_astronaute.png",
+    "source": "porfil_métier.PNG",
+    "grid": [
+      1,
+      2
+    ],
+    "center": [
+      769.5,
+      511.5
+    ],
+    "radius": 147,
+    "crop_box": [
+      622,
+      364,
+      916,
+      658
+    ],
+    "detect": {
+      "cell": [
+        614,
+        341,
+        921,
+        682
+      ],
+      "rx": 152.5,
+      "ry": 162.0,
+      "max_width": 305,
+      "max_height": 325
+    }
+  },
+  {
+    "folder": "02_profils_metiers",
+    "file": "09_veterinaire.png",
+    "source": "porfil_métier.PNG",
+    "grid": [
+      1,
+      3
+    ],
+    "center": [
+      1074.0,
+      516.0
+    ],
+    "radius": 147,
+    "crop_box": [
+      927,
+      369,
+      1221,
+      663
+    ],
+    "detect": {
+      "cell": [
+        921,
+        341,
+        1228,
+        682
+      ],
+      "rx": 153.5,
+      "ry": 162.0,
+      "max_width": 307,
+      "max_height": 324
+    }
+  },
+  {
+    "folder": "02_profils_metiers",
+    "file": "10_footballeur.png",
+    "source": "porfil_métier.PNG",
+    "grid": [
+      1,
+      4
+    ],
+    "center": [
+      1340.5,
+      514.0
+    ],
+    "radius": 118,
+    "crop_box": [
+      1222,
+      396,
+      1458,
+      632
+    ],
+    "detect": {
+      "cell": [
+        1228,
+        341,
+        1536,
+        682
+      ],
+      "rx": 119.5,
+      "ry": 162.0,
+      "max_width": 239,
+      "max_height": 341
+    }
+  },
+  {
+    "folder": "02_profils_metiers",
+    "file": "11_pilote.png",
+    "source": "porfil_métier.PNG",
+    "grid": [
+      2,
+      0
+    ],
+    "center": [
+      160.0,
+      828.5
+    ],
+    "radius": 135,
+    "crop_box": [
+      25,
+      694,
+      295,
+      964
+    ],
+    "detect": {
+      "cell": [
+        0,
+        682,
+        307,
+        1024
+      ],
+      "rx": 136.5,
+      "ry": 152.0,
+      "max_width": 273,
+      "max_height": 304
+    }
+  },
+  {
+    "folder": "02_profils_metiers",
+    "file": "12_journaliste.png",
+    "source": "porfil_métier.PNG",
+    "grid": [
+      2,
+      1
+    ],
+    "center": [
+      449.5,
+      831.5
+    ],
+    "radius": 147,
+    "crop_box": [
+      302,
+      684,
+      596,
+      978
+    ],
+    "detect": {
+      "cell": [
+        307,
+        682,
+        614,
+        1024
+      ],
+      "rx": 149.5,
+      "ry": 152.5,
+      "max_width": 299,
+      "max_height": 305
+    }
+  },
+  {
+    "folder": "02_profils_metiers",
+    "file": "13_mecanicien.png",
+    "source": "porfil_métier.PNG",
+    "grid": [
+      2,
+      2
+    ],
+    "center": [
+      767.0,
+      835.0
+    ],
+    "radius": 147,
+    "crop_box": [
+      620,
+      688,
+      914,
+      982
+    ],
+    "detect": {
+      "cell": [
+        614,
+        682,
+        921,
+        1024
+      ],
+      "rx": 153.5,
+      "ry": 155.0,
+      "max_width": 307,
+      "max_height": 310
+    }
+  },
+  {
+    "folder": "02_profils_metiers",
+    "file": "14_pompiere.png",
+    "source": "porfil_métier.PNG",
+    "grid": [
+      2,
+      3
+    ],
+    "center": [
+      1074.0,
+      835.5
+    ],
+    "radius": 147,
+    "crop_box": [
+      927,
+      688,
+      1221,
+      982
+    ],
+    "detect": {
+      "cell": [
+        921,
+        682,
+        1228,
+        1024
+      ],
+      "rx": 153.5,
+      "ry": 155.52,
+      "max_width": 307,
+      "max_height": 312
+    }
+  },
+  {
+    "folder": "02_profils_metiers",
+    "file": "15_professeur.png",
+    "source": "porfil_métier.PNG",
+    "grid": [
+      2,
+      4
+    ],
+    "center": [
+      1345.75,
+      836.5
+    ],
+    "radius": 124,
+    "crop_box": [
+      1222,
+      712,
+      1470,
+      960
+    ],
+    "detect": {
+      "cell": [
+        1228,
+        682,
+        1536,
+        1024
+      ],
+      "rx": 125.78,
+      "ry": 155.5,
+      "max_width": 255,
+      "max_height": 312
+    }
+  },
+  {
+    "folder": "03_profils_fantastiques",
+    "file": "01_phenix.png",
+    "source": "3C318020-02A0-489D-BF54-C554558064B7.PNG",
+    "grid": [
+      0,
+      0
+    ],
+    "center": [
+      145.5,
+      220.5
+    ],
+    "radius": 130,
+    "crop_box": [
+      16,
+      90,
+      276,
+      350
+    ],
+    "detect": {
+      "cell": [
+        0,
+        0,
+        280,
+        374
+      ],
+      "rx": 132.0,
+      "ry": 146.5,
+      "max_width": 266,
+      "max_height": 294
+    }
+  },
+  {
+    "folder": "03_profils_fantastiques",
+    "file": "02_dragon_violet.png",
+    "source": "3C318020-02A0-489D-BF54-C554558064B7.PNG",
+    "grid": [
+      0,
+      1
+    ],
+    "center": [
+      420.5,
+      221.0
+    ],
+    "radius": 130,
+    "crop_box": [
+      290,
+      91,
+      550,
+      351
+    ],
+    "detect": {
+      "cell": [
+        280,
+        0,
+        560,
+        374
+      ],
+      "rx": 131.0,
+      "ry": 147.24,
+      "max_width": 264,
+      "max_height": 295
+    }
+  },
+  {
+    "folder": "03_profils_fantastiques",
+    "file": "03_licorne_arc_en_ciel.png",
+    "source": "3C318020-02A0-489D-BF54-C554558064B7.PNG",
+    "grid": [
+      0,
+      2
+    ],
+    "center": [
+      696.0,
+      221.5
+    ],
+    "radius": 134,
+    "crop_box": [
+      562,
+      88,
+      830,
+      356
+    ],
+    "detect": {
+      "cell": [
+        560,
+        0,
+        841,
+        374
+      ],
+      "rx": 137.5,
+      "ry": 146.0,
+      "max_width": 275,
+      "max_height": 292
+    }
+  },
+  {
+    "folder": "03_profils_fantastiques",
+    "file": "04_fee_baguette.png",
+    "source": "3C318020-02A0-489D-BF54-C554558064B7.PNG",
+    "grid": [
+      0,
+      3
+    ],
+    "center": [
+      971.0,
+      222.5
+    ],
+    "radius": 134,
+    "crop_box": [
+      837,
+      88,
+      1105,
+      356
+    ],
+    "detect": {
+      "cell": [
+        841,
+        0,
+        1121,
+        374
+      ],
+      "rx": 140.0,
+      "ry": 146.5,
+      "max_width": 280,
+      "max_height": 293
+    }
+  },
+  {
+    "folder": "03_profils_fantastiques",
+    "file": "05_dragon_glace.png",
+    "source": "3C318020-02A0-489D-BF54-C554558064B7.PNG",
+    "grid": [
+      0,
+      4
+    ],
+    "center": [
+      1248.0,
+      221.5
+    ],
+    "radius": 128,
+    "crop_box": [
+      1120,
+      94,
+      1376,
+      350
+    ],
+    "detect": {
+      "cell": [
+        1121,
+        0,
+        1402,
+        374
+      ],
+      "rx": 130.0,
+      "ry": 147.0,
+      "max_width": 260,
+      "max_height": 295
+    }
+  },
+  {
+    "folder": "03_profils_fantastiques",
+    "file": "06_licorne_ailee_violette.png",
+    "source": "3C318020-02A0-489D-BF54-C554558064B7.PNG",
+    "grid": [
+      1,
+      0
+    ],
+    "center": [
+      143.0,
+      576.0
+    ],
+    "radius": 129,
+    "crop_box": [
+      14,
+      447,
+      272,
+      705
+    ],
+    "detect": {
+      "cell": [
+        0,
+        374,
+        280,
+        748
+      ],
+      "rx": 130.5,
+      "ry": 172.5,
+      "max_width": 261,
+      "max_height": 345
+    }
+  },
+  {
+    "folder": "03_profils_fantastiques",
+    "file": "07_magicien.png",
+    "source": "3C318020-02A0-489D-BF54-C554558064B7.PNG",
+    "grid": [
+      1,
+      1
+    ],
+    "center": [
+      416.5,
+      576.0
+    ],
+    "radius": 129,
+    "crop_box": [
+      288,
+      447,
+      546,
+      705
+    ],
+    "detect": {
+      "cell": [
+        280,
+        374,
+        560,
+        748
+      ],
+      "rx": 130.5,
+      "ry": 172.5,
+      "max_width": 262,
+      "max_height": 346
+    }
+  },
+  {
+    "folder": "03_profils_fantastiques",
+    "file": "08_dragon_vert.png",
+    "source": "3C318020-02A0-489D-BF54-C554558064B7.PNG",
+    "grid": [
+      1,
+      2
+    ],
+    "center": [
+      692.5,
+      576.0
+    ],
+    "radius": 134,
+    "crop_box": [
+      558,
+      442,
+      826,
+      710
+    ],
+    "detect": {
+      "cell": [
+        560,
+        374,
+        841,
+        748
+      ],
+      "rx": 139.5,
+      "ry": 172.5,
+      "max_width": 279,
+      "max_height": 345
+    }
+  },
+  {
+    "folder": "03_profils_fantastiques",
+    "file": "09_fee_violette.png",
+    "source": "3C318020-02A0-489D-BF54-C554558064B7.PNG",
+    "grid": [
+      1,
+      3
+    ],
+    "center": [
+      968.5,
+      576.0
+    ],
+    "radius": 134,
+    "crop_box": [
+      834,
+      442,
+      1102,
+      710
+    ],
+    "detect": {
+      "cell": [
+        841,
+        374,
+        1121,
+        748
+      ],
+      "rx": 140.0,
+      "ry": 172.0,
+      "max_width": 280,
+      "max_height": 344
+    }
+  },
+  {
+    "folder": "03_profils_fantastiques",
+    "file": "10_dragon_rouge.png",
+    "source": "3C318020-02A0-489D-BF54-C554558064B7.PNG",
+    "grid": [
+      1,
+      4
+    ],
+    "center": [
+      1245.5,
+      576.0
+    ],
+    "radius": 128,
+    "crop_box": [
+      1118,
+      448,
+      1374,
+      704
+    ],
+    "detect": {
+      "cell": [
+        1121,
+        374,
+        1402,
+        748
+      ],
+      "rx": 129.0,
+      "ry": 172.0,
+      "max_width": 258,
+      "max_height": 344
+    }
+  },
+  {
+    "folder": "03_profils_fantastiques",
+    "file": "11_griffon.png",
+    "source": "3C318020-02A0-489D-BF54-C554558064B7.PNG",
+    "grid": [
+      2,
+      0
+    ],
+    "center": [
+      142.0,
+      880.5
+    ],
+    "radius": 128,
+    "crop_box": [
+      14,
+      752,
+      270,
+      1008
+    ],
+    "detect": {
+      "cell": [
+        0,
+        748,
+        280,
+        1122
+      ],
+      "rx": 129.5,
+      "ry": 139.0,
+      "max_width": 260,
+      "max_height": 279
+    }
+  },
+  {
+    "folder": "03_profils_fantastiques",
+    "file": "12_licorne_ailee.png",
+    "source": "3C318020-02A0-489D-BF54-C554558064B7.PNG",
+    "grid": [
+      2,
+      1
+    ],
+    "center": [
+      416.5,
+      881.0
+    ],
+    "radius": 131,
+    "crop_box": [
+      286,
+      750,
+      548,
+      1012
+    ],
+    "detect": {
+      "cell": [
+        280,
+        748,
+        560,
+        1122
+      ],
+      "rx": 132.5,
+      "ry": 140.0,
+      "max_width": 265,
+      "max_height": 280
+    }
+  },
+  {
+    "folder": "03_profils_fantastiques",
+    "file": "13_sorciere.png",
+    "source": "3C318020-02A0-489D-BF54-C554558064B7.PNG",
+    "grid": [
+      2,
+      2
+    ],
+    "center": [
+      692.5,
+      881.0
+    ],
+    "radius": 134,
+    "crop_box": [
+      558,
+      747,
+      826,
+      1015
+    ],
+    "detect": {
+      "cell": [
+        560,
+        748,
+        841,
+        1122
+      ],
+      "rx": 139.5,
+      "ry": 140.0,
+      "max_width": 279,
+      "max_height": 280
+    }
+  },
+  {
+    "folder": "03_profils_fantastiques",
+    "file": "14_chevaliere.png",
+    "source": "3C318020-02A0-489D-BF54-C554558064B7.PNG",
+    "grid": [
+      2,
+      3
+    ],
+    "center": [
+      980.5,
+      880.5
+    ],
+    "radius": 134,
+    "crop_box": [
+      846,
+      746,
+      1114,
+      1014
+    ],
+    "detect": {
+      "cell": [
+        841,
+        748,
+        1121,
+        1122
+      ],
+      "rx": 140.0,
+      "ry": 140.0,
+      "max_width": 280,
+      "max_height": 280
+    }
+  },
+  {
+    "folder": "03_profils_fantastiques",
+    "file": "15_chevalier.png",
+    "source": "3C318020-02A0-489D-BF54-C554558064B7.PNG",
+    "grid": [
+      2,
+      4
+    ],
+    "center": [
+      1244.0,
+      881.0
+    ],
+    "radius": 126,
+    "crop_box": [
+      1118,
+      755,
+      1370,
+      1007
+    ],
+    "detect": {
+      "cell": [
+        1121,
+        748,
+        1402,
+        1122
+      ],
+      "rx": 128.0,
+      "ry": 140.0,
+      "max_width": 257,
+      "max_height": 280
+    }
+  },
+  {
+    "folder": "04_profils_animaux",
+    "file": "01_panda.png",
+    "source": "C0FC1245-734A-4ED4-B228-A534187CFD19.PNG",
+    "grid": [
+      0,
+      0
+    ],
+    "center": [
+      150.5,
+      217.5
+    ],
+    "radius": 129,
+    "crop_box": [
+      22,
+      88,
+      280,
+      346
+    ],
+    "detect": {
+      "cell": [
+        0,
+        0,
+        280,
+        374
+      ],
+      "rx": 130.5,
+      "ry": 140.5,
+      "max_width": 262,
+      "max_height": 281
+    }
+  },
+  {
+    "folder": "04_profils_animaux",
+    "file": "02_renard.png",
+    "source": "C0FC1245-734A-4ED4-B228-A534187CFD19.PNG",
+    "grid": [
+      0,
+      1
+    ],
+    "center": [
+      424.0,
+      218.0
+    ],
+    "radius": 134,
+    "crop_box": [
+      290,
+      84,
+      558,
+      352
+    ],
+    "detect": {
+      "cell": [
+        280,
+        0,
+        560,
+        374
+      ],
+      "rx": 138.5,
+      "ry": 140.0,
+      "max_width": 277,
+      "max_height": 281
+    }
+  },
+  {
+    "folder": "04_profils_animaux",
+    "file": "03_koala.png",
+    "source": "C0FC1245-734A-4ED4-B228-A534187CFD19.PNG",
+    "grid": [
+      0,
+      2
+    ],
+    "center": [
+      697.5,
+      218.5
+    ],
+    "radius": 134,
+    "crop_box": [
+      564,
+      84,
+      832,
+      352
+    ],
+    "detect": {
+      "cell": [
+        560,
+        0,
+        840,
+        374
+      ],
+      "rx": 137.5,
+      "ry": 139.0,
+      "max_width": 275,
+      "max_height": 278
+    }
+  },
+  {
+    "folder": "04_profils_animaux",
+    "file": "04_lion.png",
+    "source": "C0FC1245-734A-4ED4-B228-A534187CFD19.PNG",
+    "grid": [
+      0,
+      3
+    ],
+    "center": [
+      979.5,
+      218.5
+    ],
+    "radius": 134,
+    "crop_box": [
+      846,
+      84,
+      1114,
+      352
+    ],
+    "detect": {
+      "cell": [
+        840,
+        0,
+        1120,
+        374
+      ],
+      "rx": 140.0,
+      "ry": 139.0,
+      "max_width": 280,
+      "max_height": 280
+    }
+  },
+  {
+    "folder": "04_profils_animaux",
+    "file": "05_elephant.png",
+    "source": "C0FC1245-734A-4ED4-B228-A534187CFD19.PNG",
+    "grid": [
+      0,
+      4
+    ],
+    "center": [
+      1243.0,
+      218.5
+    ],
+    "radius": 126,
+    "crop_box": [
+      1117,
+      92,
+      1369,
+      344
+    ],
+    "detect": {
+      "cell": [
+        1120,
+        0,
+        1401,
+        374
+      ],
+      "rx": 127.0,
+      "ry": 139.0,
+      "max_width": 254,
+      "max_height": 278
+    }
+  },
+  {
+    "folder": "04_profils_animaux",
+    "file": "06_pingouin.png",
+    "source": "C0FC1245-734A-4ED4-B228-A534187CFD19.PNG",
+    "grid": [
+      1,
+      0
+    ],
+    "center": [
+      150.5,
+      556.0
+    ],
+    "radius": 130,
+    "crop_box": [
+      20,
+      426,
+      280,
+      686
+    ],
+    "detect": {
+      "cell": [
+        0,
+        374,
+        280,
+        748
+      ],
+      "rx": 131.0,
+      "ry": 140.0,
+      "max_width": 262,
+      "max_height": 281
+    }
+  },
+  {
+    "folder": "04_profils_animaux",
+    "file": "07_girafe.png",
+    "source": "C0FC1245-734A-4ED4-B228-A534187CFD19.PNG",
+    "grid": [
+      1,
+      1
+    ],
+    "center": [
+      422.0,
+      558.0
+    ],
+    "radius": 134,
+    "crop_box": [
+      288,
+      424,
+      556,
+      692
+    ],
+    "detect": {
+      "cell": [
+        280,
+        374,
+        560,
+        748
+      ],
+      "rx": 137.5,
+      "ry": 140.0,
+      "max_width": 275,
+      "max_height": 282
+    }
+  },
+  {
+    "folder": "04_profils_animaux",
+    "file": "08_lapin.png",
+    "source": "C0FC1245-734A-4ED4-B228-A534187CFD19.PNG",
+    "grid": [
+      1,
+      2
+    ],
+    "center": [
+      696.5,
+      558.0
+    ],
+    "radius": 134,
+    "crop_box": [
+      562,
+      424,
+      830,
+      692
+    ],
+    "detect": {
+      "cell": [
+        560,
+        374,
+        840,
+        748
+      ],
+      "rx": 138.5,
+      "ry": 142.0,
+      "max_width": 277,
+      "max_height": 284
+    }
+  },
+  {
+    "folder": "04_profils_animaux",
+    "file": "09_tortue.png",
+    "source": "C0FC1245-734A-4ED4-B228-A534187CFD19.PNG",
+    "grid": [
+      1,
+      3
+    ],
+    "center": [
+      979.5,
+      557.5
+    ],
+    "radius": 134,
+    "crop_box": [
+      846,
+      424,
+      1114,
+      692
+    ],
+    "detect": {
+      "cell": [
+        840,
+        374,
+        1120,
+        748
+      ],
+      "rx": 140.0,
+      "ry": 142.0,
+      "max_width": 280,
+      "max_height": 286
+    }
+  },
+  {
+    "folder": "04_profils_animaux",
+    "file": "10_loup.png",
+    "source": "C0FC1245-734A-4ED4-B228-A534187CFD19.PNG",
+    "grid": [
+      1,
+      4
+    ],
+    "center": [
+      1241.5,
+      557.0
+    ],
+    "radius": 126,
+    "crop_box": [
+      1116,
+      431,
+      1368,
+      683
+    ],
+    "detect": {
+      "cell": [
+        1120,
+        374,
+        1401,
+        748
+      ],
+      "rx": 127.0,
+      "ry": 142.5,
+      "max_width": 254,
+      "max_height": 285
+    }
+  },
+  {
+    "folder": "04_profils_animaux",
+    "file": "11_dauphin.png",
+    "source": "C0FC1245-734A-4ED4-B228-A534187CFD19.PNG",
+    "grid": [
+      2,
+      0
+    ],
+    "center": [
+      147.5,
+      897.0
+    ],
+    "radius": 130,
+    "crop_box": [
+      18,
+      767,
+      278,
+      1027
+    ],
+    "detect": {
+      "cell": [
+        0,
+        748,
+        280,
+        1123
+      ],
+      "rx": 132.0,
+      "ry": 141.5,
+      "max_width": 264,
+      "max_height": 283
+    }
+  },
+  {
+    "folder": "04_profils_animaux",
+    "file": "12_herisson.png",
+    "source": "C0FC1245-734A-4ED4-B228-A534187CFD19.PNG",
+    "grid": [
+      2,
+      1
+    ],
+    "center": [
+      420.5,
+      899.5
+    ],
+    "radius": 130,
+    "crop_box": [
+      290,
+      770,
+      550,
+      1030
+    ],
+    "detect": {
+      "cell": [
+        280,
+        748,
+        560,
+        1123
+      ],
+      "rx": 131.0,
+      "ry": 140.5,
+      "max_width": 264,
+      "max_height": 282
+    }
+  },
+  {
+    "folder": "04_profils_animaux",
+    "file": "13_chouette.png",
+    "source": "C0FC1245-734A-4ED4-B228-A534187CFD19.PNG",
+    "grid": [
+      2,
+      2
+    ],
+    "center": [
+      695.0,
+      899.0
+    ],
+    "radius": 134,
+    "crop_box": [
+      561,
+      765,
+      829,
+      1033
+    ],
+    "detect": {
+      "cell": [
+        560,
+        748,
+        840,
+        1123
+      ],
+      "rx": 138.0,
+      "ry": 141.5,
+      "max_width": 277,
+      "max_height": 283
+    }
+  },
+  {
+    "folder": "04_profils_animaux",
+    "file": "14_raton_laveur.png",
+    "source": "C0FC1245-734A-4ED4-B228-A534187CFD19.PNG",
+    "grid": [
+      2,
+      3
+    ],
+    "center": [
+      967.25,
+      899.5
+    ],
+    "radius": 134,
+    "crop_box": [
+      833,
+      766,
+      1101,
+      1034
+    ],
+    "detect": {
+      "cell": [
+        840,
+        748,
+        1120,
+        1123
+      ],
+      "rx": 140.0,
+      "ry": 141.5,
+      "max_width": 280,
+      "max_height": 284
+    }
+  },
+  {
+    "folder": "04_profils_animaux",
+    "file": "15_tigre.png",
+    "source": "C0FC1245-734A-4ED4-B228-A534187CFD19.PNG",
+    "grid": [
+      2,
+      4
+    ],
+    "center": [
+      1243.0,
+      900.0
+    ],
+    "radius": 126,
+    "crop_box": [
+      1117,
+      774,
+      1369,
+      1026
+    ],
+    "detect": {
+      "cell": [
+        1120,
+        748,
+        1401,
+        1123
+      ],
+      "rx": 127.0,
+      "ry": 141.5,
+      "max_width": 254,
+      "max_height": 284
+    }
+  },
+  {
+    "folder": "05_profils_aventure_magique",
+    "file": "01_phenix.png",
+    "source": "ChatGPT Image 8 juin 2026 à 19_40_04.png",
+    "grid": [
+      0,
+      0
+    ],
+    "center": [
+      146.75,
+      205.0
+    ],
+    "radius": 130,
+    "crop_box": [
+      17,
+      75,
+      277,
+      335
+    ],
+    "detect": {
+      "cell": [
+        0,
+        0,
+        280,
+        374
+      ],
+      "rx": 132.0,
+      "ry": 146.5,
+      "max_width": 265,
+      "max_height": 294
+    }
+  },
+  {
+    "folder": "05_profils_aventure_magique",
+    "file": "02_dragon_violet.png",
+    "source": "ChatGPT Image 8 juin 2026 à 19_40_04.png",
+    "grid": [
+      0,
+      1
+    ],
+    "center": [
+      421.5,
+      203.25
+    ],
+    "radius": 134,
+    "crop_box": [
+      288,
+      69,
+      556,
+      337
+    ],
+    "detect": {
+      "cell": [
+        280,
+        0,
+        560,
+        374
+      ],
+      "rx": 136.5,
+      "ry": 150.0,
+      "max_width": 274,
+      "max_height": 301
+    }
+  },
+  {
+    "folder": "05_profils_aventure_magique",
+    "file": "03_licorne_arc_en_ciel.png",
+    "source": "ChatGPT Image 8 juin 2026 à 19_40_04.png",
+    "grid": [
+      0,
+      2
+    ],
+    "center": [
+      697.0,
+      203.5
+    ],
+    "radius": 130,
+    "crop_box": [
+      567,
+      74,
+      827,
+      334
+    ],
+    "detect": {
+      "cell": [
+        560,
+        0,
+        841,
+        374
+      ],
+      "rx": 131.5,
+      "ry": 149.0,
+      "max_width": 264,
+      "max_height": 298
+    }
+  },
+  {
+    "folder": "05_profils_aventure_magique",
+    "file": "04_fee_baguette.png",
+    "source": "ChatGPT Image 8 juin 2026 à 19_40_04.png",
+    "grid": [
+      0,
+      3
+    ],
+    "center": [
+      973.0,
+      203.5
+    ],
+    "radius": 134,
+    "crop_box": [
+      839,
+      70,
+      1107,
+      338
+    ],
+    "detect": {
+      "cell": [
+        841,
+        0,
+        1121,
+        374
+      ],
+      "rx": 140.0,
+      "ry": 149.0,
+      "max_width": 280,
+      "max_height": 298
+    }
+  },
+  {
+    "folder": "05_profils_aventure_magique",
+    "file": "05_robot_blanc.png",
+    "source": "ChatGPT Image 8 juin 2026 à 19_40_04.png",
+    "grid": [
+      0,
+      4
+    ],
+    "center": [
+      1247.0,
+      204.0
+    ],
+    "radius": 128,
+    "crop_box": [
+      1119,
+      76,
+      1375,
+      332
+    ],
+    "detect": {
+      "cell": [
+        1121,
+        0,
+        1402,
+        374
+      ],
+      "rx": 129.5,
+      "ry": 149.0,
+      "max_width": 259,
+      "max_height": 299
+    }
+  },
+  {
+    "folder": "05_profils_aventure_magique",
+    "file": "06_dragon_glace.png",
+    "source": "ChatGPT Image 8 juin 2026 à 19_40_04.png",
+    "grid": [
+      1,
+      0
+    ],
+    "center": [
+      145.5,
+      572.5
+    ],
+    "radius": 130,
+    "crop_box": [
+      16,
+      442,
+      276,
+      702
+    ],
+    "detect": {
+      "cell": [
+        0,
+        374,
+        280,
+        748
+      ],
+      "rx": 131.0,
+      "ry": 177.0,
+      "max_width": 263,
+      "max_height": 354
+    }
+  },
+  {
+    "folder": "05_profils_aventure_magique",
+    "file": "07_licorne_violette.png",
+    "source": "ChatGPT Image 8 juin 2026 à 19_40_04.png",
+    "grid": [
+      1,
+      1
+    ],
+    "center": [
+      422.5,
+      572.0
+    ],
+    "radius": 128,
+    "crop_box": [
+      294,
+      444,
+      550,
+      700
+    ],
+    "detect": {
+      "cell": [
+        280,
+        374,
+        560,
+        748
+      ],
+      "rx": 130.0,
+      "ry": 177.0,
+      "max_width": 260,
+      "max_height": 354
+    }
+  },
+  {
+    "folder": "05_profils_aventure_magique",
+    "file": "08_magicien.png",
+    "source": "ChatGPT Image 8 juin 2026 à 19_40_04.png",
+    "grid": [
+      1,
+      2
+    ],
+    "center": [
+      698.0,
+      573.0
+    ],
+    "radius": 129,
+    "crop_box": [
+      569,
+      444,
+      827,
+      702
+    ],
+    "detect": {
+      "cell": [
+        560,
+        374,
+        841,
+        748
+      ],
+      "rx": 130.5,
+      "ry": 176.0,
+      "max_width": 261,
+      "max_height": 352
+    }
+  },
+  {
+    "folder": "05_profils_aventure_magique",
+    "file": "09_dragon_vert.png",
+    "source": "ChatGPT Image 8 juin 2026 à 19_40_04.png",
+    "grid": [
+      1,
+      3
+    ],
+    "center": [
+      971.5,
+      573.0
+    ],
+    "radius": 134,
+    "crop_box": [
+      838,
+      439,
+      1106,
+      707
+    ],
+    "detect": {
+      "cell": [
+        841,
+        374,
+        1121,
+        748
+      ],
+      "rx": 140.0,
+      "ry": 176.0,
+      "max_width": 280,
+      "max_height": 352
+    }
+  },
+  {
+    "folder": "05_profils_aventure_magique",
+    "file": "10_fee_violette.png",
+    "source": "ChatGPT Image 8 juin 2026 à 19_40_04.png",
+    "grid": [
+      1,
+      4
+    ],
+    "center": [
+      1247.0,
+      572.0
+    ],
+    "radius": 128,
+    "crop_box": [
+      1119,
+      444,
+      1375,
+      700
+    ],
+    "detect": {
+      "cell": [
+        1121,
+        374,
+        1402,
+        748
+      ],
+      "rx": 129.5,
+      "ry": 176.5,
+      "max_width": 259,
+      "max_height": 353
+    }
+  },
+  {
+    "folder": "05_profils_aventure_magique",
+    "file": "11_dragon_rouge.png",
+    "source": "ChatGPT Image 8 juin 2026 à 19_40_04.png",
+    "grid": [
+      2,
+      0
+    ],
+    "center": [
+      147.0,
+      879.5
+    ],
+    "radius": 130,
+    "crop_box": [
+      17,
+      750,
+      277,
+      1010
+    ],
+    "detect": {
+      "cell": [
+        0,
+        748,
+        280,
+        1122
+      ],
+      "rx": 131.5,
+      "ry": 138.0,
+      "max_width": 264,
+      "max_height": 276
+    }
+  },
+  {
+    "folder": "05_profils_aventure_magique",
+    "file": "12_griffon.png",
+    "source": "ChatGPT Image 8 juin 2026 à 19_40_04.png",
+    "grid": [
+      2,
+      1
+    ],
+    "center": [
+      423.5,
+      880.0
+    ],
+    "radius": 128,
+    "crop_box": [
+      296,
+      752,
+      552,
+      1008
+    ],
+    "detect": {
+      "cell": [
+        280,
+        748,
+        560,
+        1122
+      ],
+      "rx": 130.0,
+      "ry": 139.0,
+      "max_width": 260,
+      "max_height": 278
+    }
+  },
+  {
+    "folder": "05_profils_aventure_magique",
+    "file": "13_licorne_ailee.png",
+    "source": "ChatGPT Image 8 juin 2026 à 19_40_04.png",
+    "grid": [
+      2,
+      2
+    ],
+    "center": [
+      697.0,
+      880.5
+    ],
+    "radius": 134,
+    "crop_box": [
+      563,
+      746,
+      831,
+      1014
+    ],
+    "detect": {
+      "cell": [
+        560,
+        748,
+        841,
+        1122
+      ],
+      "rx": 136.5,
+      "ry": 140.0,
+      "max_width": 273,
+      "max_height": 280
+    }
+  },
+  {
+    "folder": "05_profils_aventure_magique",
+    "file": "14_chevalier.png",
+    "source": "ChatGPT Image 8 juin 2026 à 19_40_04.png",
+    "grid": [
+      2,
+      3
+    ],
+    "center": [
+      972.0,
+      881.0
+    ],
+    "radius": 134,
+    "crop_box": [
+      838,
+      747,
+      1106,
+      1015
+    ],
+    "detect": {
+      "cell": [
+        841,
+        748,
+        1121,
+        1122
+      ],
+      "rx": 140.0,
+      "ry": 140.0,
+      "max_width": 280,
+      "max_height": 280
+    }
+  },
+  {
+    "folder": "05_profils_aventure_magique",
+    "file": "15_robot_vintage.png",
+    "source": "ChatGPT Image 8 juin 2026 à 19_40_04.png",
+    "grid": [
+      2,
+      4
+    ],
+    "center": [
+      1247.5,
+      886.0
+    ],
+    "radius": 128,
+    "crop_box": [
+      1120,
+      758,
+      1376,
+      1014
+    ],
+    "detect": {
+      "cell": [
+        1121,
+        748,
+        1402,
+        1122
+      ],
+      "rx": 130.0,
+      "ry": 145.5,
+      "max_width": 260,
+      "max_height": 291
+    }
+  }
+]

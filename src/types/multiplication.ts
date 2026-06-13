@@ -59,6 +59,19 @@ export type MultiplicationSessionSummary = {
   earnedStars: number;
 };
 
+export type CompletedMultiplicationTable = {
+  id: string;
+  childName: string;
+  table: number;
+  correctCount: number;
+  wrongCount: number;
+  score: number;
+  totalQuestions: number;
+  durationSeconds: number;
+  completedAtIso: string;
+  facts: MultiplicationTableReviewFact[];
+};
+
 export type MultiplicationAnswerResult = {
   questionId: string;
   selectedAnswer: number;

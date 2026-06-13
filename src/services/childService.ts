@@ -11,6 +11,7 @@ import type {
   WordDictationOcrResult,
   WordDictationTextRequest,
   WordDictationTextResult,
+  PoetryLineRecitalFeedback,
   PoetryRecitalResult,
   PoetryRecitalSubmission,
   PoetrySession,
@@ -43,10 +44,16 @@ export async function getChildDashboard(childId: string): Promise<ChildDashboard
   return cloneApiPayload(childDashboardMock);
 }
 
-const multiplicationPracticeFactors = [8, 6, 9, 4, 7, 2, 5, 3, 1, 10];
+const multiplicationPracticeFactors = [8, 6, 9, 4, 7, 2, 5, 3, 10];
 
 function getTableRewardStars(table: number) {
   return multiplicationSessionMock.availableTables.find((availableTable) => availableTable.value === table)?.rewardStars ?? 2;
+}
+
+function getSeededOptionRank(option: number, table: number, factor: number) {
+  const seed = option * 97 + table * 31 + factor * 17;
+  const mixed = Math.sin(seed) * 10000;
+  return mixed - Math.floor(mixed);
 }
 
 function buildAnswerOptions(table: number, factor: number): number[] {
@@ -62,7 +69,17 @@ function buildAnswerOptions(table: number, factor: number): number[] {
     filler += 1;
   }
 
-  return Array.from(options).slice(0, 4).sort((left, right) => left - right);
+  const distractors = Array.from(options)
+    .filter((option) => option !== correctAnswer)
+    .slice(0, 3)
+    .sort((left, right) => getSeededOptionRank(left, table, factor) - getSeededOptionRank(right, table, factor));
+  const correctIndex = Math.floor(Math.random() * 4);
+
+  return [
+    ...distractors.slice(0, correctIndex),
+    correctAnswer,
+    ...distractors.slice(correctIndex),
+  ];
 }
 
 function buildMultiplicationQuestions(table: number) {
@@ -151,7 +168,7 @@ export async function submitMultiplicationAnswer(
     sessionSummary: isFinalQuestion
       ? {
           title: 'Série terminée !',
-          message: 'Tu as fini les 10 calculs. Regarde ton score et relis les calculs en rouge avant une nouvelle table.',
+          message: 'Tu as fini les calculs de 2 à 10. Regarde ton score et relis les calculs en rouge avant une nouvelle table.',
           earnedStars: sessionQuestions.reduce((total, item) => total + item.rewardStars, 0),
         }
       : undefined,
@@ -183,6 +200,207 @@ function buildDictationWordFeedback(answerText: string): DictationWordFeedback[]
     }
     return { expected, actual, status: 'different', hint: 'Observe ce mot puis réessaie doucement.' };
   });
+}
+
+function splitPoetryTextLines(text: string): string[] {
+  return text
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+}
+
+function splitTextForDictationPhrases(text: string): string[] {
+  const normalizedText = text.trim();
+  if (!normalizedText) return [];
+
+  const sentences = normalizedText
+    .split(/\n+/)
+    .flatMap((part) => {
+      const matches = part.match(/[^.!?;:…]+[.!?;:…]?/g);
+      return matches ? matches.map((sentence) => sentence.trim()).filter(Boolean) : [];
+    })
+    .filter((sentence) => sentence.length > 0);
+
+  return sentences.length > 0 ? sentences : [normalizedText];
+}
+
+function normalizePoetryWord(word: string) {
+  return normalizeWithoutAccents(word).replace(/[^\p{L}\p{M}'-]/gu, '').trim();
+}
+
+function splitPoetryWords(text: string): string[] {
+  return normalizeWithoutAccents(text).split(/\s+/).map((word) => normalizePoetryWord(word)).filter(Boolean);
+}
+
+function calculateWordDiff(expectedWords: string[], spokenWords: string[]) {
+  const expectedMap = new Map<string, number>();
+  const spokenMap = new Map<string, number>();
+
+  for (const word of expectedWords) {
+    expectedMap.set(word, (expectedMap.get(word) ?? 0) + 1);
+  }
+
+  for (const word of spokenWords) {
+    spokenMap.set(word, (spokenMap.get(word) ?? 0) + 1);
+  }
+
+  const missingWords: string[] = [];
+  const extraWords: string[] = [];
+
+  for (const [word, expectedCount] of expectedMap) {
+    const spokenCount = spokenMap.get(word) ?? 0;
+    const diff = expectedCount - spokenCount;
+    for (let i = 0; i < diff; i += 1) {
+      if (diff > 0) missingWords.push(word);
+    }
+  }
+
+  for (const [word, spokenCount] of spokenMap) {
+    const expectedCount = expectedMap.get(word) ?? 0;
+    const diff = spokenCount - expectedCount;
+    for (let i = 0; i < diff; i += 1) {
+      if (diff > 0) extraWords.push(word);
+    }
+  }
+
+  return { missingWords, extraWords };
+}
+
+function levenshteinWordDistance(left: string[], right: string[]): number {
+  const matrix = Array.from({ length: left.length + 1 }, () => Array(right.length + 1).fill(0));
+
+  for (let row = 0; row <= left.length; row += 1) {
+    matrix[row][0] = row;
+  }
+
+  for (let column = 0; column <= right.length; column += 1) {
+    matrix[0][column] = column;
+  }
+
+  for (let row = 1; row <= left.length; row += 1) {
+    for (let column = 1; column <= right.length; column += 1) {
+      if (left[row - 1] === right[column - 1]) {
+        matrix[row][column] = matrix[row - 1][column - 1];
+        continue;
+      }
+
+      matrix[row][column] = Math.min(
+        matrix[row - 1][column] + 1,
+        matrix[row][column - 1] + 1,
+        matrix[row - 1][column - 1] + 1,
+      );
+    }
+  }
+
+  return matrix[left.length][right.length];
+}
+
+function buildPoetryLineFeedback(lineIndex: number, expectedLine: string, spokenLine: string): PoetryLineRecitalFeedback {
+  const expectedWords = splitPoetryWords(expectedLine);
+  const spokenWords = splitPoetryWords(spokenLine);
+  const distance = levenshteinWordDistance(expectedWords, spokenWords);
+  const denominator = Math.max(expectedWords.length, spokenWords.length, 1);
+  const accuracy = Number((1 - distance / denominator).toFixed(2));
+  const { missingWords, extraWords } = calculateWordDiff(expectedWords, spokenWords);
+  const isCorrect = accuracy >= 0.84 && extraWords.length <= 1;
+
+  return {
+    lineIndex,
+    expectedText: expectedLine,
+    spokenText: spokenLine,
+    isCorrect,
+    accuracy: Number(Math.max(0, Math.min(1, accuracy)).toFixed(2)),
+    missingWords,
+    extraWords,
+  };
+}
+
+function evaluatePoetryRecital({ poemText, submission, mode, lineIndex }: {
+  poemText: string;
+  submission: PoetryRecitalSubmission;
+  mode: 'line' | 'full';
+  lineIndex: number;
+}): { status: PoetryRecitalResult['status']; lineFeedback: PoetryLineRecitalFeedback[]; nextLineToPractice?: number; overallAccuracy?: number; recognizedText: string } {
+  const poemLines = splitPoetryTextLines(poemText);
+  const spokenText = splitTextForDictationPhrases(submission.transcriptText ?? '')
+    .join(' ')
+    .trim();
+
+  if (poemLines.length === 0) {
+    throw new Error('La poésie est vide. Ajoute quelques lignes avant la récitation.');
+  }
+
+  const spokenTokens = splitPoetryWords(submission.transcriptText ?? '');
+  const expectedTokens = splitPoetryWords(poemLines.join(' '));
+  const overallDistance = levenshteinWordDistance(expectedTokens, spokenTokens);
+  const overallAccuracy = Number((1 - overallDistance / Math.max(expectedTokens.length, spokenTokens.length, 1)).toFixed(2));
+
+  const feedback: PoetryLineRecitalFeedback[] = [];
+  let nextLineToPractice: number | undefined;
+
+  if (mode === 'line') {
+    const targetLine = poemLines[lineIndex] ?? poemLines[poemLines.length - 1];
+    const expectedTokensForLine = splitPoetryWords(targetLine);
+    const spokenLineText = splitTextForDictationPhrases(submission.transcriptText ?? '')[0] ?? submission.transcriptText ?? '';
+    const spokenTokensForLine = splitPoetryWords(spokenLineText);
+
+    const localDistance = levenshteinWordDistance(expectedTokensForLine, spokenTokensForLine);
+    const localAccuracy = Number((1 - localDistance / Math.max(expectedTokensForLine.length, spokenTokensForLine.length, 1)).toFixed(2));
+    const lineFeedback = buildPoetryLineFeedback(lineIndex, targetLine, spokenLineText);
+    feedback.push(lineFeedback);
+
+    if (lineFeedback.isCorrect) {
+      const next = lineIndex + 1;
+      nextLineToPractice = next < poemLines.length ? next : undefined;
+    } else {
+      nextLineToPractice = lineIndex;
+    }
+
+    const status = lineFeedback.isCorrect && nextLineToPractice === undefined ? 'completed' : 'needs_practice';
+
+    return {
+      status,
+      lineFeedback: feedback,
+      nextLineToPractice,
+      overallAccuracy: lineFeedback.isCorrect ? localAccuracy : (lineFeedback.accuracy ?? 0),
+      recognizedText: spokenText,
+    };
+  }
+
+  let tokenIndex = 0;
+  for (let i = 0; i < poemLines.length; i += 1) {
+    const line = poemLines[i];
+    const expectedLineTokens = splitPoetryWords(line);
+    const chunkSize = Math.max(expectedLineTokens.length, 1);
+    const spokenLineTokens = spokenTokens.slice(tokenIndex, tokenIndex + chunkSize);
+    tokenIndex += chunkSize;
+
+    const spokenLineText = spokenLineTokens.join(' ');
+    const lineEvaluation = buildPoetryLineFeedback(i, line, spokenLineText);
+    feedback.push(lineEvaluation);
+
+    if (!lineEvaluation.isCorrect && nextLineToPractice === undefined) {
+      nextLineToPractice = i;
+    }
+  }
+
+  if (feedback.length > 0 && feedback.every((item) => item.isCorrect)) {
+    return {
+      status: 'completed',
+      lineFeedback: feedback,
+      nextLineToPractice: undefined,
+      overallAccuracy: Math.max(0, overallAccuracy),
+      recognizedText: spokenText,
+    };
+  }
+
+  return {
+    status: 'needs_practice',
+    lineFeedback: feedback,
+    nextLineToPractice,
+    overallAccuracy: Math.max(0, overallAccuracy),
+    recognizedText: spokenText,
+  };
 }
 
 export async function getDictationSession(childId: string): Promise<DictationSession> {
@@ -278,18 +496,92 @@ function escapeRegex(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-function countWordOccurrences(text: string, word: string) {
-  const normalizedText = text.toLocaleLowerCase('fr-FR');
+function buildAgreementVariants(word: string) {
   const normalizedWord = normalizeDictionaryWord(word);
-  const matches = normalizedText.match(new RegExp(`(^|[^\\p{L}\\p{M}])${escapeRegex(normalizedWord)}($|[^\\p{L}\\p{M}])`, 'giu'));
-  return matches?.length ?? 0;
+  const variants = new Set<string>([normalizedWord]);
+
+  if (normalizedWord.length <= 2) return variants;
+
+  if (!/[sxz]$/u.test(normalizedWord)) {
+    variants.add(`${normalizedWord}s`);
+  }
+
+  if (normalizedWord.endsWith('e')) {
+    variants.add(`${normalizedWord}s`);
+  } else {
+    variants.add(`${normalizedWord}e`);
+    variants.add(`${normalizedWord}es`);
+  }
+
+  if (normalizedWord.endsWith('al')) {
+    variants.add(`${normalizedWord.slice(0, -2)}aux`);
+  }
+
+  if (/(eau|eu|au)$/u.test(normalizedWord)) {
+    variants.add(`${normalizedWord}x`);
+  }
+
+  return variants;
 }
 
-function getDictationGenerationErrors(text: string, words: string[]) {
+function countWordOccurrences(text: string, word: string) {
+  const acceptedVariants = buildAgreementVariants(word);
+  const tokens = text.toLocaleLowerCase('fr-FR').match(/[\p{L}\p{M}]+/gu) ?? [];
+  return tokens.filter((token) => acceptedVariants.has(token)).length;
+}
+
+function countGeneratedWords(text: string) {
+  return text.match(/[\p{L}\p{M}0-9'-]+/gu)?.length ?? 0;
+}
+
+function extractWordCountBoundsFromPrompt(promptTemplate: string) {
+  const match = promptTemplate.match(/entre\s+(\d+)\s+et\s+(\d+)\s+mots/iu);
+  if (!match) return null;
+
+  const minimum = Number(match[1]);
+  const maximum = Number(match[2]);
+  if (!Number.isFinite(minimum) || !Number.isFinite(maximum) || minimum <= 0 || maximum < minimum) return null;
+
+  return { minimum, maximum };
+}
+
+function getDictationTenseErrors(text: string, verbTenses: VerbTense[]) {
+  const errors: string[] = [];
+  const selectedTenses = verbTenses.length > 0 ? verbTenses : ['present'];
+  const cleanText = normalizeFrenchText(text);
+
+  if (selectedTenses.length === 1 && selectedTenses[0] === 'present') {
+    const forbiddenPresentMarkers = [
+      /\b(demain|hier)\b/iu,
+      /\b(?:je|tu|il|elle|on|nous|vous|ils|elles)\s+vais?\s+\p{L}+/iu,
+      /\b(?:nous)\s+allons\s+\p{L}+/iu,
+      /\b(?:il|elle|on)\s+va\s+\p{L}+/iu,
+      /\b(?:tu)\s+vas\s+\p{L}+/iu,
+      /\b(?:vous)\s+allez\s+\p{L}+/iu,
+      /\b(?:ils|elles)\s+vont\s+\p{L}+/iu,
+      /\b\p{L}+(?:erai|eras|era|erons|erez|eront)\b/iu,
+      /\b(?:j|je|tu|il|elle|on|nous|vous|ils|elles)'?\s*(?:ai|as|a|avons|avez|ont)\s+\p{L}+(?:é|i|u|is|it)\b/iu,
+    ];
+
+    if (forbiddenPresentMarkers.some((pattern) => pattern.test(cleanText))) {
+      errors.push('temps incorrect : le texte doit rester au présent de l’indicatif');
+    }
+  }
+
+  return errors;
+}
+
+function getDictationGenerationErrors(text: string, words: string[], promptTemplate = DEFAULT_OLLAMA_DICTATION_PROMPT, verbTenses: VerbTense[] = ['present']) {
   const errors: string[] = [];
   const cleanText = text.trim();
   if (!cleanText) errors.push('texte vide');
-  if (cleanText.length > 320) errors.push('texte trop long');
+  const wordCountBounds = extractWordCountBoundsFromPrompt(promptTemplate);
+  const wordCount = countGeneratedWords(cleanText);
+  if (wordCountBounds) {
+    if (wordCount > wordCountBounds.maximum) errors.push(`texte trop long : ${wordCount} mots (maximum ${wordCountBounds.maximum})`);
+  } else if (cleanText.length > 320) {
+    errors.push('texte trop long');
+  }
   const sentenceCount = cleanText.split(/[.!?]+/).filter((sentence) => sentence.trim().length > 0).length;
   if (sentenceCount > 4) errors.push('plus de 4 phrases');
 
@@ -300,6 +592,7 @@ function getDictationGenerationErrors(text: string, words: string[]) {
   }
 
   if (/^```|```$/.test(cleanText) || /^\s*[{[]/.test(cleanText)) errors.push('réponse non textuelle');
+  errors.push(...getDictationTenseErrors(cleanText, verbTenses));
 
   return errors;
 }
@@ -320,14 +613,54 @@ function buildGenerationTerms(words: string[]) {
   return terms;
 }
 
-function buildOllamaDictationPrompt(words: string[], verbTenses: VerbTense[], previousErrors: string[] = []) {
-  const tenseLabels = verbTenses.length > 0 ? verbTenses.join(', ') : 'present';
-  const generationTerms = buildGenerationTerms(words);
+const DEFAULT_OLLAMA_DICTATION_PROMPT = `Tu es un enseignant de français de CM1. Tu écris une dictée courte pour un enfant de 9-10 ans.\n\n# Résultat attendu\n\nÉcris UN SEUL texte final de dictée, naturel, fluide et cohérent, entre 45 et 65 mots.\n\n# Données à intégrer\n\nMOTS :\n{{mots}}\n\nVERBES :\n{{verbes}}\n\nTEMPS :\n{{temps}}\n\n# Règles obligatoires\n\n1. Utilise chaque élément de MOTS exactement une fois.\n2. Utilise chaque verbe de VERBES exactement une fois.\n3. Conjugue chaque verbe au temps demandé dans TEMPS, dans une vraie phrase avec un sujet clair. Si un seul temps est demandé, toute l’histoire reste à ce temps. Si TEMPS contient 'present', écris au présent de l’indicatif uniquement : 'je lave', 'je me couche'. N’utilise jamais futur proche ou passé : interdit 'je vais laver', 'je vais me coucher', 'je laverai', 'je me coucherai', 'j’ai lavé', 'j’ai dû', 'nous allons', 'hier', 'demain'.\n4. Écris 2 ou 3 phrases maximum.\n5. Si TEMPS contient 'present', utilise ce modèle de style (sans le recopier exactement) : Aujourd’hui, Emma ouvre son cartable et regarde des cartes de dragon et d’autruche. Elle lave ses mains, puis elle se couche calmement.\n6. Choisis une situation simple d’enfant : école, maison, jardin, sortie, cahier, cartes, images ou petits objets.\n7. Si les mots sont très différents entre eux (animaux, objets, aliments, lieux), rassemble-les naturellement avec des cartes, dessins, images, étiquettes, inventaire ou trésor dans un cartable. Ne fais pas rencontrer un objet ou un aliment comme une personne.\n8. Le texte doit sonner comme une petite histoire, pas comme un exercice.\n\n# Interdits\n\n- Ne commence pas par TITRE, DICTEE ou DICTÉE.\n- Ne donne pas de titre.\n- Ne donne pas de liste, d’explication, de commentaire, de markdown ou de guillemets.\n- N’écris jamais "le mot ...", "utilise le mot ...", "la liste ...", "le verbe ...".\n- N’invente pas de mots rares ou compliqués.\n\n# Réponse\n\nRéponds uniquement avec le texte final de la dictée.\n\n# Auto-vérification silencieuse\n\nAvant de répondre, vérifie sans l’écrire : tous les mots sont présents une fois, tous les verbes sont présents une fois et conjugués au bon temps, le texte fait entre 45 et 65 mots.`;
+
+export function getDefaultOllamaDictationPromptTemplate() {
+  return DEFAULT_OLLAMA_DICTATION_PROMPT;
+}
+
+function formatVerbTensesForPrompt(verbTenses: VerbTense[]) {
+  const labels: Record<VerbTense, string> = {
+    present: 'present (présent de l’indicatif UNIQUEMENT : je fais, je lave, je me couche ; pas de futur, pas de passé, pas de hier/demain)',
+    imparfait: 'imparfait (je faisais, je lavais, je me couchais)',
+    passe_compose: 'passe_compose (passé composé : j’ai fait, j’ai lavé, je me suis couché)',
+    futur: 'futur (je ferai, je laverai, je me coucherai)',
+  };
+
+  return verbTenses.map((verbTense) => labels[verbTense] ?? verbTense).join(', ');
+}
+
+function interpolateLlamaPrompt(template: string, words: string[], verbs: string[], verbTenses: VerbTense[]) {
+  const terms = buildGenerationTerms(words);
+  const replacements = {
+    mots: terms.map((word) => `- ${word}`).join('\n') || 'à définir',
+    verbes: verbs.length > 0 ? verbs.map((verb) => `- ${verb}`).join('\n') : 'à définir',
+    temps: verbTenses.length > 0 ? formatVerbTensesForPrompt(verbTenses) : formatVerbTensesForPrompt(['present']),
+  };
+
+  return template.replace(/\{\{\s*(mots|verbes|temps)\s*\}\}/gi, (match, key: string) => {
+    const resolvedKey = key.toLocaleLowerCase() as keyof typeof replacements;
+    return replacements[resolvedKey] ?? match;
+  });
+}
+
+export function buildOllamaDictationPromptFromTemplate(
+  template: string,
+  words: string[],
+  verbs: string[],
+  verbTenses: VerbTense[],
+  previousErrors: string[] = [],
+) {
+  const generatedPrompt = interpolateLlamaPrompt(template, words, verbs, verbTenses);
   const correctionBlock = previousErrors.length > 0
     ? `\nLe texte précédent était refusé pour ces raisons : ${previousErrors.join('; ')}. Corrige strictement ces points.`
     : '';
 
-  return `Tu es professeur des écoles et tu écris une courte dictée en français pour un enfant de CE2.\n\nMots ou expressions obligatoires à copier exactement une seule fois :\n${generationTerms.map((word) => `- ${word}`).join('\n')}\n\nScène conseillée : un enfant range dans son cartable des images, dessins ou cartes représentant les noms, puis fait une action du soir.\n\nContraintes obligatoires :\n- Le texte final doit contenir tous les mots ou expressions obligatoires, sans synonyme.\n- Le texte doit être logique, naturel et scolaire.\n- Évite les listes mécaniques et les formules comme "le mot ...".\n- N'invente pas de rencontre absurde avec des objets inanimés.\n- Longueur : 2 ou 3 phrases courtes.\n- Temps dominant demandé : ${tenseLabels}.\n- Style : simple, bienveillant, adapté à 8 ans.\n- Réponds uniquement avec le texte de la dictée, sans guillemets, sans titre, sans explication.${correctionBlock}`;
+  return `${generatedPrompt}${correctionBlock}`;
+}
+
+export function buildOllamaDictationPrompt(words: string[], verbs: string[], verbTenses: VerbTense[], previousErrors: string[] = []) {
+  return buildOllamaDictationPromptFromTemplate(DEFAULT_OLLAMA_DICTATION_PROMPT, words, verbs, verbTenses, previousErrors);
 }
 
 function stripLlmEnvelope(text: string) {
@@ -339,16 +672,25 @@ function stripLlmEnvelope(text: string) {
     .trim();
 }
 
-async function callOllamaDictation(words: string[], verbTenses: VerbTense[], previousErrors: string[] = []) {
+async function callOllamaDictation(words: string[], verbs: string[], verbTenses: VerbTense[], previousErrors: string[] = [], customPrompt?: string) {
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), 90_000);
+  const generatedPrompt = customPrompt
+    ? buildOllamaDictationPromptFromTemplate(customPrompt, words, verbs, verbTenses, previousErrors)
+    : buildOllamaDictationPrompt(words, verbs, verbTenses, previousErrors);
+  const correctionBlock = previousErrors.length > 0
+    ? `\nLe texte précédent était refusé pour ces raisons : ${previousErrors.join('; ')}. Corrige strictement ces points.`
+    : '';
+  const finalPrompt = previousErrors.length > 0 && !generatedPrompt.includes('Corrige strictement ces points.')
+    ? `${generatedPrompt}${correctionBlock}`
+    : generatedPrompt;
   try {
     const response = await fetch('/api/ollama/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: 'llama3.1:8b',
-        prompt: buildOllamaDictationPrompt(words, verbTenses, previousErrors),
+        prompt: finalPrompt,
         stream: false,
         options: {
           temperature: 0.2,
@@ -375,16 +717,33 @@ async function callOllamaDictation(words: string[], verbTenses: VerbTense[], pre
   }
 }
 
-async function generateOllamaWordDictationText(words: string[], verbTenses: VerbTense[]) {
+async function generateOllamaWordDictationText(
+  words: string[],
+  verbs: string[],
+  verbTenses: VerbTense[],
+  customPrompt?: string,
+) {
   let previousErrors: string[] = [];
+  let lastText = '';
   for (let attempt = 0; attempt < 3; attempt += 1) {
-    const candidate = await callOllamaDictation(words, verbTenses, previousErrors);
-    const errors = getDictationGenerationErrors(candidate, words);
-    if (errors.length === 0) return candidate;
+    const candidate = await callOllamaDictation(words, verbs, verbTenses, previousErrors, customPrompt);
+    lastText = candidate;
+    const errors = getDictationGenerationErrors(candidate, words, customPrompt ?? DEFAULT_OLLAMA_DICTATION_PROMPT, verbTenses);
+    if (errors.length === 0) {
+      return {
+        text: candidate,
+        checks: [],
+        isValid: true,
+      };
+    }
     previousErrors = errors;
   }
 
-  throw new Error(`Ollama n’a pas encore produit un texte conforme : ${previousErrors.join(', ')}.`);
+  return {
+    text: lastText,
+    checks: previousErrors,
+    isValid: false,
+  };
 }
 
 export async function generateWordDictationText(
@@ -399,23 +758,28 @@ export async function generateWordDictationText(
     throw new Error('Ajoute au moins un mot pour préparer la dictée.');
   }
 
+  const selectedVerbs: string[] = request.verbs ?? [];
   const selectedVerbTenses: VerbTense[] = request.verbTenses.length > 0 ? request.verbTenses : ['present'];
   const unknownWords = await findUnknownDictationWords(words, request.confirmedUnknownWords ?? []);
   if (unknownWords.length > 0) {
     throw new Error(`Confirme ces mots avant de générer : ${unknownWords.join(', ')}`);
   }
 
-  const text = await generateOllamaWordDictationText(words, selectedVerbTenses);
+  const generationResult = await generateOllamaWordDictationText(words, selectedVerbs, selectedVerbTenses, request.prompt);
 
   return {
     mode: 'word_dictation',
     title: 'Dictée IA locale préparée',
-    text,
+    text: generationResult.text,
     isHiddenByDefault: false,
     wordChecklist: words,
     selectedVerbTenses,
     generationProvider: 'ollama',
-    readingInstruction: 'Contrôles parent sous le texte : vérifie les mots inclus, lance la lecture pour l’élève ou relance Ollama si tu veux une nouvelle proposition.',
+    readingInstruction: 'Contrôles parent sous le texte : vérifie les mots inclus, lance la lecture pour l\u2019élève ou relance Ollama si tu veux une nouvelle proposition.',
+    controlResult: {
+      isValid: generationResult.isValid,
+      checks: generationResult.checks,
+    },
   };
 }
 
@@ -461,20 +825,117 @@ export async function submitPoetryRecital(
   await apiDelay();
   assertKnownChild(childId);
 
-  if (submission.poemId !== poetrySessionMock.poemId) {
-    throw new Error(`Poésie inconnue : ${submission.poemId}`);
+  const { poemId, poemText, transcriptText, confidence, recitationMode, lineIndex } = submission;
+  const expectedPoemText = poemText ?? poetrySessionMock.lines.join('\n');
+
+  if (poemId !== poetrySessionMock.poemId) {
+    throw new Error(`Poésie inconnue : ${poemId}`);
   }
 
-  const completed = submission.confidence === 'ready';
+  const mode = recitationMode ?? 'full';
+  const selectedLineIndex = Math.max(0, Math.min((lineIndex ?? 0), Math.max(0, splitPoetryTextLines(expectedPoemText).length - 1)));
+  const evaluation = evaluatePoetryRecital({
+    poemText: expectedPoemText,
+    submission: {
+      ...submission,
+      poemId,
+      transcriptText: transcriptText ?? '',
+    },
+    mode,
+    lineIndex: selectedLineIndex,
+  });
+
+  const isManualPractice = (transcriptText ?? '').trim().length === 0;
+
+  if (mode === 'line' && confidence === undefined && !isManualPractice) {
+    return {
+      poemId: poetrySessionMock.poemId,
+      status: evaluation.status,
+      earnedStars: evaluation.status === 'completed' ? poetrySessionMock.rewardStars : 0,
+      feedbackTitle: evaluation.status === 'completed' ? 'Très bien, tu as dit cette ligne !' : 'Essaie encore cette ligne.',
+      feedbackMessage: evaluation.status === 'completed'
+        ? `La ligne ${selectedLineIndex + 1} est bien comprise.`
+        : 'Ressaye lentement en appuyant sur le micro à l’ouverture de la ligne.',
+      nextLineToPractice: evaluation.nextLineToPractice,
+      overallAccuracy: evaluation.overallAccuracy,
+      lineFeedback: evaluation.lineFeedback,
+      recognizedText: evaluation.recognizedText,
+    };
+  }
+
+  if (mode === 'full' && confidence === undefined && isManualPractice) {
+    return {
+      poemId: poetrySessionMock.poemId,
+      status: 'needs_practice',
+      earnedStars: 0,
+      feedbackTitle: 'Il faut valider la récitation',
+      feedbackMessage: 'Récite la poésie au micro ou copie le texte prononcé pour corriger.',
+      nextLineToPractice: 0,
+      overallAccuracy: 0,
+      lineFeedback: [],
+      recognizedText: evaluation.recognizedText,
+    };
+  }
+
+  if (mode === 'line') {
+    const lineFeedback = evaluation.lineFeedback[0];
+    const isLineCorrect = lineFeedback?.isCorrect ?? false;
+    if (isLineCorrect) {
+      return {
+        poemId: poetrySessionMock.poemId,
+        status: evaluation.status,
+        earnedStars: evaluation.status === 'completed' ? poetrySessionMock.rewardStars : 0,
+        feedbackTitle: evaluation.nextLineToPractice === undefined ? 'Super ! Toute la poésie est mémorisée.' : 'Très bien, ligne réussie',
+        feedbackMessage: evaluation.nextLineToPractice === undefined
+          ? `Parfait, tu as tout dit clairement. ${poetrySessionMock.rewardStars} étoiles.`
+          : `Ligne ${selectedLineIndex + 1} validée. Passe à la ligne suivante.`,
+        nextLineToPractice: evaluation.nextLineToPractice,
+        overallAccuracy: evaluation.overallAccuracy,
+        lineFeedback: evaluation.lineFeedback,
+        recognizedText: evaluation.recognizedText,
+      };
+    }
+
+    return {
+      poemId: poetrySessionMock.poemId,
+      status: 'needs_practice',
+      earnedStars: 0,
+      feedbackTitle: 'Presque prêt !',
+      feedbackMessage: `La ligne ${selectedLineIndex + 1} a besoin d’un petit réajustement.`,
+      nextLineToPractice: evaluation.nextLineToPractice,
+      overallAccuracy: evaluation.overallAccuracy,
+      lineFeedback: evaluation.lineFeedback,
+      recognizedText: evaluation.recognizedText,
+    };
+  }
+
+  if (evaluation.status === 'completed' || confidence === 'ready') {
+    const isValidated = evaluation.status === 'completed' || confidence === 'ready';
+    return {
+      poemId: poetrySessionMock.poemId,
+      status: isValidated ? 'completed' : 'needs_practice',
+      earnedStars: isValidated ? poetrySessionMock.rewardStars : 0,
+      feedbackTitle: isValidated ? 'Bravo, récitation validée !' : 'Il faut encore progresser',
+      feedbackMessage: isValidated
+        ? `Tu gagnes ${poetrySessionMock.rewardStars} étoiles. Ta récitation est claire et posée.`
+        : 'Relis la ligne la plus difficile, puis réessaie calmement.',
+      nextLineToPractice: evaluation.nextLineToPractice,
+      overallAccuracy: evaluation.overallAccuracy,
+      lineFeedback: evaluation.lineFeedback,
+      recognizedText: evaluation.recognizedText,
+    };
+  }
 
   return {
     poemId: poetrySessionMock.poemId,
-    status: completed ? 'completed' : 'needs_practice',
-    earnedStars: completed ? poetrySessionMock.rewardStars : 0,
-    feedbackTitle: completed ? 'Bravo, récitation validée !' : 'Encore un petit entraînement',
-    feedbackMessage: completed
-      ? `Tu gagnes ${poetrySessionMock.rewardStars} étoiles. Ta récitation est claire et posée.`
-      : 'Relis les deux dernières lignes, puis réessaie tranquillement.',
+    status: 'needs_practice',
+    earnedStars: 0,
+    feedbackTitle: 'Encore une tentative',
+    feedbackMessage: 'Relis tranquillement et refais la récitation.',
+    nextLineToPractice: evaluation.nextLineToPractice,
+    overallAccuracy: evaluation.overallAccuracy,
+    lineFeedback: evaluation.lineFeedback,
+    recognizedText: evaluation.recognizedText,
   };
 }
 
