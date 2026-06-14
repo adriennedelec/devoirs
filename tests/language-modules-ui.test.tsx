@@ -435,6 +435,45 @@ describe('Lot 4 dictation and poetry UI', () => {
     expect(within(review).getByText('calm.')).toHaveClass('dictation-word-error-highlight');
   });
 
+  it('aligns child dictation corrections without shifting all following words after a line break or missing word', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({
+      response: 'Emma range dragon cartable rivière. Puis elle avance avec calme.',
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /bonjour emma/i })).toBeInTheDocument();
+    });
+
+    const dictationCard = screen.getByRole('heading', { name: /dictée/i }).closest('article');
+    expect(dictationCard).not.toBeNull();
+    await user.click(within(dictationCard!).getByRole('button', { name: /continuer/i }));
+    await user.type(await screen.findByLabelText(/série de mots/i), 'dragon, cartable, rivière');
+    await user.click(screen.getByRole('button', { name: /générer le texte/i }));
+
+    expect(await screen.findByText(/Emma range dragon cartable rivière/i)).toBeInTheDocument();
+    const childAnswer = screen.getByLabelText(/zone d'écriture de l'enfant/i);
+
+    await user.type(childAnswer, 'Emma range dragon cartable rivière.\nPuis elle avance avec calme.');
+    await user.click(screen.getByRole('button', { name: /j'ai fini/i }));
+    expect(await screen.findByText(/0 faute réalisée/i)).toBeInTheDocument();
+
+    await user.clear(childAnswer);
+    await user.type(childAnswer, 'Emma range cartable rivière.\nPuis elle avance avec calme.');
+    await user.click(screen.getByRole('button', { name: /j'ai fini/i }));
+    expect(await screen.findByText(/1 faute réalisée/i)).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /aide niveau 1/i }));
+    const review = screen.getByLabelText(/correction guidée de la dictée/i);
+    expect(within(review).getByText(/Emma range cartable rivière/i).closest('.dictation-line-help')).toHaveClass('line-has-error');
+    expect(within(review).getByText(/Puis elle avance avec calme/i).closest('.dictation-line-help')).not.toHaveClass('line-has-error');
+
+    await user.click(screen.getByRole('button', { name: /aide niveau 2/i }));
+    expect(within(review).getByText('∅')).toHaveClass('dictation-word-error-highlight');
+  });
+
   it('opens the poetry module from Accueil and validates a simulated recital', async () => {
     const user = userEvent.setup();
     render(<App />);

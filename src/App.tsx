@@ -1045,33 +1045,131 @@ function splitWordDictationLines(text: string): string[] {
   return text.split(/\r?\n/);
 }
 
+type DictationReviewToken = {
+  raw: string;
+  normalized: string;
+  lineIndex: number;
+};
+
+type DictationReviewOperation = {
+  type: 'match' | 'substitute' | 'insert' | 'delete';
+  expected?: DictationReviewToken;
+  actual?: DictationReviewToken;
+  actualIndex: number;
+};
+
+function extractDictationReviewTokens(text: string): DictationReviewToken[] {
+  return splitWordDictationLines(text).flatMap((line, lineIndex) => splitTextForDictationWords(line).map((raw) => ({
+    raw,
+    normalized: normalizeWordDictationAnswerToken(raw),
+    lineIndex,
+  })));
+}
+
+function alignDictationReviewTokens(expectedTokens: DictationReviewToken[], actualTokens: DictationReviewToken[]): DictationReviewOperation[] {
+  const rowCount = expectedTokens.length + 1;
+  const columnCount = actualTokens.length + 1;
+  const distances = Array.from({ length: rowCount }, () => Array.from({ length: columnCount }, () => 0));
+
+  for (let expectedIndex = 0; expectedIndex < rowCount; expectedIndex += 1) distances[expectedIndex][0] = expectedIndex;
+  for (let actualIndex = 0; actualIndex < columnCount; actualIndex += 1) distances[0][actualIndex] = actualIndex;
+
+  for (let expectedIndex = 1; expectedIndex < rowCount; expectedIndex += 1) {
+    for (let actualIndex = 1; actualIndex < columnCount; actualIndex += 1) {
+      const substitutionCost = expectedTokens[expectedIndex - 1].normalized === actualTokens[actualIndex - 1].normalized ? 0 : 1;
+      distances[expectedIndex][actualIndex] = Math.min(
+        distances[expectedIndex - 1][actualIndex] + 1,
+        distances[expectedIndex][actualIndex - 1] + 1,
+        distances[expectedIndex - 1][actualIndex - 1] + substitutionCost,
+      );
+    }
+  }
+
+  const operations: DictationReviewOperation[] = [];
+  let expectedIndex = expectedTokens.length;
+  let actualIndex = actualTokens.length;
+
+  while (expectedIndex > 0 || actualIndex > 0) {
+    const expectedToken = expectedTokens[expectedIndex - 1];
+    const actualToken = actualTokens[actualIndex - 1];
+
+    if (expectedIndex > 0 && actualIndex > 0) {
+      const substitutionCost = expectedToken.normalized === actualToken.normalized ? 0 : 1;
+      if (distances[expectedIndex][actualIndex] === distances[expectedIndex - 1][actualIndex - 1] + substitutionCost) {
+        operations.push({
+          type: substitutionCost === 0 ? 'match' : 'substitute',
+          expected: expectedToken,
+          actual: actualToken,
+          actualIndex: actualIndex - 1,
+        });
+        expectedIndex -= 1;
+        actualIndex -= 1;
+        continue;
+      }
+    }
+
+    if (expectedIndex > 0 && distances[expectedIndex][actualIndex] === distances[expectedIndex - 1][actualIndex] + 1) {
+      operations.push({
+        type: 'delete',
+        expected: expectedToken,
+        actualIndex,
+      });
+      expectedIndex -= 1;
+      continue;
+    }
+
+    if (actualIndex > 0) {
+      operations.push({
+        type: 'insert',
+        actual: actualToken,
+        actualIndex: actualIndex - 1,
+      });
+      actualIndex -= 1;
+    }
+  }
+
+  return operations.reverse();
+}
+
+function getLineIndexForMissingDictationWord(operation: DictationReviewOperation, actualTokens: DictationReviewToken[], fallbackLineCount: number): number {
+  const previousActualToken = operation.actualIndex > 0 ? actualTokens[operation.actualIndex - 1] : undefined;
+  const nextActualToken = actualTokens[operation.actualIndex];
+  return Math.min(
+    Math.max(previousActualToken?.lineIndex ?? nextActualToken?.lineIndex ?? 0, 0),
+    Math.max(fallbackLineCount - 1, 0),
+  );
+}
+
 function buildChildWordDictationReview(expectedText: string, answerText: string): ChildWordDictationReview {
-  const expectedLines = splitWordDictationLines(expectedText);
   const answerLines = splitWordDictationLines(answerText);
-  const lineCount = Math.max(expectedLines.length, answerLines.length, 1);
+  const lineCount = Math.max(answerLines.length, 1);
+  const lines: ChildWordDictationFeedbackLine[] = Array.from({ length: lineCount }, (_, lineIndex) => ({
+    actualLine: answerLines[lineIndex] ?? '',
+    expectedLine: '',
+    hasError: false,
+    words: [],
+  }));
+  const expectedTokens = extractDictationReviewTokens(expectedText);
+  const actualTokens = extractDictationReviewTokens(answerText);
+  const operations = alignDictationReviewTokens(expectedTokens, actualTokens);
   let mistakeCount = 0;
 
-  const lines = Array.from({ length: lineCount }, (_, lineIndex) => {
-    const expectedLine = expectedLines[lineIndex] ?? '';
-    const actualLine = answerLines[lineIndex] ?? '';
-    const expectedWords = splitTextForDictationWords(expectedLine);
-    const actualWords = splitTextForDictationWords(actualLine);
-    const wordCount = Math.max(expectedWords.length, actualWords.length);
+  operations.forEach((operation) => {
+    const hasError = operation.type !== 'match';
+    const lineIndex = operation.actual
+      ? Math.min(Math.max(operation.actual.lineIndex, 0), lineCount - 1)
+      : getLineIndexForMissingDictationWord(operation, actualTokens, lineCount);
 
-    const words = Array.from({ length: wordCount }, (_, wordIndex) => {
-      const expected = expectedWords[wordIndex] ?? '';
-      const actual = actualWords[wordIndex] ?? '';
-      const hasError = normalizeWordDictationAnswerToken(actual) !== normalizeWordDictationAnswerToken(expected);
-      if (hasError) mistakeCount += 1;
-      return { actual, expected, hasError };
+    if (hasError) {
+      mistakeCount += 1;
+      lines[lineIndex].hasError = true;
+    }
+
+    lines[lineIndex].words.push({
+      actual: operation.actual?.raw ?? '',
+      expected: operation.expected?.raw ?? '',
+      hasError,
     });
-
-    return {
-      actualLine,
-      expectedLine,
-      hasError: words.some((word) => word.hasError),
-      words,
-    };
   });
 
   return { mistakeCount, lines };
