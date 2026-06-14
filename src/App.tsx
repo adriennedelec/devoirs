@@ -446,6 +446,7 @@ const DEFAULT_FAMILY_PROFILES: ChildProfileConfig[] = [
 const FALLBACK_PROFILE: ChildProfileConfig = DEFAULT_FAMILY_PROFILES[0]!;
 const DEFAULT_ADRIEN_PROFILE = DEFAULT_FAMILY_PROFILES.find((profile) => profile.id === 'adrien-parent')!;
 const DASHBOARD_CHILD_ID = FALLBACK_PROFILE.id;
+const MOCK_LEARNING_SERVICE_CHILD_ID = DASHBOARD_CHILD_ID;
 
 function getDefaultProfileColor(profileId: string, name: string, role: ProfileRole) {
   if (profileId === 'emma-demo' || name.trim().toLowerCase() === 'emma') return '#6D5DFC';
@@ -1226,7 +1227,7 @@ function ReadingView({
 
   useEffect(() => {
     let cancelled = false;
-    getReadingSession(dashboard.child.id)
+    getReadingSession(MOCK_LEARNING_SERVICE_CHILD_ID)
       .then((session) => {
         if (!cancelled) setSessionState({ status: 'success', data: session });
       })
@@ -1240,7 +1241,7 @@ function ReadingView({
     if (sessionState.status !== 'success') return;
     setResultState({ status: 'loading' });
     try {
-      const result = await submitReadingAnswers(dashboard.child.id, {
+      const result = await submitReadingAnswers(MOCK_LEARNING_SERVICE_CHILD_ID, {
         sessionId: sessionState.data.id,
         answers: sessionState.data.questions.map((question) => ({ questionId: question.id, selectedOptionId: answers[question.id] ?? '' })),
       });
@@ -1828,7 +1829,7 @@ function DictationView({
 
   useEffect(() => {
     let cancelled = false;
-    getDictationSession(dashboard.child.id)
+    getDictationSession(MOCK_LEARNING_SERVICE_CHILD_ID)
       .then((session) => {
         if (!cancelled) setSessionState({ status: 'success', data: session });
       })
@@ -1884,7 +1885,7 @@ function DictationView({
     setOcrState({ status: 'loading' });
     try {
       const extractedText = file.type.startsWith('text/') ? await file.text() : '';
-      const result = await extractWordDictationWordsFromOcr(dashboard.child.id, {
+      const result = await extractWordDictationWordsFromOcr(MOCK_LEARNING_SERVICE_CHILD_ID, {
         fileName: file.name,
         mimeType: file.type || 'application/octet-stream',
         extractedText,
@@ -1907,7 +1908,7 @@ function DictationView({
   async function prepareWordDictationText(wordsConfirmedForGeneration = confirmedUnknownWords) {
     setGeneratedTextState({ status: 'loading' });
     try {
-      const result = await generateWordDictationText(dashboard.child.id, {
+      const result = await generateWordDictationText(MOCK_LEARNING_SERVICE_CHILD_ID, {
         words: preparedWordSeries,
         verbTenses: selectedVerbTenses,
         verbs: preparedVerbSeries,
@@ -2041,7 +2042,7 @@ function DictationView({
     if (sessionState.status !== 'success') return;
     setAnswerState({ status: 'loading' });
     try {
-      const result = await submitDictationAnswer(dashboard.child.id, { sessionId: sessionState.data.id, answerText });
+      const result = await submitDictationAnswer(MOCK_LEARNING_SERVICE_CHILD_ID, { sessionId: sessionState.data.id, answerText });
       const starsEarned = calculateRewardStars('dictation', result.isCorrect ? 1 : 0, result.isCorrect ? 0 : 1);
       setAnswerState({ status: 'success', data: result });
       appendActivityRecordToStorage(buildLearningActivityRecord({
@@ -2473,7 +2474,7 @@ function PoetryView({
 
   useEffect(() => {
     let cancelled = false;
-    getPoetrySession(dashboard.child.id)
+    getPoetrySession(MOCK_LEARNING_SERVICE_CHILD_ID)
       .then((session) => {
         if (!cancelled) setSessionState({ status: 'success', data: session });
       })
@@ -2487,7 +2488,7 @@ function PoetryView({
     if (sessionState.status !== 'success') return;
     setRecitalState({ status: 'loading' });
     try {
-      const result = await submitPoetryRecital(dashboard.child.id, { poemId: sessionState.data.poemId, confidence: 'ready' });
+      const result = await submitPoetryRecital(MOCK_LEARNING_SERVICE_CHILD_ID, { poemId: sessionState.data.poemId, confidence: 'ready' });
       const isCompleted = result.status === 'completed';
       const starsEarned = calculateRewardStars('poetry', isCompleted ? 1 : 0, isCompleted ? 0 : 1);
       setRecitalState({ status: 'success', data: result });

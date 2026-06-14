@@ -91,6 +91,41 @@ describe('Page Profil famille', () => {
     expect(window.localStorage.getItem('devoirs.activeProfileId.v1')).toBe('louane-demo');
   });
 
+  it('charge les menus d’exercices avec un profil enfant personnalisé sans erreur de données mock', async () => {
+    window.localStorage.setItem('devoirs.childProfiles.v1', JSON.stringify([
+      {
+        id: 'enora-custom',
+        name: 'Enora',
+        avatarEmoji: '👧',
+        avatarPhotoUrl: '',
+        age: 7,
+        role: 'eleve',
+        schoolLevel: 'CE1',
+        profileColor: '#F25CA2',
+      },
+    ]));
+    window.localStorage.setItem('devoirs.activeProfileId.v1', 'enora-custom');
+
+    const user = userEvent.setup();
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /bonjour enora/i })).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: /lecture/i }));
+    expect(await screen.findByText(/mission compréhension/i)).toBeInTheDocument();
+    expect(screen.queryByText(/aucune donnée trouvée/i)).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /dictée/i }));
+    expect(await screen.findByRole('button', { name: /dictée normale/i })).toBeInTheDocument();
+    expect(screen.queryByText(/aucune donnée trouvée/i)).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /poésie/i }));
+    expect(await screen.findByText(/mission mémoire/i)).toBeInTheDocument();
+    expect(screen.queryByText(/aucune donnée trouvée/i)).not.toBeInTheDocument();
+  });
+
   it('ouvre la modification depuis la carte et permet de changer la couleur des graphiques', async () => {
     const user = await openProfilePage();
 
