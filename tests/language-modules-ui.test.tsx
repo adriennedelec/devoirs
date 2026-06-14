@@ -519,6 +519,67 @@ describe('Lot 4 dictation and poetry UI', () => {
     expect(within(review).getByText('∅')).toHaveClass('dictation-word-error-highlight');
   });
 
+  it('builds the Lecture page around AI story generation, recording timing, transcription and statistics', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({
+      response: 'Lina rencontre un renard dans la forêt. Elle pose une clé dorée sur un rocher et lit doucement.',
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /bonjour emma/i })).toBeInTheDocument();
+    });
+
+    const readingCard = screen.getByRole('heading', { name: /lecture/i }).closest('article');
+    expect(readingCard).not.toBeNull();
+    await user.click(within(readingCard!).getByRole('button', { name: /continuer/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /générer l’histoire/i })).toBeInTheDocument();
+    });
+
+    expect(screen.getByLabelText(/personnage/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/animal/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/objet/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/lieu/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/taille du texte/i)).toBeInTheDocument();
+    expect((screen.getByLabelText(/prompt de génération lecture/i) as HTMLTextAreaElement).value).toContain('{{personnage}}');
+
+    await user.clear(screen.getByLabelText(/personnage/i));
+    await user.type(screen.getByLabelText(/personnage/i), 'Lina');
+    await user.clear(screen.getByLabelText(/animal/i));
+    await user.type(screen.getByLabelText(/animal/i), 'renard');
+    await user.clear(screen.getByLabelText(/objet/i));
+    await user.type(screen.getByLabelText(/objet/i), 'clé dorée');
+    await user.clear(screen.getByLabelText(/lieu/i));
+    await user.type(screen.getByLabelText(/lieu/i), 'forêt');
+    await user.selectOptions(screen.getByLabelText(/taille du texte/i), 'S');
+    const generationRegion = screen.getByRole('region', { name: /génération ia de l’histoire/i });
+    await user.click(within(generationRegion).getByRole('button', { name: /^générer$/i }));
+
+    expect(await screen.findByText(/Lina rencontre un renard dans la forêt/i)).toBeInTheDocument();
+    expect(globalThis.fetch).toHaveBeenCalledWith('/api/ollama/generate', expect.objectContaining({ method: 'POST' }));
+
+    await user.click(screen.getByRole('button', { name: /démarrer l’enregistrement/i }));
+    expect(screen.getByText(/chrono lancé/i)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /arrêter et analyser/i }));
+
+    await user.type(
+      screen.getByLabelText(/transcription de l’enregistrement/i),
+      'Lina rencontre un renar dans la forêt. Elle pose une clé sur un rocher et lit doucement.',
+    );
+    await user.click(screen.getByRole('button', { name: /analyser la lecture/i }));
+
+    expect(screen.getByRole('heading', { name: /analyse de l’enregistrement/i })).toBeInTheDocument();
+    const analysisRegion = screen.getByRole('region', { name: /analyse de l’enregistrement/i });
+    expect(within(analysisRegion).getAllByText(/mots par minute/i).length).toBeGreaterThan(0);
+    expect(within(analysisRegion).getByText(/temps total/i)).toBeInTheDocument();
+    expect(within(analysisRegion).getAllByText(/erreurs/i).length).toBeGreaterThan(0);
+    expect(within(analysisRegion).getByText('renar')).toHaveClass('reading-word-error');
+    expect(within(analysisRegion).getByText('∅ dorée')).toHaveClass('reading-word-missing');
+  });
+
   it('opens the poetry module from Accueil and validates a simulated recital', async () => {
     const user = userEvent.setup();
     render(<App />);

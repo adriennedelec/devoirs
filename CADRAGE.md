@@ -229,7 +229,18 @@ Construire une première maquette web crédible et navigable, avec une vraie str
 - réponses QCM mélangées par question pour que la bonne réponse ne reste pas au même emplacement ;
 - récompenses instantanées et zone aide pédagogique.
 
-#### 5. Dictée
+#### 5. Lecture IA et lecture à voix haute
+
+- génération d’une histoire par IA à partir de personnage / animal / objet / lieu ;
+- taille de texte contrôlée de `XS` à `XL` ;
+- prompt parent éditable et aperçu interpolé ;
+- texte affiché dans une carte de lecture ;
+- démarrage/arrêt d’enregistrement avec chronomètre ;
+- transcription analysable ;
+- statistiques : mots/minute, temps total, erreurs, précision ;
+- erreurs et mots manquants rendus en couleur, sans formulation punitive.
+
+#### 6. Dictée
 
 - deux modes visibles : `Dictée de mots` et `Dictée normale` ;
 - dictée de mots travaillée en priorité : saisie parent d’une série de mots, découpée mot par mot dès qu’un séparateur apparaît (espace, retour ligne, ponctuation, slash, tiret, etc.) ;

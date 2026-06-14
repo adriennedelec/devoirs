@@ -179,6 +179,17 @@ Sur desktop :
 - `StepProgress`
 - `RewardToast`
 
+### Écran Lecture — génération IA et lecture chronométrée
+
+La page `Lecture` est structurée en 4 blocs lisibles :
+
+- **Générer l’histoire** : champs `Personnage`, `Animal`, `Objet`, `Lieu`, `Taille du texte` avec choix `XS`, `S`, `M`, `L`, `XL`, puis bouton `Générer` ;
+- **Définir le prompt** : textarea parent avec placeholders stables `{{personnage}}`, `{{animal}}`, `{{objet}}`, `{{lieu}}`, `{{taille}}` et aperçu du prompt réellement envoyé à l’IA ;
+- **Texte à lire** : carte de lecture enfant, bouton audio conservé, bouton `Démarrer l’enregistrement`, bouton `Arrêter et analyser`, chronomètre visible ;
+- **Analyse de l’enregistrement** : transcription éditable, mots corrects/erreurs/mots manquants colorés, KPI `Mots par minute`, `Temps total`, `Erreurs`, `Précision`, puis tableau de statistiques.
+
+Règle UX : l’analyse doit rester encourageante et exploitable par le parent. Les erreurs sont visibles en couleur, mais le texte ne doit pas culpabiliser l’enfant. Le bloc compréhension existant reste disponible en bonus afin de préserver la continuité pédagogique.
+
 ### Écran Dictée — modes mots / normale
 
 Le module `Dictée magique` doit distinguer clairement deux usages :

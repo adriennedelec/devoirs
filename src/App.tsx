@@ -1392,6 +1392,146 @@ function RewardsView({ dashboard }: { dashboard: ChildDashboard }) {
   );
 }
 
+type ReadingTextSize = 'XS' | 'S' | 'M' | 'L' | 'XL';
+
+type ReadingGenerationFields = {
+  character: string;
+  animal: string;
+  object: string;
+  place: string;
+  size: ReadingTextSize;
+};
+
+type ReadingAnalysisToken = {
+  expected: string;
+  actual: string;
+  status: 'correct' | 'error' | 'missing' | 'extra';
+};
+
+type ReadingRecordingAnalysis = {
+  totalWords: number;
+  spokenWords: number;
+  durationSeconds: number;
+  wordsPerMinute: number;
+  errorCount: number;
+  accuracyPercent: number;
+  tokens: ReadingAnalysisToken[];
+};
+
+const READING_SIZE_OPTIONS: Array<{ value: ReadingTextSize; label: string; wordRange: string }> = [
+  { value: 'XS', label: 'XS', wordRange: '35 à 50 mots' },
+  { value: 'S', label: 'S', wordRange: '60 à 80 mots' },
+  { value: 'M', label: 'M', wordRange: '90 à 130 mots' },
+  { value: 'L', label: 'L', wordRange: '150 à 190 mots' },
+  { value: 'XL', label: 'XL', wordRange: '220 à 280 mots' },
+];
+
+const DEFAULT_READING_PROMPT_TEMPLATE = `Tu es un enseignant de lecture pour un enfant de primaire.\n\nÉcris une histoire courte, fluide et bien ponctuée pour entraîner la lecture à voix haute.\n\nContraintes obligatoires :\n- Personnage : {{personnage}}\n- Animal : {{animal}}\n- Objet : {{objet}}\n- Lieu : {{lieu}}\n- Taille : {{taille}}\n\nRègles :\n1. Utilise un vocabulaire simple et naturel.\n2. Fais une seule histoire complète, sans titre, sans liste et sans commentaire.\n3. Évite les phrases trop longues.\n4. Réponds uniquement avec le texte de l'histoire.`;
+
+function getReadingSizeRange(size: ReadingTextSize) {
+  return READING_SIZE_OPTIONS.find((option) => option.value === size)?.wordRange ?? '60 à 80 mots';
+}
+
+function buildReadingPromptFromTemplate(template: string, fields: ReadingGenerationFields) {
+  const replacements = {
+    personnage: fields.character.trim() || 'un enfant',
+    animal: fields.animal.trim() || 'un animal',
+    objet: fields.object.trim() || 'un objet',
+    lieu: fields.place.trim() || 'un lieu',
+    taille: `${fields.size} (${getReadingSizeRange(fields.size)})`,
+  };
+
+  return template.replace(/\{\{\s*(personnage|animal|objet|lieu|taille)\s*\}\}/gi, (match, key: string) => {
+    const resolvedKey = key.toLocaleLowerCase() as keyof typeof replacements;
+    return replacements[resolvedKey] ?? match;
+  });
+}
+
+function stripReadingLlmEnvelope(text: string) {
+  return text
+    .trim()
+    .replace(/^```(?:text|txt|fr|markdown)?/i, '')
+    .replace(/```$/i, '')
+    .replace(/^\s*["“”]|["“”]\s*$/g, '')
+    .trim();
+}
+
+function splitReadingWords(text: string) {
+  return text.match(/[\p{L}\p{M}0-9'-]+/gu) ?? [];
+}
+
+function normalizeReadingWord(word: string) {
+  return word
+    .toLocaleLowerCase('fr-FR')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '');
+}
+
+function analyzeReadingRecording(storyText: string, transcriptText: string, durationSeconds: number): ReadingRecordingAnalysis {
+  const expectedWords = splitReadingWords(storyText);
+  const actualWords = splitReadingWords(transcriptText);
+  const tokens: ReadingAnalysisToken[] = [];
+  let expectedIndex = 0;
+  let actualIndex = 0;
+
+  while (expectedIndex < expectedWords.length || actualIndex < actualWords.length) {
+    const expected = expectedWords[expectedIndex] ?? '';
+    const actual = actualWords[actualIndex] ?? '';
+    const normalizedExpected = normalizeReadingWord(expected);
+    const normalizedActual = normalizeReadingWord(actual);
+
+    if (expected && actual && normalizedExpected === normalizedActual) {
+      tokens.push({ expected, actual, status: 'correct' });
+      expectedIndex += 1;
+      actualIndex += 1;
+      continue;
+    }
+
+    const nextExpected = expectedWords[expectedIndex + 1] ?? '';
+    const nextActual = actualWords[actualIndex + 1] ?? '';
+    if (expected && actual && normalizeReadingWord(nextExpected) === normalizedActual) {
+      tokens.push({ expected, actual: `∅ ${expected}`, status: 'missing' });
+      expectedIndex += 1;
+      continue;
+    }
+
+    if (expected && actual && normalizedExpected === normalizeReadingWord(nextActual)) {
+      tokens.push({ expected: '', actual, status: 'extra' });
+      actualIndex += 1;
+      continue;
+    }
+
+    if (expected && actual) {
+      tokens.push({ expected, actual, status: 'error' });
+      expectedIndex += 1;
+      actualIndex += 1;
+      continue;
+    }
+
+    if (expected) {
+      tokens.push({ expected, actual: `∅ ${expected}`, status: 'missing' });
+      expectedIndex += 1;
+      continue;
+    }
+
+    tokens.push({ expected: '', actual, status: 'extra' });
+    actualIndex += 1;
+  }
+
+  const errorCount = tokens.filter((token) => token.status !== 'correct').length;
+  const safeDuration = Math.max(1, Math.round(durationSeconds));
+  return {
+    totalWords: expectedWords.length,
+    spokenWords: actualWords.length,
+    durationSeconds: safeDuration,
+    wordsPerMinute: Math.round((actualWords.length / safeDuration) * 60),
+    errorCount,
+    accuracyPercent: expectedWords.length === 0 ? 0 : Math.max(0, Math.round(((expectedWords.length - errorCount) / expectedWords.length) * 100)),
+    tokens,
+  };
+}
+
 function ReadingView({
   dashboard,
   onRecordExercise,
@@ -1410,6 +1550,33 @@ function ReadingView({
   const exerciseDraftKey = `devoirs.exerciseDraft.${dashboard.child.id}.reading`;
   const [answers, setAnswers] = useSessionStorageState<Record<string, string>>(`${exerciseDraftKey}.answers`, {});
   const [resultState, setResultState] = useSessionStorageState<ApiState<ReadingAnswerResult> | null>(`${exerciseDraftKey}.resultState`, null);
+  const [generationFields, setGenerationFields] = useSessionStorageState<ReadingGenerationFields>(`${exerciseDraftKey}.generationFields`, {
+    character: 'Lina',
+    animal: 'renard',
+    object: 'clé dorée',
+    place: 'forêt',
+    size: 'S',
+  });
+  const [readingPrompt, setReadingPrompt] = useSessionStorageState(`${exerciseDraftKey}.prompt`, DEFAULT_READING_PROMPT_TEMPLATE);
+  const [generatedStoryState, setGeneratedStoryState] = useSessionStorageState<ApiState<string> | null>(`${exerciseDraftKey}.generatedStory`, null);
+  const [isReadingRecording, setIsReadingRecording] = useState(false);
+  const [recordingStartedAt, setRecordingStartedAt] = useState<number | null>(null);
+  const [recordingElapsedSeconds, setRecordingElapsedSeconds] = useSessionStorageState(`${exerciseDraftKey}.recordingElapsedSeconds`, 0);
+  const [recordedTranscript, setRecordedTranscript] = useSessionStorageState(`${exerciseDraftKey}.recordedTranscript`, '');
+  const [recordingAnalysis, setRecordingAnalysis] = useSessionStorageState<ReadingRecordingAnalysis | null>(`${exerciseDraftKey}.recordingAnalysis`, null);
+  const recordingIntervalRef = useRef<number | null>(null);
+
+  const readingPromptPreview = useMemo(
+    () => buildReadingPromptFromTemplate(readingPrompt.trim() || DEFAULT_READING_PROMPT_TEMPLATE, generationFields),
+    [generationFields, readingPrompt],
+  );
+
+  const storyText = generatedStoryState?.status === 'success'
+    ? generatedStoryState.data
+    : sessionState.status === 'success'
+      ? sessionState.data.text.join(' ')
+      : '';
+  const storyTitle = generatedStoryState?.status === 'success' ? 'Histoire générée par IA' : (sessionState.status === 'success' ? sessionState.data.title : 'Texte de lecture');
 
   useEffect(() => {
     let cancelled = false;
@@ -1422,6 +1589,95 @@ function ReadingView({
       });
     return () => { cancelled = true; };
   }, [dashboard.child.id]);
+
+  useEffect(() => {
+    return () => {
+      if (recordingIntervalRef.current !== null) window.clearInterval(recordingIntervalRef.current);
+    };
+  }, []);
+
+  function updateReadingField(field: keyof ReadingGenerationFields, value: string) {
+    setGenerationFields((current) => ({ ...current, [field]: value }));
+  }
+
+  async function generateReadingStory() {
+    setGeneratedStoryState({ status: 'loading' });
+    setRecordingAnalysis(null);
+    setRecordedTranscript('');
+    try {
+      const response = await fetch('/api/ollama/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'llama3.1:8b',
+          prompt: readingPromptPreview,
+          stream: false,
+          options: { temperature: 0.35, num_predict: 420 },
+        }),
+      });
+      if (!response.ok) throw new Error(`Ollama a répondu ${response.status}.`);
+      const payload = await response.json() as { response?: string; error?: string };
+      if (payload.error) throw new Error(payload.error);
+      const text = stripReadingLlmEnvelope(payload.response ?? '');
+      if (!text) throw new Error('L’IA n’a pas renvoyé de texte lisible.');
+      setGeneratedStoryState({ status: 'success', data: text });
+    } catch (error: unknown) {
+      setGeneratedStoryState({ status: 'error', message: error instanceof Error ? error.message : 'Impossible de générer l’histoire.' });
+    }
+  }
+
+  function startReadingRecording() {
+    if (!storyText.trim()) return;
+    const startedAt = Date.now();
+    setRecordingStartedAt(startedAt);
+    setRecordingElapsedSeconds(0);
+    setIsReadingRecording(true);
+    setRecordingAnalysis(null);
+    if (recordingIntervalRef.current !== null) window.clearInterval(recordingIntervalRef.current);
+    recordingIntervalRef.current = window.setInterval(() => {
+      setRecordingElapsedSeconds(Math.max(1, Math.floor((Date.now() - startedAt) / 1000)));
+    }, 1000);
+  }
+
+  function stopReadingRecording() {
+    const elapsed = recordingStartedAt ? Math.max(1, Math.floor((Date.now() - recordingStartedAt) / 1000)) : Math.max(1, recordingElapsedSeconds || 1);
+    if (recordingIntervalRef.current !== null) {
+      window.clearInterval(recordingIntervalRef.current);
+      recordingIntervalRef.current = null;
+    }
+    setRecordingElapsedSeconds(elapsed);
+    setIsReadingRecording(false);
+  }
+
+  function analyzeTranscript() {
+    if (!storyText.trim()) return;
+    const analysis = analyzeReadingRecording(storyText, recordedTranscript, recordingElapsedSeconds || 1);
+    setRecordingAnalysis(analysis);
+    const starsEarned = calculateRewardStars('reading', Math.max(0, analysis.totalWords - analysis.errorCount), analysis.errorCount);
+    appendActivityRecordToStorage(buildLearningActivityRecord({
+      profileId: dashboard.child.id,
+      profileName: dashboard.child.firstName,
+      module: 'reading',
+      moduleLabel: 'Lecture',
+      exerciseLabel: storyTitle,
+      score: Math.max(0, analysis.totalWords - analysis.errorCount),
+      totalQuestions: Math.max(1, analysis.totalWords),
+      correctCount: Math.max(0, analysis.totalWords - analysis.errorCount),
+      wrongCount: analysis.errorCount,
+      durationSeconds: analysis.durationSeconds,
+      starsEarned,
+      status: analysis.errorCount === 0 ? 'completed' : 'partial',
+      details: { wordsPerMinute: analysis.wordsPerMinute, transcript: recordedTranscript },
+    }));
+    onRecordExercise({
+      module: 'reading',
+      moduleLabel: 'Lecture',
+      exercise: storyTitle,
+      resultLabel: `${analysis.wordsPerMinute} mots/min`,
+      details: `${analysis.errorCount} erreur${analysis.errorCount > 1 ? 's' : ''} • ${formatDuration(analysis.durationSeconds)}`,
+      status: analysis.errorCount === 0 ? 'success' : 'partial',
+    });
+  }
 
   async function validateReading() {
     if (sessionState.status !== 'success') return;
@@ -1461,25 +1717,147 @@ function ReadingView({
   }
 
   return (
-    <main className="child-main">
+    <main className="child-main reading-ai-page">
       <ChildTopBar dashboard={dashboard} title="Lecture" />
-      {sessionState.status === 'loading' ? <div className="state-card">Préparation de l’histoire…</div> : null}
+      {sessionState.status === 'loading' ? <div className="state-card">Préparation de la page Lecture…</div> : null}
       {sessionState.status === 'error' ? <div className="state-card error">{sessionState.message}</div> : null}
       {sessionState.status === 'success' ? (
         <>
-          <section className="language-card reading-card" aria-labelledby="reading-title">
+          <section className="reading-generator-grid" aria-label="Génération IA de l’histoire">
+            <article className="page-card reading-generator-card">
+              <p className="eyebrow">Bloc 1 · Préparation IA</p>
+              <h2>Générer l’histoire</h2>
+              <div className="reading-field-grid">
+                <label>
+                  Personnage
+                  <input value={generationFields.character} onChange={(event) => updateReadingField('character', event.target.value)} />
+                </label>
+                <label>
+                  Animal
+                  <input value={generationFields.animal} onChange={(event) => updateReadingField('animal', event.target.value)} />
+                </label>
+                <label>
+                  Objet
+                  <input value={generationFields.object} onChange={(event) => updateReadingField('object', event.target.value)} />
+                </label>
+                <label>
+                  Lieu
+                  <input value={generationFields.place} onChange={(event) => updateReadingField('place', event.target.value)} />
+                </label>
+                <label>
+                  Taille du texte
+                  <select value={generationFields.size} onChange={(event) => updateReadingField('size', event.target.value as ReadingTextSize)}>
+                    {READING_SIZE_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>{option.label} · {option.wordRange}</option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              <button className="primary-action" disabled={generatedStoryState?.status === 'loading'} onClick={generateReadingStory} type="button">
+                {generatedStoryState?.status === 'loading' ? <>Génération en cours <LoadingDots /></> : 'Générer'}
+              </button>
+              {generatedStoryState?.status === 'error' ? <p className="feedback-card error">{generatedStoryState.message}</p> : null}
+            </article>
+
+            <article className="page-card reading-prompt-card">
+              <p className="eyebrow">Bloc 2 · Prompt</p>
+              <h2>Définir le prompt</h2>
+              <label>
+                Prompt de génération Lecture
+                <textarea
+                  className="prompt-editor"
+                  rows={12}
+                  value={readingPrompt}
+                  onChange={(event) => setReadingPrompt(event.target.value)}
+                />
+              </label>
+              <details>
+                <summary>Aperçu réel envoyé à l’IA</summary>
+                <pre className="prompt-preview">{readingPromptPreview}</pre>
+              </details>
+            </article>
+          </section>
+
+          <section className="language-card reading-card reading-recording-card" aria-labelledby="reading-title">
             <div className="language-mascot" aria-hidden="true">📖</div>
             <div>
-              <p className="eyebrow">Mission compréhension</p>
-              <h2 id="reading-title">{sessionState.data.title}</h2>
-              <p>{sessionState.data.instruction}</p>
-              <button className="audio-button" type="button">🔊 {sessionState.data.audioLabel}</button>
-              <div className="story-lines">
-                {sessionState.data.text.map((line) => <p key={line}>{line}</p>)}
+              <p className="eyebrow">Bloc 3 · Texte à lire · Mission compréhension</p>
+              <h2 id="reading-title">{storyTitle}</h2>
+              <p>{generatedStoryState?.status === 'success' ? 'Lis ce texte à voix haute. Appuie sur Démarrer pour lancer le chrono.' : sessionState.data.instruction}</p>
+              <button className="audio-button" type="button">🔊 Écouter l’histoire</button>
+              <div className="story-lines generated-reading-story">
+                {storyText.split(/\n+/).filter(Boolean).map((line, index) => <p key={`${line}-${index}`}>{line}</p>)}
               </div>
+              <div className="reading-recorder-controls" role="group" aria-label="Enregistrement de lecture">
+                <button className="audio-button" disabled={isReadingRecording || !storyText.trim()} type="button" onClick={startReadingRecording}>🎙️ Démarrer l’enregistrement</button>
+                <button className="audio-button" disabled={!isReadingRecording} type="button" onClick={stopReadingRecording}>⏹️ Arrêter et analyser</button>
+                <div className="timer-card inline" aria-label="Chronomètre de lecture">
+                  <span aria-hidden="true">⏱️</span>
+                  <div>
+                    <strong>Chronomètre</strong>
+                    <p className="timer-value">{formatDuration(recordingElapsedSeconds)}</p>
+                    <small>{isReadingRecording ? 'Chrono lancé' : 'Prêt pour la lecture'}</small>
+                  </div>
+                </div>
+              </div>
+              <label className="transcript-editor">
+                Transcription de l’enregistrement
+                <textarea
+                  rows={5}
+                  value={recordedTranscript}
+                  onChange={(event) => setRecordedTranscript(event.target.value)}
+                  placeholder="La transcription automatique apparaîtra ici. Pour le MVP, colle ou corrige le texte entendu avant analyse."
+                />
+              </label>
+              <button className="primary-action" disabled={!storyText.trim() || recordedTranscript.trim().length === 0} type="button" onClick={analyzeTranscript}>
+                Analyser la lecture
+              </button>
             </div>
           </section>
+
+          {recordingAnalysis ? (
+            <section className="page-card reading-analysis-card" aria-labelledby="reading-analysis-title">
+              <p className="eyebrow">Bloc 4 · Résultats</p>
+              <h2 id="reading-analysis-title">Analyse de l’enregistrement</h2>
+              <div className="reading-stat-grid">
+                <article><strong>{recordingAnalysis.wordsPerMinute}</strong><span>Mots par minute</span></article>
+                <article><strong>{formatDuration(recordingAnalysis.durationSeconds)}</strong><span>Temps total</span></article>
+                <article><strong>{recordingAnalysis.errorCount}</strong><span>Erreurs</span></article>
+                <article><strong>{recordingAnalysis.accuracyPercent}%</strong><span>Précision</span></article>
+              </div>
+              <div className="reading-transcript-correction" aria-label="Transcription corrigée avec erreurs en couleur">
+                {recordingAnalysis.tokens.map((token, index) => (
+                  <span
+                    key={`${token.actual}-${token.expected}-${index}`}
+                    className={
+                      token.status === 'correct'
+                        ? 'reading-word-correct'
+                        : token.status === 'missing'
+                          ? 'reading-word-missing'
+                          : 'reading-word-error'
+                    }
+                    title={token.status === 'correct' ? 'Mot correct' : `Attendu : ${token.expected || '—'}`}
+                  >
+                    {token.status === 'correct' ? token.actual : token.actual || token.expected}
+                  </span>
+                ))}
+              </div>
+              <table className="reading-stats-table" aria-label="Tableau de statistiques de lecture">
+                <tbody>
+                  <tr><th scope="row">Mots du texte</th><td>{recordingAnalysis.totalWords}</td></tr>
+                  <tr><th scope="row">Mots lus</th><td>{recordingAnalysis.spokenWords}</td></tr>
+                  <tr><th scope="row">Mots par minute</th><td>{recordingAnalysis.wordsPerMinute}</td></tr>
+                  <tr><th scope="row">Erreurs détectées</th><td>{recordingAnalysis.errorCount}</td></tr>
+                </tbody>
+              </table>
+            </section>
+          ) : null}
+
           <section className="quiz-stack" aria-label="Questions de compréhension">
+            <div className="section-heading compact">
+              <p className="eyebrow">Bonus compréhension</p>
+              <h2>Questions de l’histoire démo</h2>
+            </div>
             {sessionState.data.questions.map((question) => (
               <article className="quiz-card" key={question.id}>
                 <h3>{question.prompt}</h3>
@@ -1512,7 +1890,6 @@ function ReadingView({
     </main>
   );
 }
-
 function MultiplicationView({
   dashboard,
   onRecordExercise,
