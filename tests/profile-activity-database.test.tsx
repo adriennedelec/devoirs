@@ -62,8 +62,17 @@ describe('Profil et modules branchés sur la base activité', () => {
 
     const timeChart = within(overview).getByLabelText(/Histogramme temps d’activité/i);
     const starChart = within(overview).getByLabelText(/Histogramme étoiles gagnées/i);
+    expect(within(timeChart).getByText('5')).toBeInTheDocument();
+    expect(within(timeChart).getByText('2,5')).toBeInTheDocument();
     expect(within(timeChart).getByText('0')).toBeInTheDocument();
+    expect(within(starChart).getByText('16')).toBeInTheDocument();
+    expect(within(starChart).getByText('8')).toBeInTheDocument();
     expect(within(starChart).getByText('0')).toBeInTheDocument();
+
+    expect(within(timeChart).getByLabelText(/Louane .*: 5 minutes/i)).toHaveStyle({ height: '96px' });
+    expect(within(timeChart).getByLabelText(/Emma .*: 2 minutes/i)).toHaveStyle({ height: '38.4px' });
+    expect(within(starChart).getByLabelText(/Emma .*: 16 étoiles/i)).toHaveStyle({ height: '96px' });
+    expect(within(starChart).getByLabelText(/Louane .*: 6 étoiles/i)).toHaveStyle({ height: '36px' });
 
     const zeroMinuteBars = within(timeChart).getAllByLabelText(/Emma .*: 0 minutes/i);
     const zeroStarBars = within(starChart).getAllByLabelText(/Emma .*: 0 étoiles/i);

@@ -176,6 +176,11 @@ const FAMILY_ILLUSTRATION_OPTIONS: Array<{ id: FamilyIllustrationVariant; label:
 ];
 const ACTIVITY_SUBJECTS = ['Mathématiques', 'Français', 'Poésie', 'Lecture'];
 const DEFAULT_HISTORY_PAGE_SIZE = 10;
+const ACTIVITY_CHART_HEIGHT_PX = 96;
+
+function formatChartAxisTick(value: number) {
+  return value.toLocaleString('fr-FR', { maximumFractionDigits: 1 });
+}
 
 function getRecentDayLabels(days: number) {
   const now = new Date();
@@ -2671,7 +2676,7 @@ function ProfileView({
   function renderGroupedBars(metric: 'minutes' | 'stars') {
     const days = getRecentDayLabels(Number(activityPeriodDays));
     const maxValue = Math.max(1, ...activityStats.map((item) => metric === 'minutes' ? item.minutes : item.stars));
-    const axisTicks = [maxValue, Math.round(maxValue / 2), 0].filter((tick, index, ticks) => ticks.indexOf(tick) === index);
+    const axisTicks = [maxValue, maxValue / 2, 0].filter((tick, index, ticks) => ticks.indexOf(tick) === index);
     return (
       <div
         className="activity-chart-with-axis"
@@ -2679,7 +2684,7 @@ function ProfileView({
         data-series-count={students.length}
       >
         <div className="activity-y-axis" aria-label="Axe Y">
-          {axisTicks.map((tick) => <span key={`${metric}-tick-${tick}`}>{tick}</span>)}
+          {axisTicks.map((tick) => <span key={`${metric}-tick-${tick}`}>{formatChartAxisTick(tick)}</span>)}
         </div>
         <div className="activity-grouped-chart">
           {days.map((day) => (
@@ -2688,7 +2693,8 @@ function ProfileView({
                 {students.map((profile) => {
                   const stat = activityStats.find((item) => item.profileId === profile.id && item.day === day);
                   const value = stat ? (metric === 'minutes' ? stat.minutes : stat.stars) : 0;
-                  const barHeight = value === 0 ? 0 : Math.max(4, (value / maxValue) * 78);
+                  const scaledHeight = (value / maxValue) * ACTIVITY_CHART_HEIGHT_PX;
+                  const barHeight = value === 0 ? 0 : Math.max(4, Math.round(scaledHeight * 10) / 10);
                   return (
                     <span
                       className={`activity-bar ${value === 0 ? 'is-zero' : ''}`}
