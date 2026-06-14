@@ -292,6 +292,7 @@ describe('Lot 4 dictation and poetry UI', () => {
     const user = userEvent.setup();
     const spokenTexts: string[] = [];
     const spokenRates: number[] = [];
+    const timeoutSpy = vi.spyOn(window, 'setTimeout');
     let lastUtterance: { text: string; onend?: () => void } | null = null;
 
     class SpeechSynthesisUtteranceMock {
@@ -370,12 +371,22 @@ describe('Lot 4 dictation and poetry UI', () => {
     expect(within(track).getByText(/mot 3 sur 10/i)).toBeInTheDocument();
     await user.click(within(speedControls).getByRole('button', { name: /moyen/i }));
     await user.click(screen.getByRole('button', { name: /lire le texte à l’élève/i }));
-    expect(spokenTexts.at(-1)).toBe('dragon cartable rivière. Puis elle avance avec calme.');
-    expect(spokenRates.at(-1)).toBeCloseTo(0.24, 5);
+    expect(spokenTexts.at(-1)).toBe('dragon');
+    expect(spokenRates.at(-1)).toBeCloseTo(0.72, 5);
+    act(() => {
+      if (lastUtterance) {
+        lastUtterance.onend?.();
+      }
+    });
+    await waitFor(() => {
+      expect(within(track).getByRole('slider', { name: /déplacer le curseur sur la piste audio/i })).toHaveValue('3');
+    });
+    expect(timeoutSpy).toHaveBeenCalledWith(expect.any(Function), 1200);
 
     await user.click(within(speedControls).getByRole('button', { name: /lent/i }));
     await user.click(screen.getByRole('button', { name: /lire le texte à l’élève/i }));
-    expect(spokenRates.at(-1)).toBeCloseTo(0.12, 5);
+    expect(spokenTexts.at(-1)).toBe('cartable');
+    expect(spokenRates.at(-1)).toBeCloseTo(0.72, 5);
   });
 
   it('lets the child write the generated dictation without spellcheck and reveals two help levels after completion', async () => {

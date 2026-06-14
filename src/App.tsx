@@ -996,14 +996,24 @@ type ChildWordDictationReview = {
 type DictationHelpLevel = 'none' | 'line' | 'word';
 type DictationPlaybackSpeed = 'slow' | 'medium' | 'fast';
 
-const DICTATION_PLAYBACK_SPEEDS: Array<{ value: DictationPlaybackSpeed; label: string; rate: number; helper: string }> = [
-  { value: 'slow', label: 'Lent', rate: 0.12, helper: '6× plus lent' },
-  { value: 'medium', label: 'Moyen', rate: 0.24, helper: '3× plus lent' },
-  { value: 'fast', label: 'Rapide', rate: 0.72, helper: 'vitesse actuelle' },
+const DICTATION_FAST_PLAYBACK_RATE = 0.72;
+const DICTATION_MEDIUM_WORD_PAUSE_MS = 1200;
+const DICTATION_SLOW_WORD_PAUSE_MS = 3000;
+
+const DICTATION_PLAYBACK_SPEEDS: Array<{ value: DictationPlaybackSpeed; label: string; helper: string }> = [
+  { value: 'slow', label: 'Lent', helper: 'tempo enfant très lent' },
+  { value: 'medium', label: 'Moyen', helper: 'tempo enfant ralenti' },
+  { value: 'fast', label: 'Rapide', helper: 'vitesse actuelle' },
 ];
 
+function getDictationPlaybackWordPauseMs(speed: DictationPlaybackSpeed): number {
+  if (speed === 'slow') return DICTATION_SLOW_WORD_PAUSE_MS;
+  if (speed === 'medium') return DICTATION_MEDIUM_WORD_PAUSE_MS;
+  return 0;
+}
+
 function getDictationPlaybackRate(speed: DictationPlaybackSpeed): number {
-  return DICTATION_PLAYBACK_SPEEDS.find((option) => option.value === speed)?.rate ?? 0.72;
+  return speed === 'fast' ? DICTATION_FAST_PLAYBACK_RATE : DICTATION_FAST_PLAYBACK_RATE;
 }
 
 function splitTextForDictationWords(text: string): string[] {
@@ -1806,6 +1816,7 @@ function DictationView({
   const [childWordDictationReview, setChildWordDictationReview] = useSessionStorageState<ChildWordDictationReview | null>(`${exerciseDraftKey}.childReview`, null);
   const [dictationHelpLevel, setDictationHelpLevel] = useSessionStorageState<DictationHelpLevel>(`${exerciseDraftKey}.helpLevel`, 'none');
   const dictationSpeechInstance = useRef<number>(0);
+  const dictationPlaybackTimeouts = useRef<number[]>([]);
 
   const dictationWords = useMemo(
     () => (generatedTextState?.status === 'success' ? splitTextForDictationWords(generatedTextState.data.text) : []),
@@ -1932,6 +1943,7 @@ function DictationView({
     if (dictationSpeechInstance.current) {
       dictationSpeechInstance.current += 1;
     }
+    clearDictationPlaybackTimers();
     if (typeof window !== 'undefined' && window.speechSynthesis) {
       window.speechSynthesis.cancel();
     }
@@ -1941,6 +1953,7 @@ function DictationView({
     if (dictationMode !== 'word_dictation') {
       setIsReadingDictation(false);
       setDictationWordCursor(0);
+      clearDictationPlaybackTimers();
       if (typeof window !== 'undefined' && window.speechSynthesis) {
         window.speechSynthesis.cancel();
       }
@@ -2009,8 +2022,19 @@ function DictationView({
     await prepareWordDictationText(nextConfirmedWords);
   }
 
+  function clearDictationPlaybackTimers() {
+    if (typeof window === 'undefined') {
+      dictationPlaybackTimeouts.current = [];
+      return;
+    }
+
+    dictationPlaybackTimeouts.current.forEach((timeoutId) => window.clearTimeout(timeoutId));
+    dictationPlaybackTimeouts.current = [];
+  }
+
   function stopDictationPlayback() {
     dictationSpeechInstance.current += 1;
+    clearDictationPlaybackTimers();
     setIsReadingDictation(false);
     if (typeof window !== 'undefined' && window.speechSynthesis) {
       window.speechSynthesis.cancel();
@@ -2022,42 +2046,82 @@ function DictationView({
 
     const safeStartIndex = Math.min(Math.max(startIndex, 0), dictationTotalWords - 1);
     const safeEndIndex = Math.min(Math.max(endIndex, safeStartIndex + 1), dictationTotalWords);
-    const wordsToRead = dictationWords.slice(safeStartIndex, safeEndIndex);
     const textToRead = buildDictationTextFromWordRange(dictationWords, safeStartIndex, safeEndIndex);
     if (!textToRead) return;
 
     if (typeof window !== 'undefined' && window.speechSynthesis) {
       window.speechSynthesis.cancel();
     }
+    clearDictationPlaybackTimers();
 
     const instanceId = dictationSpeechInstance.current + 1;
     dictationSpeechInstance.current = instanceId;
     setIsReadingDictation(true);
     setDictationWordCursor(safeStartIndex);
 
-    const utterance = new SpeechSynthesisUtterance(textToRead);
-    utterance.lang = 'fr-FR';
-    utterance.rate = getDictationPlaybackRate(dictationPlaybackSpeed);
-    utterance.pitch = 1;
-    utterance.volume = 1;
-    utterance.onboundary = (event) => {
+    const wordPauseMs = getDictationPlaybackWordPauseMs(dictationPlaybackSpeed);
+
+    if (wordPauseMs === 0) {
+      const wordsToRead = dictationWords.slice(safeStartIndex, safeEndIndex);
+      const utterance = new SpeechSynthesisUtterance(textToRead);
+      utterance.lang = 'fr-FR';
+      utterance.rate = getDictationPlaybackRate(dictationPlaybackSpeed);
+      utterance.pitch = 1;
+      utterance.volume = 1;
+      utterance.onboundary = (event) => {
+        if (instanceId !== dictationSpeechInstance.current) return;
+        const wordIndexInRange = getDictationWordIndexFromBoundary(wordsToRead, event.charIndex);
+        setDictationWordCursor(Math.min(safeStartIndex + wordIndexInRange, dictationTotalWords));
+      };
+      utterance.onend = () => {
+        if (instanceId !== dictationSpeechInstance.current) return;
+        setDictationWordCursor(safeEndIndex);
+        setIsReadingDictation(false);
+      };
+      utterance.onerror = () => {
+        if (instanceId !== dictationSpeechInstance.current) return;
+        setIsReadingDictation(false);
+      };
+
+      if (typeof window !== 'undefined' && window.speechSynthesis) {
+        window.speechSynthesis.speak(utterance);
+      }
+      return;
+    }
+
+    const speakWordAtIndex = (wordIndex: number) => {
       if (instanceId !== dictationSpeechInstance.current) return;
-      const wordIndexInRange = getDictationWordIndexFromBoundary(wordsToRead, event.charIndex);
-      setDictationWordCursor(Math.min(safeStartIndex + wordIndexInRange, dictationTotalWords));
-    };
-    utterance.onend = () => {
-      if (instanceId !== dictationSpeechInstance.current) return;
-      setDictationWordCursor(safeEndIndex);
-      setIsReadingDictation(false);
-    };
-    utterance.onerror = () => {
-      if (instanceId !== dictationSpeechInstance.current) return;
-      setIsReadingDictation(false);
+      if (wordIndex >= safeEndIndex) {
+        setDictationWordCursor(safeEndIndex);
+        setIsReadingDictation(false);
+        return;
+      }
+
+      setDictationWordCursor(wordIndex);
+      const utterance = new SpeechSynthesisUtterance(dictationWords[wordIndex]);
+      utterance.lang = 'fr-FR';
+      utterance.rate = getDictationPlaybackRate(dictationPlaybackSpeed);
+      utterance.pitch = 1;
+      utterance.volume = 1;
+      utterance.onend = () => {
+        if (instanceId !== dictationSpeechInstance.current) return;
+        const nextWordIndex = wordIndex + 1;
+        setDictationWordCursor(Math.min(nextWordIndex, dictationTotalWords));
+        const timeoutId = window.setTimeout(() => {
+          dictationPlaybackTimeouts.current = dictationPlaybackTimeouts.current.filter((id) => id !== timeoutId);
+          speakWordAtIndex(nextWordIndex);
+        }, wordPauseMs);
+        dictationPlaybackTimeouts.current.push(timeoutId);
+      };
+      utterance.onerror = () => {
+        if (instanceId !== dictationSpeechInstance.current) return;
+        setIsReadingDictation(false);
+      };
+
+      window.speechSynthesis.speak(utterance);
     };
 
-    if (typeof window !== 'undefined' && window.speechSynthesis) {
-      window.speechSynthesis.speak(utterance);
-    }
+    speakWordAtIndex(safeStartIndex);
   }
 
   function startDictationPlayback() {
