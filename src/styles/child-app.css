@@ -3294,6 +3294,25 @@
 
 .last-connection-list strong { color: var(--color-primary-dark); }
 
+.activity-chart-with-axis {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  gap: 8px;
+  align-items: stretch;
+}
+
+.activity-y-axis {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 86px;
+  padding: 2px 0 24px;
+  color: var(--color-text-muted);
+  font-size: 0.68rem;
+  font-weight: 1000;
+  text-align: right;
+}
+
 .activity-grouped-chart {
   display: grid;
   grid-template-columns: repeat(7, minmax(46px, 1fr));
@@ -3320,8 +3339,12 @@
 .activity-bar {
   display: block;
   width: 12px;
-  min-height: 8px;
+  min-height: 0;
   border-radius: 999px 999px 4px 4px;
+}
+
+.activity-bar.is-zero {
+  background: transparent !important;
 }
 
 .activity-chart-day small {

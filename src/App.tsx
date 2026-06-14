@@ -2671,33 +2671,40 @@ function ProfileView({
   function renderGroupedBars(metric: 'minutes' | 'stars') {
     const days = getRecentDayLabels(Number(activityPeriodDays));
     const maxValue = Math.max(1, ...activityStats.map((item) => metric === 'minutes' ? item.minutes : item.stars));
+    const axisTicks = [maxValue, Math.round(maxValue / 2), 0].filter((tick, index, ticks) => ticks.indexOf(tick) === index);
     return (
       <div
-        className="activity-grouped-chart"
+        className="activity-chart-with-axis"
         aria-label={metric === 'minutes' ? 'Histogramme temps d’activité' : 'Histogramme étoiles gagnées'}
         data-series-count={students.length}
       >
-        {days.map((day) => (
-          <div className="activity-chart-day" key={`${metric}-${day}`}>
-            <div className="activity-bars-group">
-              {students.map((profile) => {
-                const stat = activityStats.find((item) => item.profileId === profile.id && item.day === day);
-                const value = stat ? (metric === 'minutes' ? stat.minutes : stat.stars) : 0;
-                return (
-                  <span
-                    className="activity-bar"
-                    data-profile-id={profile.id}
-                    aria-label={`${profile.name} ${formatActivityDay(day)} : ${value} ${metric === 'minutes' ? 'minutes' : 'étoiles'}`}
-                    key={`${profile.id}-${day}`}
-                    style={{ height: `${Math.max(8, (value / maxValue) * 78)}px`, background: childColorById[profile.id] }}
-                    title={`${profile.name} · ${value}`}
-                  />
-                );
-              })}
+        <div className="activity-y-axis" aria-label="Axe Y">
+          {axisTicks.map((tick) => <span key={`${metric}-tick-${tick}`}>{tick}</span>)}
+        </div>
+        <div className="activity-grouped-chart">
+          {days.map((day) => (
+            <div className="activity-chart-day" key={`${metric}-${day}`}>
+              <div className="activity-bars-group">
+                {students.map((profile) => {
+                  const stat = activityStats.find((item) => item.profileId === profile.id && item.day === day);
+                  const value = stat ? (metric === 'minutes' ? stat.minutes : stat.stars) : 0;
+                  const barHeight = value === 0 ? 0 : Math.max(4, (value / maxValue) * 78);
+                  return (
+                    <span
+                      className={`activity-bar ${value === 0 ? 'is-zero' : ''}`}
+                      data-profile-id={profile.id}
+                      aria-label={`${profile.name} ${formatActivityDay(day)} : ${value} ${metric === 'minutes' ? 'minutes' : 'étoiles'}`}
+                      key={`${profile.id}-${day}`}
+                      style={{ height: `${barHeight}px`, background: childColorById[profile.id] }}
+                      title={`${profile.name} · ${value}`}
+                    />
+                  );
+                })}
+              </div>
+              <small>{formatActivityChartDay(day)}</small>
             </div>
-            <small>{formatActivityChartDay(day)}</small>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     );
   }
@@ -2721,7 +2728,7 @@ function ProfileView({
                   .reduce((total, item) => total + (item.exercisesBySubject[subject] ?? 0), 0);
                 return (
                   <span key={`${subject}-${profile.id}`}>
-                    <i data-profile-id={profile.id} style={{ width: `${Math.max(8, (value / maxValue) * 100)}%`, background: childColorById[profile.id] }} />
+                    <i data-profile-id={profile.id} style={{ width: `${value === 0 ? 0 : Math.max(4, (value / maxValue) * 100)}%`, background: childColorById[profile.id] }} />
                     <em>{value}</em>
                   </span>
                 );

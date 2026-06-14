@@ -60,6 +60,25 @@ describe('Profil et modules branchés sur la base activité', () => {
     expect(within(overview).getByLabelText(/Emma .*16 étoiles/i)).toBeInTheDocument();
     expect(within(overview).getByLabelText(/Louane .*6 étoiles/i)).toBeInTheDocument();
 
+    const timeChart = within(overview).getByLabelText(/Histogramme temps d’activité/i);
+    const starChart = within(overview).getByLabelText(/Histogramme étoiles gagnées/i);
+    expect(within(timeChart).getByText('0')).toBeInTheDocument();
+    expect(within(starChart).getByText('0')).toBeInTheDocument();
+
+    const zeroMinuteBars = within(timeChart).getAllByLabelText(/Emma .*: 0 minutes/i);
+    const zeroStarBars = within(starChart).getAllByLabelText(/Emma .*: 0 étoiles/i);
+    expect(zeroMinuteBars.length).toBeGreaterThan(0);
+    expect(zeroStarBars.length).toBeGreaterThan(0);
+    zeroMinuteBars.forEach((bar) => expect(bar).toHaveStyle({ height: '0px' }));
+    zeroStarBars.forEach((bar) => expect(bar).toHaveStyle({ height: '0px' }));
+
+    const subjectChart = within(overview).getByLabelText(/Histogramme exercices réalisés par matière/i);
+    const poetryRow = within(subjectChart).getByText('Poésie').closest('.subject-chart-row');
+    expect(poetryRow).not.toBeNull();
+    const zeroSubjectBars = Array.from(poetryRow!.querySelectorAll('i'));
+    expect(zeroSubjectBars.length).toBeGreaterThan(0);
+    zeroSubjectBars.forEach((bar) => expect(bar).toHaveStyle({ width: '0%' }));
+
     const history = screen.getByRole('region', { name: /historique détaillé des activités/i });
     expect(within(history).getByText(/total des résultats : 2/i)).toBeInTheDocument();
     const table = within(history).getByRole('table', { name: /activités famille/i });
