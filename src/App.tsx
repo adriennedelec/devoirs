@@ -933,19 +933,25 @@ function maskPoetryLine(line: string): string {
     .join('');
 }
 
-function splitTextForDictationPhrases(text: string): string[] {
-  const normalizedText = text.trim();
-  if (!normalizedText) return [];
+function splitTextForDictationWords(text: string): string[] {
+  return text.trim().match(/\S+/g) ?? [];
+}
 
-  const sentences = normalizedText
-    .split(/\n+/)
-    .flatMap((part) => {
-      const matches = part.match(/[^.!?;:…]+[.!?;:…]?/g);
-      return matches ? matches.map((sentence) => sentence.trim()).filter(Boolean) : [];
-    })
-    .filter((sentence) => sentence.length > 0);
+function buildDictationTextFromWordRange(words: string[], startIndex: number, endIndex: number): string {
+  return words.slice(startIndex, endIndex).join(' ');
+}
 
-  return sentences.length > 0 ? sentences : [normalizedText];
+function getDictationWordIndexFromBoundary(words: string[], charIndex: number): number {
+  let cursor = 0;
+
+  for (let index = 0; index < words.length; index += 1) {
+    const start = cursor;
+    const end = start + words[index].length;
+    if (charIndex >= start && charIndex <= end) return index;
+    cursor = end + 1;
+  }
+
+  return Math.max(0, words.length - 1);
 }
 
 function maskDictationText(text: string): string {
@@ -1660,14 +1666,17 @@ function DictationView({
   const [isLlamaPromptSaved, setIsLlamaPromptSaved] = useState(false);
   const [isGeneratedTextHidden, setIsGeneratedTextHidden] = useState(false);
   const [isReadingDictation, setIsReadingDictation] = useState(false);
-  const [dictationChunkIndex, setDictationChunkIndex] = useState(0);
-  const [dictationChunkRepeat, setDictationChunkRepeat] = useState(0);
+  const [dictationWordCursor, setDictationWordCursor] = useState(0);
   const dictationSpeechInstance = useRef<number>(0);
 
-  const dictationChunkedText = useMemo(
-    () => (generatedTextState?.status === 'success' ? splitTextForDictationPhrases(generatedTextState.data.text) : []),
+  const dictationWords = useMemo(
+    () => (generatedTextState?.status === 'success' ? splitTextForDictationWords(generatedTextState.data.text) : []),
     [generatedTextState],
   );
+  const dictationTotalWords = dictationWords.length;
+  const dictationCursorPercent = dictationTotalWords > 0
+    ? (Math.min(dictationWordCursor, dictationTotalWords) / dictationTotalWords) * 100
+    : 0;
   const isSpeechSynthesisSupported = typeof window !== 'undefined' && 'speechSynthesis' in window;
 
   const preparedWordSeries = useMemo(
@@ -1778,8 +1787,7 @@ function DictationView({
     }
 
     setIsGeneratedTextHidden(false);
-    setDictationChunkIndex(0);
-    setDictationChunkRepeat(0);
+    setDictationWordCursor(0);
 
     if (dictationSpeechInstance.current) {
       dictationSpeechInstance.current += 1;
@@ -1792,8 +1800,7 @@ function DictationView({
   useEffect(() => {
     if (dictationMode !== 'word_dictation') {
       setIsReadingDictation(false);
-      setDictationChunkIndex(0);
-      setDictationChunkRepeat(0);
+      setDictationWordCursor(0);
       if (typeof window !== 'undefined' && window.speechSynthesis) {
         window.speechSynthesis.cancel();
       }
@@ -1870,72 +1877,62 @@ function DictationView({
     }
   }
 
-  function speakDictationChunk(chunkIndex: number, repeatNumber: number, instanceId: number) {
-    if (!isSpeechSynthesisSupported || dictationChunkedText.length === 0) return;
-    const chunk = dictationChunkedText[chunkIndex];
-    if (!chunk) return;
+  function speakDictationWordRange(startIndex: number, endIndex: number) {
+    if (!isSpeechSynthesisSupported || dictationTotalWords === 0) return;
 
-    const utterance = new SpeechSynthesisUtterance(chunk);
+    const safeStartIndex = Math.min(Math.max(startIndex, 0), dictationTotalWords - 1);
+    const safeEndIndex = Math.min(Math.max(endIndex, safeStartIndex + 1), dictationTotalWords);
+    const wordsToRead = dictationWords.slice(safeStartIndex, safeEndIndex);
+    const textToRead = buildDictationTextFromWordRange(dictationWords, safeStartIndex, safeEndIndex);
+    if (!textToRead) return;
+
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+
+    const instanceId = dictationSpeechInstance.current + 1;
+    dictationSpeechInstance.current = instanceId;
+    setIsReadingDictation(true);
+    setDictationWordCursor(safeStartIndex);
+
+    const utterance = new SpeechSynthesisUtterance(textToRead);
     utterance.lang = 'fr-FR';
     utterance.rate = 0.72;
     utterance.pitch = 1;
     utterance.volume = 1;
-    utterance.onend = () => {
-      if (instanceId !== dictationSpeechInstance.current || !isReadingDictation) return;
-
-      if (repeatNumber < 1) {
-        const nextRepeatNumber = repeatNumber + 1;
-        setDictationChunkRepeat(nextRepeatNumber);
-        speakDictationChunk(chunkIndex, nextRepeatNumber, instanceId);
-        return;
-      }
-
-      const nextChunkIndex = chunkIndex + 1;
-      if (nextChunkIndex >= dictationChunkedText.length) {
-        setIsReadingDictation(false);
-        return;
-      }
-
-      setDictationChunkIndex(nextChunkIndex);
-      setDictationChunkRepeat(0);
-      speakDictationChunk(nextChunkIndex, 0, instanceId);
+    utterance.onboundary = (event) => {
+      if (instanceId !== dictationSpeechInstance.current) return;
+      const wordIndexInRange = getDictationWordIndexFromBoundary(wordsToRead, event.charIndex);
+      setDictationWordCursor(Math.min(safeStartIndex + wordIndexInRange, dictationTotalWords));
     };
+    utterance.onend = () => {
+      if (instanceId !== dictationSpeechInstance.current) return;
+      setDictationWordCursor(safeEndIndex);
+      setIsReadingDictation(false);
+    };
+    utterance.onerror = () => {
+      if (instanceId !== dictationSpeechInstance.current) return;
+      setIsReadingDictation(false);
+    };
+
     if (typeof window !== 'undefined' && window.speechSynthesis) {
       window.speechSynthesis.speak(utterance);
     }
   }
 
   function startDictationPlayback() {
-    if (!isSpeechSynthesisSupported || dictationChunkedText.length === 0) return;
-
-    if (typeof window !== 'undefined' && window.speechSynthesis &&
-      (window.speechSynthesis.speaking || window.speechSynthesis.pending)) {
-      window.speechSynthesis.cancel();
-    }
-
-    if (dictationChunkIndex >= dictationChunkedText.length) {
-      setDictationChunkIndex(0);
-      setDictationChunkRepeat(0);
-    }
-
-    const instanceId = dictationSpeechInstance.current + 1;
-    dictationSpeechInstance.current = instanceId;
-    setIsReadingDictation(true);
-    const startIndex = dictationChunkIndex >= dictationChunkedText.length ? 0 : dictationChunkIndex;
-    const startRepeat = startIndex === dictationChunkIndex ? dictationChunkRepeat : 0;
-
-    setDictationChunkIndex(startIndex);
-    setDictationChunkRepeat(startRepeat);
-    speakDictationChunk(startIndex, startRepeat, instanceId);
+    const startIndex = dictationWordCursor >= dictationTotalWords ? 0 : dictationWordCursor;
+    speakDictationWordRange(startIndex, dictationTotalWords);
   }
 
-  function rewindDictationChunk() {
-    stopDictationPlayback();
-    if (dictationChunkedText.length === 0) return;
+  function playNextFiveDictationWords() {
+    const startIndex = dictationWordCursor >= dictationTotalWords ? 0 : dictationWordCursor;
+    speakDictationWordRange(startIndex, Math.min(startIndex + 5, dictationTotalWords));
+  }
 
-    const previousIndex = Math.max(0, dictationChunkIndex - 1);
-    setDictationChunkIndex(previousIndex);
-    setDictationChunkRepeat(0);
+  function handleDictationTrackSeek(nextCursor: number) {
+    stopDictationPlayback();
+    setDictationWordCursor(Math.min(Math.max(nextCursor, 0), dictationTotalWords));
   }
 
   function toggleGeneratedTextVisibility() {
@@ -2134,25 +2131,61 @@ function DictationView({
                     <div className="dictation-parent-controls" role="group" aria-label="Contrôles parent">
                       <p>{generatedTextState.data.readingInstruction}</p>
                       <div className="dictation-playback-controls">
-                        <p>
-                          {dictationChunkedText.length > 0
-                            ? `Lecture par bout : ${dictationChunkIndex + 1}/${dictationChunkedText.length} (lecture ${dictationChunkRepeat + 1}/2)`
-                            : 'Aucun extrait à lire pour l’instant.'}
-                        </p>
+                        <div className="dictation-audio-track" role="group" aria-label="Piste audio de dictée">
+                          <div className="dictation-track-header">
+                            <strong>
+                              {dictationWordCursor >= dictationTotalWords && dictationTotalWords > 0
+                                ? `Fin : ${dictationTotalWords}/${dictationTotalWords}`
+                                : dictationTotalWords > 0
+                                  ? `Mot ${dictationWordCursor + 1} sur ${dictationTotalWords}`
+                                  : 'Aucun mot à lire'}
+                            </strong>
+                            <span>{dictationTotalWords} mots au total</span>
+                          </div>
+                          <div className="dictation-track-rail" aria-hidden="true">
+                            {dictationWords.map((word, wordIndex) => (
+                              <span
+                                className="dictation-word-marker"
+                                data-testid="dictation-word-marker"
+                                key={`${word}-${wordIndex}`}
+                                style={{ left: `${((wordIndex + 0.5) / Math.max(dictationTotalWords, 1)) * 100}%` }}
+                              />
+                            ))}
+                            <span className="dictation-track-cursor" style={{ left: `${dictationCursorPercent}%` }} />
+                          </div>
+                          <input
+                            aria-label="Déplacer le curseur sur la piste audio"
+                            className="dictation-track-slider"
+                            disabled={dictationTotalWords === 0}
+                            max={dictationTotalWords}
+                            min={0}
+                            onChange={(event) => handleDictationTrackSeek(Number(event.currentTarget.value))}
+                            type="range"
+                            value={dictationWordCursor}
+                          />
+                        </div>
                         <div className="dictation-actions" role="group" aria-label="Contrôles de dictée">
+                          <button
+                            type="button"
+                            onClick={stopDictationPlayback}
+                            disabled={!isReadingDictation}
+                          >
+                            ⏹️ Stop
+                          </button>
                           <button
                             className="audio-button"
                             type="button"
                             onClick={startDictationPlayback}
-                            disabled={isReadingDictation || !isSpeechSynthesisSupported || dictationChunkedText.length === 0}
+                            disabled={isReadingDictation || !isSpeechSynthesisSupported || dictationTotalWords === 0}
                           >
-                            {dictationChunkIndex === 0 && dictationChunkRepeat === 0 ? '▶️ Lire le texte à l’élève' : '▶️ Reprendre la lecture'}
+                            ▶️ Lire le texte à l’élève
                           </button>
-                          <button type="button" onClick={stopDictationPlayback} disabled={!isReadingDictation}>
-                            ⏹️ Stop
-                          </button>
-                          <button type="button" onClick={rewindDictationChunk} disabled={dictationChunkIndex === 0 || isReadingDictation}>
-                            ◀️ Revenir au bout précédent
+                          <button
+                            type="button"
+                            onClick={playNextFiveDictationWords}
+                            disabled={isReadingDictation || !isSpeechSynthesisSupported || dictationTotalWords === 0}
+                          >
+                            ▶️ Lire 5 mots par 5 mots
                           </button>
                         </div>
                         {!isSpeechSynthesisSupported ? <p className="feedback-card error">La lecture vocale n’est pas disponible dans ce navigateur.</p> : null}

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import App from '../src/App';
@@ -286,6 +286,83 @@ describe('Lot 4 dictation and poetry UI', () => {
       expect(screen.getAllByText(/mot à confirmer/i).length).toBeGreaterThan(0);
     });
     expect(screen.getByText('dragonnn')).toBeInTheDocument();
+  });
+
+  it('adds a word-by-word audio track with full-text playback, five-word playback, and movable cursor', async () => {
+    const user = userEvent.setup();
+    const spokenTexts: string[] = [];
+    let lastUtterance: SpeechSynthesisUtterance & { onend?: () => void } | null = null;
+
+    class SpeechSynthesisUtteranceMock {
+      text: string;
+      lang = '';
+      rate = 1;
+      pitch = 1;
+      volume = 1;
+      onend?: () => void;
+      onboundary?: (event: { name: string; charIndex: number }) => void;
+
+      constructor(text: string) {
+        this.text = text;
+      }
+    }
+
+    vi.stubGlobal('SpeechSynthesisUtterance', SpeechSynthesisUtteranceMock);
+    Object.defineProperty(window, 'speechSynthesis', {
+      configurable: true,
+      value: {
+        speaking: false,
+        pending: false,
+        cancel: vi.fn(),
+        speak: vi.fn((utterance: SpeechSynthesisUtterance & { onend?: () => void }) => {
+          lastUtterance = utterance;
+          spokenTexts.push(utterance.text);
+        }),
+      },
+    });
+
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({
+      response: 'Emma range dragon cartable rivière. Puis elle avance avec calme.',
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /bonjour emma/i })).toBeInTheDocument();
+    });
+
+    const dictationCard = screen.getByRole('heading', { name: /dictée/i }).closest('article');
+    expect(dictationCard).not.toBeNull();
+    await user.click(within(dictationCard!).getByRole('button', { name: /continuer/i }));
+    await user.type(await screen.findByLabelText(/série de mots/i), 'dragon, cartable, rivière');
+    await user.click(screen.getByRole('button', { name: /générer le texte/i }));
+
+    expect(await screen.findByText(/Emma range dragon cartable rivière/i)).toBeInTheDocument();
+    const track = screen.getByRole('group', { name: /piste audio de dictée/i });
+    expect(within(track).getByText(/10 mots au total/i)).toBeInTheDocument();
+    expect(within(track).getAllByTestId('dictation-word-marker')).toHaveLength(10);
+    expect(within(track).getByRole('slider', { name: /déplacer le curseur sur la piste audio/i })).toHaveValue('0');
+    expect(screen.getByRole('button', { name: /lire le texte à l’élève/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /lire 5 mots par 5 mots/i })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /lire 5 mots par 5 mots/i }));
+    expect(spokenTexts.at(-1)).toBe('Emma range dragon cartable rivière.');
+    act(() => {
+      if (lastUtterance) {
+        lastUtterance.onend?.();
+      }
+    });
+    await waitFor(() => {
+      expect(within(track).getByRole('slider', { name: /déplacer le curseur sur la piste audio/i })).toHaveValue('5');
+    });
+
+    await user.click(screen.getByRole('button', { name: /lire 5 mots par 5 mots/i }));
+    expect(spokenTexts.at(-1)).toBe('Puis elle avance avec calme.');
+
+    fireEvent.change(within(track).getByRole('slider', { name: /déplacer le curseur sur la piste audio/i }), { target: { value: '2' } });
+    expect(within(track).getByText(/mot 3 sur 10/i)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /lire le texte à l’élève/i }));
+    expect(spokenTexts.at(-1)).toBe('dragon cartable rivière. Puis elle avance avec calme.');
   });
 
   it('opens the poetry module from Accueil and validates a simulated recital', async () => {
