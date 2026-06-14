@@ -3295,36 +3295,55 @@
 .last-connection-list strong { color: var(--color-primary-dark); }
 
 .activity-chart-with-axis {
+  --activity-plot-height: 96px;
+  position: relative;
   display: grid;
   grid-template-columns: 30px minmax(0, 1fr);
   gap: 8px;
-  align-items: stretch;
+  align-items: start;
+}
+
+.activity-chart-with-axis::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 38px;
+  z-index: 0;
+  height: var(--activity-plot-height);
+  border-bottom: 1px solid rgba(31, 42, 68, 0.11);
+  background-image: linear-gradient(to bottom, rgba(31, 42, 68, 0.08) 1px, transparent 1px);
+  background-size: 100% calc(var(--activity-plot-height) / 4);
 }
 
 .activity-y-axis {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  min-height: 96px;
-  padding: 2px 0 24px;
+  height: var(--activity-plot-height);
   color: var(--color-text-muted);
   font-size: 0.68rem;
   font-weight: 1000;
+  line-height: 1;
   text-align: right;
 }
 
 .activity-grouped-chart {
+  position: relative;
+  z-index: 1;
   display: grid;
   grid-template-columns: repeat(7, minmax(46px, 1fr));
   gap: 9px;
-  align-items: end;
-  min-height: 130px;
+  align-items: start;
 }
 
 .activity-chart-day {
   display: grid;
+  grid-template-rows: var(--activity-plot-height) auto;
   gap: 7px;
-  align-items: end;
+  align-items: start;
   text-align: center;
 }
 
@@ -3333,7 +3352,8 @@
   align-items: end;
   justify-content: center;
   gap: 5px;
-  min-height: 96px;
+  height: var(--activity-plot-height);
+  min-height: 0;
 }
 
 .activity-bar {
@@ -3843,16 +3863,10 @@
 .activity-grouped-chart {
   grid-template-columns: repeat(7, minmax(24px, 1fr));
   gap: 6px;
-  min-height: 142px;
-  padding-top: 8px;
 }
 
 .activity-bars-group {
   gap: 4px;
-  min-height: 96px;
-  border-bottom: 1px solid rgba(31, 42, 68, 0.08);
-  background-image: linear-gradient(to top, rgba(31, 42, 68, 0.05) 1px, transparent 1px);
-  background-size: 100% 24px;
 }
 
 .activity-bar {
