@@ -571,16 +571,18 @@ function getDictationTenseErrors(text: string, verbTenses: VerbTense[]) {
   return errors;
 }
 
+function getDefaultDictationWordCountBounds() {
+  return extractWordCountBoundsFromPrompt(DEFAULT_OLLAMA_DICTATION_PROMPT) ?? { minimum: 45, maximum: 65 };
+}
+
 function getDictationGenerationErrors(text: string, words: string[], promptTemplate = DEFAULT_OLLAMA_DICTATION_PROMPT, verbTenses: VerbTense[] = ['present']) {
   const errors: string[] = [];
   const cleanText = text.trim();
   if (!cleanText) errors.push('texte vide');
-  const wordCountBounds = extractWordCountBoundsFromPrompt(promptTemplate);
+  const wordCountBounds = extractWordCountBoundsFromPrompt(promptTemplate) ?? getDefaultDictationWordCountBounds();
   const wordCount = countGeneratedWords(cleanText);
-  if (wordCountBounds) {
-    if (wordCount > wordCountBounds.maximum) errors.push(`texte trop long : ${wordCount} mots (maximum ${wordCountBounds.maximum})`);
-  } else if (cleanText.length > 320) {
-    errors.push('texte trop long');
+  if (wordCount > wordCountBounds.maximum) {
+    errors.push(`texte trop long : ${wordCount} mots (maximum ${wordCountBounds.maximum})`);
   }
   const sentenceCount = cleanText.split(/[.!?]+/).filter((sentence) => sentence.trim().length > 0).length;
   if (sentenceCount > 4) errors.push('plus de 4 phrases');

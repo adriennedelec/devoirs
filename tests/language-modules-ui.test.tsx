@@ -325,7 +325,7 @@ describe('Lot 4 dictation and poetry UI', () => {
     });
 
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({
-      response: 'Emma range dragon cartable rivière. Puis elle avance avec calme.',
+      response: 'Emma range dragon, cartable rivière. Puis elle avance avec calme.',
     }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
 
     render(<App />);
@@ -340,20 +340,21 @@ describe('Lot 4 dictation and poetry UI', () => {
     await user.type(await screen.findByLabelText(/série de mots/i), 'dragon, cartable, rivière');
     await user.click(screen.getByRole('button', { name: /générer le texte/i }));
 
-    expect(await screen.findByText(/Emma range dragon cartable rivière/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Emma range dragon, cartable rivière/i)).toBeInTheDocument();
     const track = screen.getByRole('group', { name: /piste audio de dictée/i });
     expect(within(track).getByText(/10 mots au total/i)).toBeInTheDocument();
     expect(within(track).getAllByTestId('dictation-word-marker')).toHaveLength(10);
     expect(within(track).getByRole('slider', { name: /déplacer le curseur sur la piste audio/i })).toHaveValue('0');
     expect(screen.getByRole('button', { name: /lire le texte à l’élève/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /lire 5 mots par 5 mots/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /lire par bloc/i })).toBeInTheDocument();
     const speedControls = screen.getByRole('group', { name: /vitesse de lecture/i });
     expect(within(speedControls).getByRole('button', { name: /lent/i })).toHaveAttribute('aria-pressed', 'false');
     expect(within(speedControls).getByRole('button', { name: /moyen/i })).toHaveAttribute('aria-pressed', 'false');
     expect(within(speedControls).getByRole('button', { name: /rapide/i })).toHaveAttribute('aria-pressed', 'true');
 
     await user.click(screen.getByRole('button', { name: /lire 5 mots par 5 mots/i }));
-    expect(spokenTexts.at(-1)).toBe('Emma range dragon cartable rivière.');
+    expect(spokenTexts.at(-1)).toBe('Emma range dragon virgule cartable rivière point');
     expect(spokenRates.at(-1)).toBe(0.72);
     act(() => {
       if (lastUtterance) {
@@ -365,13 +366,17 @@ describe('Lot 4 dictation and poetry UI', () => {
     });
 
     await user.click(screen.getByRole('button', { name: /lire 5 mots par 5 mots/i }));
-    expect(spokenTexts.at(-1)).toBe('Puis elle avance avec calme.');
+    expect(spokenTexts.at(-1)).toBe('Puis elle avance avec calme point');
+
+    fireEvent.change(within(track).getByRole('slider', { name: /déplacer le curseur sur la piste audio/i }), { target: { value: '0' } });
+    await user.click(screen.getByRole('button', { name: /lire par bloc/i }));
+    expect(spokenTexts.at(-1)).toBe('Emma range dragon virgule');
 
     fireEvent.change(within(track).getByRole('slider', { name: /déplacer le curseur sur la piste audio/i }), { target: { value: '2' } });
     expect(within(track).getByText(/mot 3 sur 10/i)).toBeInTheDocument();
     await user.click(within(speedControls).getByRole('button', { name: /moyen/i }));
     await user.click(screen.getByRole('button', { name: /lire le texte à l’élève/i }));
-    expect(spokenTexts.at(-1)).toBe('dragon');
+    expect(spokenTexts.at(-1)).toBe('dragon virgule');
     expect(spokenRates.at(-1)).toBeCloseTo(0.72, 5);
     act(() => {
       if (lastUtterance) {
@@ -435,6 +440,46 @@ describe('Lot 4 dictation and poetry UI', () => {
     expect(within(review).getByText('calm.')).toHaveClass('dictation-word-error-highlight');
   });
 
+  it('congratulates a perfect generated dictation and records it only once while the child corrects the same text', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({
+      response: 'Emma range dragon cartable rivière.',
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /bonjour emma/i })).toBeInTheDocument();
+    });
+
+    const dictationCard = screen.getByRole('heading', { name: /dictée/i }).closest('article');
+    expect(dictationCard).not.toBeNull();
+    await user.click(within(dictationCard!).getByRole('button', { name: /continuer/i }));
+    await user.type(await screen.findByLabelText(/série de mots/i), 'dragon, cartable, rivière');
+    await user.click(screen.getByRole('button', { name: /générer le texte/i }));
+
+    expect(await screen.findByText(/Emma range dragon cartable rivière/i)).toBeInTheDocument();
+    const childAnswer = screen.getByLabelText(/zone d'écriture de l'enfant/i);
+    await user.type(childAnswer, 'Emma range dragon cartable rivière.');
+    await user.click(screen.getByRole('button', { name: /j'ai fini/i }));
+
+    expect(await screen.findByText(/Bravo, tu as fait tout juste !/i)).toBeInTheDocument();
+    await waitFor(() => {
+      const records = JSON.parse(window.localStorage.getItem('devoirs.activityRecords.v1') ?? '[]');
+      expect(records).toHaveLength(1);
+    });
+
+    await user.clear(childAnswer);
+    await user.type(childAnswer, 'Emma range dragn cartable rivière.');
+    await user.click(screen.getByRole('button', { name: /j'ai fini/i }));
+    expect(await screen.findByText(/1 faute réalisée/i)).toBeInTheDocument();
+
+    const records = JSON.parse(window.localStorage.getItem('devoirs.activityRecords.v1') ?? '[]');
+    expect(records).toHaveLength(1);
+    const historyByProfile = JSON.parse(window.localStorage.getItem('devoirs.profileExerciseHistory.v1') ?? '{}');
+    expect(historyByProfile['emma-demo']).toHaveLength(1);
+  });
+
   it('aligns child dictation corrections without shifting all following words after a line break or missing word', async () => {
     const user = userEvent.setup();
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({
@@ -458,7 +503,7 @@ describe('Lot 4 dictation and poetry UI', () => {
 
     await user.type(childAnswer, 'Emma range dragon cartable rivière.\nPuis elle avance avec calme.');
     await user.click(screen.getByRole('button', { name: /j'ai fini/i }));
-    expect(await screen.findByText(/0 faute réalisée/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Bravo, tu as fait tout juste !/i)).toBeInTheDocument();
 
     await user.clear(childAnswer);
     await user.type(childAnswer, 'Emma range cartable rivière.\nPuis elle avance avec calme.');

@@ -204,6 +204,26 @@ describe('Lot 4 dictation and poetry services', () => {
     expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
+  it('rejects default Ollama generations above the normal 65-word maximum', async () => {
+    const longText = Array.from({ length: 78 }, (_, index) => {
+      if (index === 4) return 'dragon';
+      if (index === 14) return 'cartable';
+      return `mot${index}`;
+    }).join(' ');
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(() => Promise.resolve(new Response(JSON.stringify({
+      response: longText,
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } })));
+
+    const result = await generateWordDictationText('emma-demo', {
+      words: ['dragon', 'cartable'],
+      verbTenses: ['present'],
+    });
+
+    expect(result.controlResult.isValid).toBe(false);
+    expect(result.controlResult.checks).toContain('texte trop long : 78 mots (maximum 65)');
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
   it('accepts noun and adjective agreement variants during generated text controls', async () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response(JSON.stringify({
       response: 'Aujourd’hui, Emma colle des petits dragons sur son cartable.',

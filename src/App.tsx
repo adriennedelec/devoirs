@@ -1020,8 +1020,33 @@ function splitTextForDictationWords(text: string): string[] {
   return text.trim().match(/\S+/g) ?? [];
 }
 
+function verbalizeDictationPunctuation(text: string): string {
+  return text
+    .replace(/…/g, ' point de suspension ')
+    .replace(/\./g, ' point ')
+    .replace(/,/g, ' virgule ')
+    .replace(/;/g, ' point-virgule ')
+    .replace(/:/g, ' deux-points ')
+    .replace(/!/g, ' point d’exclamation ')
+    .replace(/\?/g, ' point d’interrogation ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 function buildDictationTextFromWordRange(words: string[], startIndex: number, endIndex: number): string {
-  return words.slice(startIndex, endIndex).join(' ');
+  return verbalizeDictationPunctuation(words.slice(startIndex, endIndex).join(' '));
+}
+
+function getNextLogicalDictationBlockEnd(words: string[], startIndex: number): number {
+  const safeStartIndex = Math.min(Math.max(startIndex, 0), Math.max(words.length - 1, 0));
+  const hardEnd = Math.min(safeStartIndex + 10, words.length);
+  for (let index = safeStartIndex; index < hardEnd; index += 1) {
+    const wordsInBlock = index - safeStartIndex + 1;
+    const word = words[index];
+    if (wordsInBlock >= 3 && /[,;:]/u.test(word)) return index + 1;
+    if (/[.!?…]/u.test(word)) return index + 1;
+  }
+  return hardEnd;
 }
 
 function getDictationWordIndexFromBoundary(words: string[], charIndex: number): number {
@@ -1536,6 +1561,11 @@ function MultiplicationView({
   const finalScore = attemptHistory.reduce((score, record) => score + record.scorePoint, 0);
   const goodAnswerCount = attemptHistory.filter((record) => record.scorePoint === 1).length;
   const activeTable = sessionState.status === 'success' ? sessionState.data.selectedTable : 7;
+  const activeProfileTableHistory = completedTableHistory.filter((record) => {
+    return record.profileId
+      ? record.profileId === dashboard.child.id
+      : record.childName.trim().toLocaleLowerCase('fr-FR') === dashboard.child.firstName.trim().toLocaleLowerCase('fr-FR');
+  });
 
   function getTableFactClass(factor: number) {
     const record = attemptHistory.find((item) => item.rightFactor === factor);
@@ -1648,6 +1678,7 @@ function MultiplicationView({
 
       const completedRecord: CompletedMultiplicationTable = {
         id: `${currentQuestion.table}-${Date.now()}`,
+        profileId: dashboard.child.id,
         childName: dashboard.child.firstName,
         table: currentQuestion.table,
         correctCount,
@@ -1844,11 +1875,11 @@ function MultiplicationView({
                   </tr>
                 </thead>
                 <tbody>
-                  {completedTableHistory.length === 0 ? (
+                  {activeProfileTableHistory.length === 0 ? (
                     <tr>
                       <td colSpan={8}>Termine une table pour remplir ton historique magique ✨</td>
                     </tr>
-                  ) : completedTableHistory.map((record) => (
+                  ) : activeProfileTableHistory.map((record) => (
                     <tr key={record.id}>
                       <td>{record.childName}</td>
                       <td>Table de {record.table}</td>
@@ -1912,6 +1943,7 @@ function DictationView({
   const [dictationPlaybackSpeed, setDictationPlaybackSpeed] = useSessionStorageState<DictationPlaybackSpeed>(`${exerciseDraftKey}.playbackSpeed`, 'fast');
   const [childWordDictationAnswer, setChildWordDictationAnswer] = useSessionStorageState(`${exerciseDraftKey}.childAnswer`, '');
   const [childWordDictationReview, setChildWordDictationReview] = useSessionStorageState<ChildWordDictationReview | null>(`${exerciseDraftKey}.childReview`, null);
+  const [childWordDictationRecordedText, setChildWordDictationRecordedText] = useSessionStorageState(`${exerciseDraftKey}.childRecordedText`, '');
   const [dictationHelpLevel, setDictationHelpLevel] = useSessionStorageState<DictationHelpLevel>(`${exerciseDraftKey}.helpLevel`, 'none');
   const dictationSpeechInstance = useRef<number>(0);
   const dictationPlaybackTimeouts = useRef<number[]>([]);
@@ -2036,6 +2068,7 @@ function DictationView({
     setDictationWordCursor(0);
     setChildWordDictationAnswer('');
     setChildWordDictationReview(null);
+    setChildWordDictationRecordedText('');
     setDictationHelpLevel('none');
 
     if (dictationSpeechInstance.current) {
@@ -2196,7 +2229,7 @@ function DictationView({
       }
 
       setDictationWordCursor(wordIndex);
-      const utterance = new SpeechSynthesisUtterance(dictationWords[wordIndex]);
+      const utterance = new SpeechSynthesisUtterance(verbalizeDictationPunctuation(dictationWords[wordIndex]));
       utterance.lang = 'fr-FR';
       utterance.rate = getDictationPlaybackRate(dictationPlaybackSpeed);
       utterance.pitch = 1;
@@ -2232,23 +2265,34 @@ function DictationView({
     speakDictationWordRange(startIndex, Math.min(startIndex + 5, dictationTotalWords));
   }
 
+  function playNextLogicalDictationBlock() {
+    const startIndex = dictationWordCursor >= dictationTotalWords ? 0 : dictationWordCursor;
+    speakDictationWordRange(startIndex, getNextLogicalDictationBlockEnd(dictationWords, startIndex));
+  }
+
   function handleDictationTrackSeek(nextCursor: number) {
     stopDictationPlayback();
     setDictationWordCursor(Math.min(Math.max(nextCursor, 0), dictationTotalWords));
   }
 
   function finishChildWordDictation() {
-    if (generatedTextState?.status !== 'success' || childWordDictationReview) return;
+    if (generatedTextState?.status !== 'success') return;
 
-    const review = buildChildWordDictationReview(generatedTextState.data.text, childWordDictationAnswer);
-    const totalQuestions = Math.max(splitTextForDictationWords(generatedTextState.data.text).length, 1);
+    const generatedText = generatedTextState.data.text;
+    const review = buildChildWordDictationReview(generatedText, childWordDictationAnswer);
+    const totalQuestions = Math.max(splitTextForDictationWords(generatedText).length, 1);
     const wrongCount = Math.min(review.mistakeCount, totalQuestions);
     const correctCount = Math.max(totalQuestions - wrongCount, 0);
     const starsEarned = calculateRewardStars('dictation', correctCount, wrongCount);
     const isCompleted = wrongCount === 0;
+    const shouldRecordCompletion = childWordDictationRecordedText !== generatedText;
 
     setChildWordDictationReview(review);
     setDictationHelpLevel('none');
+
+    if (!shouldRecordCompletion) return;
+
+    setChildWordDictationRecordedText(generatedText);
     appendActivityRecordToStorage(buildLearningActivityRecord({
       profileId: dashboard.child.id,
       profileName: dashboard.child.firstName,
@@ -2576,6 +2620,13 @@ function DictationView({
                           >
                             ▶️ Lire 5 mots par 5 mots
                           </button>
+                          <button
+                            type="button"
+                            onClick={playNextLogicalDictationBlock}
+                            disabled={isReadingDictation || !isSpeechSynthesisSupported || dictationTotalWords === 0}
+                          >
+                            ▶️ Lire par bloc
+                          </button>
                         </div>
                         {!isSpeechSynthesisSupported ? <p className="feedback-card error">La lecture vocale n’est pas disponible dans ce navigateur.</p> : null}
                       </div>
@@ -2614,7 +2665,11 @@ function DictationView({
                         </div>
                         {childWordDictationReview ? (
                           <div className="dictation-child-result" aria-live="polite">
-                            <strong>{childWordDictationReview.mistakeCount} {childWordDictationReview.mistakeCount > 1 ? 'fautes réalisées' : 'faute réalisée'}</strong>
+                            {childWordDictationReview.mistakeCount === 0 ? (
+                              <strong>Bravo, tu as fait tout juste !</strong>
+                            ) : (
+                              <strong>{childWordDictationReview.mistakeCount} {childWordDictationReview.mistakeCount > 1 ? 'fautes réalisées' : 'faute réalisée'}</strong>
+                            )}
                             <p>Aide niveau 1 colore les lignes à revoir. Aide niveau 2 colore les mots à corriger.</p>
                             {renderChildWordDictationReview()}
                           </div>
