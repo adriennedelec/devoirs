@@ -365,6 +365,50 @@ describe('Lot 4 dictation and poetry UI', () => {
     expect(spokenTexts.at(-1)).toBe('dragon cartable rivière. Puis elle avance avec calme.');
   });
 
+  it('lets the child write the generated dictation without spellcheck and reveals two help levels after completion', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({
+      response: 'Emma range dragon cartable rivière.\nPuis elle avance avec calme.',
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /bonjour emma/i })).toBeInTheDocument();
+    });
+
+    const dictationCard = screen.getByRole('heading', { name: /dictée/i }).closest('article');
+    expect(dictationCard).not.toBeNull();
+    await user.click(within(dictationCard!).getByRole('button', { name: /continuer/i }));
+    await user.type(await screen.findByLabelText(/série de mots/i), 'dragon, cartable, rivière');
+    await user.click(screen.getByRole('button', { name: /générer le texte/i }));
+
+    expect(await screen.findByText(/Emma range dragon cartable rivière/i)).toBeInTheDocument();
+    const childAnswer = screen.getByLabelText(/zone d'écriture de l'enfant/i);
+    expect(childAnswer).toHaveAttribute('spellcheck', 'false');
+    expect(childAnswer).toHaveAttribute('autocomplete', 'off');
+    expect(childAnswer).toHaveAttribute('autocorrect', 'off');
+
+    expect(screen.getByRole('button', { name: /aide niveau 1/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /aide niveau 2/i })).toBeDisabled();
+
+    await user.type(childAnswer, 'Emma range dragn cartable rivière.\nPuis elle avance avec calm.');
+    await user.click(screen.getByRole('button', { name: /j'ai fini/i }));
+
+    expect(await screen.findByText(/2 fautes réalisées/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /aide niveau 1/i })).toBeEnabled();
+    expect(screen.getByRole('button', { name: /aide niveau 2/i })).toBeEnabled();
+
+    await user.click(screen.getByRole('button', { name: /aide niveau 1/i }));
+    const review = screen.getByLabelText(/correction guidée de la dictée/i);
+    expect(within(review).getByText(/Emma range dragn cartable rivière/i).closest('.dictation-line-help')).toHaveClass('line-has-error');
+    expect(within(review).getByText(/Puis elle avance avec calm/i).closest('.dictation-line-help')).toHaveClass('line-has-error');
+
+    await user.click(screen.getByRole('button', { name: /aide niveau 2/i }));
+    expect(within(review).getByText('dragn')).toHaveClass('dictation-word-error-highlight');
+    expect(within(review).getByText('calm.')).toHaveClass('dictation-word-error-highlight');
+  });
+
   it('opens the poetry module from Accueil and validates a simulated recital', async () => {
     const user = userEvent.setup();
     render(<App />);

@@ -933,6 +933,26 @@ function maskPoetryLine(line: string): string {
     .join('');
 }
 
+type ChildWordDictationFeedbackWord = {
+  actual: string;
+  expected: string;
+  hasError: boolean;
+};
+
+type ChildWordDictationFeedbackLine = {
+  actualLine: string;
+  expectedLine: string;
+  hasError: boolean;
+  words: ChildWordDictationFeedbackWord[];
+};
+
+type ChildWordDictationReview = {
+  mistakeCount: number;
+  lines: ChildWordDictationFeedbackLine[];
+};
+
+type DictationHelpLevel = 'none' | 'line' | 'word';
+
 function splitTextForDictationWords(text: string): string[] {
   return text.trim().match(/\S+/g) ?? [];
 }
@@ -952,6 +972,46 @@ function getDictationWordIndexFromBoundary(words: string[], charIndex: number): 
   }
 
   return Math.max(0, words.length - 1);
+}
+
+function normalizeWordDictationAnswerToken(token: string): string {
+  return token.toLocaleLowerCase('fr-FR').replace(/^[^\p{L}\p{M}\p{N}]+|[^\p{L}\p{M}\p{N}]+$/gu, '');
+}
+
+function splitWordDictationLines(text: string): string[] {
+  return text.split(/\r?\n/);
+}
+
+function buildChildWordDictationReview(expectedText: string, answerText: string): ChildWordDictationReview {
+  const expectedLines = splitWordDictationLines(expectedText);
+  const answerLines = splitWordDictationLines(answerText);
+  const lineCount = Math.max(expectedLines.length, answerLines.length, 1);
+  let mistakeCount = 0;
+
+  const lines = Array.from({ length: lineCount }, (_, lineIndex) => {
+    const expectedLine = expectedLines[lineIndex] ?? '';
+    const actualLine = answerLines[lineIndex] ?? '';
+    const expectedWords = splitTextForDictationWords(expectedLine);
+    const actualWords = splitTextForDictationWords(actualLine);
+    const wordCount = Math.max(expectedWords.length, actualWords.length);
+
+    const words = Array.from({ length: wordCount }, (_, wordIndex) => {
+      const expected = expectedWords[wordIndex] ?? '';
+      const actual = actualWords[wordIndex] ?? '';
+      const hasError = normalizeWordDictationAnswerToken(actual) !== normalizeWordDictationAnswerToken(expected);
+      if (hasError) mistakeCount += 1;
+      return { actual, expected, hasError };
+    });
+
+    return {
+      actualLine,
+      expectedLine,
+      hasError: words.some((word) => word.hasError),
+      words,
+    };
+  });
+
+  return { mistakeCount, lines };
 }
 
 function maskDictationText(text: string): string {
@@ -1667,6 +1727,9 @@ function DictationView({
   const [isGeneratedTextHidden, setIsGeneratedTextHidden] = useState(false);
   const [isReadingDictation, setIsReadingDictation] = useState(false);
   const [dictationWordCursor, setDictationWordCursor] = useState(0);
+  const [childWordDictationAnswer, setChildWordDictationAnswer] = useState('');
+  const [childWordDictationReview, setChildWordDictationReview] = useState<ChildWordDictationReview | null>(null);
+  const [dictationHelpLevel, setDictationHelpLevel] = useState<DictationHelpLevel>('none');
   const dictationSpeechInstance = useRef<number>(0);
 
   const dictationWords = useMemo(
@@ -1788,6 +1851,9 @@ function DictationView({
 
     setIsGeneratedTextHidden(false);
     setDictationWordCursor(0);
+    setChildWordDictationAnswer('');
+    setChildWordDictationReview(null);
+    setDictationHelpLevel('none');
 
     if (dictationSpeechInstance.current) {
       dictationSpeechInstance.current += 1;
@@ -1933,6 +1999,38 @@ function DictationView({
   function handleDictationTrackSeek(nextCursor: number) {
     stopDictationPlayback();
     setDictationWordCursor(Math.min(Math.max(nextCursor, 0), dictationTotalWords));
+  }
+
+  function finishChildWordDictation() {
+    if (generatedTextState?.status !== 'success') return;
+    setChildWordDictationReview(buildChildWordDictationReview(generatedTextState.data.text, childWordDictationAnswer));
+    setDictationHelpLevel('none');
+  }
+
+  function renderChildWordDictationReview() {
+    if (!childWordDictationReview) return null;
+
+    return (
+      <div className="dictation-child-review" aria-label="Correction guidée de la dictée">
+        {childWordDictationReview.lines.map((line, lineIndex) => (
+          <p
+            className={`dictation-line-help ${dictationHelpLevel === 'line' && line.hasError ? 'line-has-error' : ''}`}
+            key={`child-dictation-line-${lineIndex}`}
+          >
+            {dictationHelpLevel === 'word'
+              ? line.words.map((word, wordIndex) => (
+                <span
+                  className={word.hasError ? 'dictation-word-error-highlight' : ''}
+                  key={`child-dictation-word-${lineIndex}-${wordIndex}`}
+                >
+                  {word.actual || '∅'}{wordIndex < line.words.length - 1 ? ' ' : ''}
+                </span>
+              ))
+              : (line.actualLine || 'Ligne vide')}
+          </p>
+        ))}
+      </div>
+    );
   }
 
   function toggleGeneratedTextVisibility() {
@@ -2190,6 +2288,44 @@ function DictationView({
                         </div>
                         {!isSpeechSynthesisSupported ? <p className="feedback-card error">La lecture vocale n’est pas disponible dans ce navigateur.</p> : null}
                       </div>
+                      <section className="dictation-child-writing-card" aria-label="Zone de réponse enfant">
+                        <label className="answer-field">
+                          <span>Zone d'écriture de l'enfant</span>
+                          <textarea
+                            autoCapitalize="off"
+                            autoComplete="off"
+                            autoCorrect="off"
+                            className="child-dictation-answer"
+                            onChange={(event) => {
+                              setChildWordDictationAnswer(event.target.value);
+                              setChildWordDictationReview(null);
+                              setDictationHelpLevel('none');
+                            }}
+                            placeholder="Écris ici ce que tu entends…"
+                            rows={6}
+                            spellCheck={false}
+                            value={childWordDictationAnswer}
+                          />
+                        </label>
+                        <div className="dictation-child-actions" role="group" aria-label="Aides de correction enfant">
+                          <button className="primary-action" type="button" onClick={finishChildWordDictation}>
+                            J'ai fini
+                          </button>
+                          <button type="button" onClick={() => setDictationHelpLevel('line')} disabled={!childWordDictationReview}>
+                            Aide niveau 1
+                          </button>
+                          <button type="button" onClick={() => setDictationHelpLevel('word')} disabled={!childWordDictationReview}>
+                            Aide niveau 2
+                          </button>
+                        </div>
+                        {childWordDictationReview ? (
+                          <div className="dictation-child-result" aria-live="polite">
+                            <strong>{childWordDictationReview.mistakeCount} {childWordDictationReview.mistakeCount > 1 ? 'fautes réalisées' : 'faute réalisée'}</strong>
+                            <p>Aide niveau 1 colore les lignes à revoir. Aide niveau 2 colore les mots à corriger.</p>
+                            {renderChildWordDictationReview()}
+                          </div>
+                        ) : null}
+                      </section>
                     <div className={`feedback-card ${generatedTextState.data.controlResult.isValid ? 'success' : 'retry'}`} aria-label="État des contrôles automatiques">
 <p>Contrôles : {generatedTextState.data.controlResult.isValid ? 'bons ✅' : 'mauvais ⚠️'}</p>
                           <div className="dictation-control-checks">
