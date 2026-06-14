@@ -178,7 +178,8 @@ const ACTIVITY_SUBJECTS = ['Mathématiques', 'Français', 'Poésie', 'Lecture'];
 const DEFAULT_HISTORY_PAGE_SIZE = 10;
 
 function getRecentDayLabels(days: number) {
-  const today = new Date('2026-06-12T12:00:00.000Z');
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0, 0, 0);
   return Array.from({ length: days }, (_, index) => {
     const date = new Date(today);
     date.setDate(today.getDate() - (days - 1 - index));
@@ -627,8 +628,11 @@ function mergeProfileIntoDashboard(dashboard: ChildDashboard, profile: ChildProf
     ...dashboard,
     child: {
       ...dashboard.child,
+      id: profile.id,
       firstName: profile.name,
       avatarEmoji: profile.avatarEmoji,
+      stars: profile.stars ?? dashboard.child.stars,
+      streakDays: profile.streakDays ?? dashboard.child.streakDays,
     },
   };
 }
@@ -1276,7 +1280,7 @@ function MultiplicationView({
 
   useEffect(() => {
     let cancelled = false;
-    getMultiplicationSession(dashboard.child.id)
+    getMultiplicationSession(DASHBOARD_CHILD_ID)
       .then((session) => {
         if (!cancelled) setSessionState({ status: 'success', data: session });
       })
@@ -1324,7 +1328,7 @@ function MultiplicationView({
     }
     setAnswerState({ status: 'loading' });
     try {
-      const result = await submitMultiplicationAnswer(dashboard.child.id, { questionId: currentQuestion.id, selectedAnswer });
+      const result = await submitMultiplicationAnswer(DASHBOARD_CHILD_ID, { questionId: currentQuestion.id, selectedAnswer });
       if (!result.isCorrect) {
         setFirstTryByQuestion((current) => ({ ...current, [currentQuestion.id]: false }));
         setAnswerState({ status: 'success', data: result });
@@ -1423,7 +1427,7 @@ function MultiplicationView({
     setTimerStartedAt(null);
     setElapsedSeconds(0);
     try {
-      const session = await getMultiplicationSession(dashboard.child.id, table);
+      const session = await getMultiplicationSession(DASHBOARD_CHILD_ID, table);
       setSessionState({ status: 'success', data: session });
     } catch (error: unknown) {
       setSessionState({ status: 'error', message: error instanceof Error ? error.message : 'Impossible de charger cette table.' });
@@ -2532,7 +2536,7 @@ function ProfileView({
 
   const filteredHistoryRows = useMemo(() => {
     const periodDays = Number(historyFilters.periodDays);
-    const now = new Date('2026-06-12T23:59:00.000Z').getTime();
+    const now = Date.now();
     const minTime = now - periodDays * 24 * 60 * 60 * 1000;
     return historyRows
       .filter((row) => historyFilters.profileId === 'all' || row.profileId === historyFilters.profileId)

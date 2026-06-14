@@ -84,7 +84,7 @@ export function calculateRewardStars(
   settings: RewardSettings = readRewardSettingsFromStorage(),
 ) {
   const exerciseSettings = settings[key];
-  const baseStars = Math.max(0, score) * exerciseSettings.starsPerCompletedExercise;
-  const bonusStars = wrongCount === 0 ? exerciseSettings.perfectBonusStars : 0;
-  return baseStars + bonusStars;
+  const completedExerciseStars = score > 0 ? exerciseSettings.starsPerCompletedExercise : 0;
+  const bonusStars = wrongCount === 0 && score > 0 ? exerciseSettings.perfectBonusStars : 0;
+  return completedExerciseStars + bonusStars;
 }

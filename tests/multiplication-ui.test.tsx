@@ -92,7 +92,7 @@ describe('Lot 3 multiplication module UI', () => {
       totalQuestions: 9,
       correctCount: 9,
       wrongCount: 0,
-      starsEarned: 9,
+      starsEarned: 1,
       details: {
         table: 7,
       },
@@ -107,6 +107,83 @@ describe('Lot 3 multiplication module UI', () => {
       expect(within(reopenedHistory).getByText('Emma')).toBeInTheDocument();
       expect(within(reopenedHistory).getByText('Table de 7')).toBeInTheDocument();
     });
+  });
+
+  it('enregistre une table terminée sur le profil actif Enora et rafraîchit les données du Profil', async () => {
+    const user = userEvent.setup();
+    window.localStorage.setItem('devoirs.childProfiles.v1', JSON.stringify([
+      {
+        id: 'enora-demo',
+        name: 'Enora',
+        avatarEmoji: '👧',
+        avatarPhotoUrl: '',
+        profileColor: '#20B486',
+        age: 9,
+        role: 'eleve',
+        schoolLevel: 'CM1',
+        stars: 0,
+        badges: 0,
+        streakDays: 0,
+      },
+      {
+        id: 'louane-demo',
+        name: 'Louane',
+        avatarEmoji: '👧',
+        avatarPhotoUrl: '',
+        profileColor: '#F25CA2',
+        age: 7,
+        role: 'eleve',
+        schoolLevel: 'CE1',
+        stars: 0,
+        badges: 0,
+        streakDays: 0,
+      },
+    ]));
+    window.localStorage.setItem('devoirs.activeProfileId.v1', 'enora-demo');
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /bonjour enora/i })).toBeInTheDocument();
+    });
+
+    const navigation = screen.getByRole('navigation', { name: /navigation enfant/i });
+    await user.click(within(navigation).getByRole('button', { name: /tables/i }));
+
+    const correctAnswers = ['56', '42', '63', '28', '49', '14', '35', '21', '70'];
+    for (let index = 0; index < correctAnswers.length; index += 1) {
+      await waitFor(() => {
+        expect(screen.getByText(new RegExp(`Question ${index + 1} sur 9`, 'i'))).toBeInTheDocument();
+      });
+      await user.click(screen.getByRole('button', { name: correctAnswers[index] }));
+    }
+
+    await waitFor(() => {
+      expect(screen.getByText(/score : 9 \/ 9/i)).toBeInTheDocument();
+    });
+
+    const storedActivities = JSON.parse(window.localStorage.getItem('devoirs.activityRecords.v1') ?? '[]');
+    expect(storedActivities).toHaveLength(1);
+    expect(storedActivities[0]).toMatchObject({
+      profileId: 'enora-demo',
+      profileName: 'Enora',
+      exerciseLabel: 'Table de 7',
+      starsEarned: 1,
+    });
+
+    await user.click(within(navigation).getByRole('button', { name: /profil/i }));
+
+    const overview = await screen.findByRole('region', { name: /aperçu des activités/i });
+    expect(within(overview).getByLabelText(/Enora .*1 étoiles?/i)).toBeInTheDocument();
+    expect(within(overview).getByLabelText(/Enora .*1 minutes?/i)).toBeInTheDocument();
+    expect(within(overview).queryByLabelText(/Louane .*1 étoiles?/i)).not.toBeInTheDocument();
+
+    const history = screen.getByRole('region', { name: /historique détaillé des activités/i });
+    const table = within(history).getByRole('table', { name: /activités famille/i });
+    const row = within(table).getByText('Table de 7').closest('tr');
+    expect(row).not.toBeNull();
+    expect(within(row!).getByText('Enora')).toBeInTheDocument();
+    expect(within(row!).queryByText('Louane')).not.toBeInTheDocument();
   });
 
   it('keeps the sidebar fixed and lets multiplication use the full remaining width', () => {
