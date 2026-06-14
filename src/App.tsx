@@ -2238,9 +2238,43 @@ function DictationView({
   }
 
   function finishChildWordDictation() {
-    if (generatedTextState?.status !== 'success') return;
-    setChildWordDictationReview(buildChildWordDictationReview(generatedTextState.data.text, childWordDictationAnswer));
+    if (generatedTextState?.status !== 'success' || childWordDictationReview) return;
+
+    const review = buildChildWordDictationReview(generatedTextState.data.text, childWordDictationAnswer);
+    const totalQuestions = Math.max(splitTextForDictationWords(generatedTextState.data.text).length, 1);
+    const wrongCount = Math.min(review.mistakeCount, totalQuestions);
+    const correctCount = Math.max(totalQuestions - wrongCount, 0);
+    const starsEarned = calculateRewardStars('dictation', correctCount, wrongCount);
+    const isCompleted = wrongCount === 0;
+
+    setChildWordDictationReview(review);
     setDictationHelpLevel('none');
+    appendActivityRecordToStorage(buildLearningActivityRecord({
+      profileId: dashboard.child.id,
+      profileName: dashboard.child.firstName,
+      module: 'dictation',
+      moduleLabel: 'Dictée',
+      exerciseLabel: 'Dictée de mots',
+      score: correctCount,
+      totalQuestions,
+      correctCount,
+      wrongCount,
+      starsEarned,
+      status: isCompleted ? 'completed' : 'partial',
+      details: {
+        mode: 'word_dictation',
+        generatedTitle: generatedTextState.data.title,
+        mistakeCount: review.mistakeCount,
+      },
+    }));
+    onRecordExercise({
+      module: 'dictation',
+      moduleLabel: 'Dictée',
+      exercise: 'Dictée de mots',
+      resultLabel: `${correctCount}/${totalQuestions}`,
+      status: isCompleted ? 'success' : 'partial',
+      details: `${review.mistakeCount} faute${review.mistakeCount > 1 ? 's' : ''}`,
+    });
   }
 
   function renderChildWordDictationReview() {

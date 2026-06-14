@@ -1,6 +1,6 @@
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import App from '../src/App';
 
 const storedActivities = [
@@ -119,6 +119,64 @@ describe('Profil et modules branchés sur la base activité', () => {
         score: 1,
         totalQuestions: 1,
         starsEarned: expect.any(Number),
+      });
+    });
+  });
+
+  it('enregistre une dictée de mots terminée dans l’historique et les statistiques du profil actif Enora', async () => {
+    window.localStorage.setItem('devoirs.childProfiles.v1', JSON.stringify([
+      {
+        id: 'enora-custom',
+        name: 'Enora',
+        avatarEmoji: '👧',
+        avatarPhotoUrl: '',
+        age: 7,
+        role: 'eleve',
+        schoolLevel: 'CE1',
+        profileColor: '#F25CA2',
+      },
+    ]));
+    window.localStorage.setItem('devoirs.activeProfileId.v1', 'enora-custom');
+
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({
+      response: 'Enora range dragon cartable rivière. Puis elle avance avec calme.',
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(await screen.findByRole('button', { name: /dictée/i }));
+    await user.type(await screen.findByLabelText(/série de mots/i), 'dragon, cartable, rivière');
+    await user.click(screen.getByRole('button', { name: /générer le texte/i }));
+    await screen.findByText(/Enora range dragon cartable rivière/i);
+
+    await user.type(screen.getByLabelText(/zone d'écriture de l'enfant/i), 'Enora range dragon cartable rivière. Puis elle avance avec calme.');
+    await user.click(screen.getByRole('button', { name: /j'ai fini/i }));
+
+    await waitFor(() => {
+      const records = JSON.parse(window.localStorage.getItem('devoirs.activityRecords.v1') ?? '[]');
+      expect(records).toHaveLength(1);
+      expect(records[0]).toMatchObject({
+        profileId: 'enora-custom',
+        profileName: 'Enora',
+        module: 'dictation',
+        moduleLabel: 'Dictée',
+        exerciseLabel: 'Dictée de mots',
+        status: 'completed',
+        score: 10,
+        totalQuestions: 10,
+      });
+    });
+
+    await waitFor(() => {
+      const historyByProfile = JSON.parse(window.localStorage.getItem('devoirs.profileExerciseHistory.v1') ?? '{}');
+      expect(historyByProfile['enora-custom']).toHaveLength(1);
+      expect(historyByProfile['enora-custom'][0]).toMatchObject({
+        module: 'dictation',
+        moduleLabel: 'Dictée',
+        exercise: 'Dictée de mots',
+        resultLabel: '10/10',
+        status: 'success',
       });
     });
   });
