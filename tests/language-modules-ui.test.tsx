@@ -291,7 +291,8 @@ describe('Lot 4 dictation and poetry UI', () => {
   it('adds a word-by-word audio track with full-text playback, five-word playback, and movable cursor', async () => {
     const user = userEvent.setup();
     const spokenTexts: string[] = [];
-    let lastUtterance: SpeechSynthesisUtterance & { onend?: () => void } | null = null;
+    const spokenRates: number[] = [];
+    let lastUtterance: { text: string; onend?: () => void } | null = null;
 
     class SpeechSynthesisUtteranceMock {
       text: string;
@@ -317,6 +318,7 @@ describe('Lot 4 dictation and poetry UI', () => {
         speak: vi.fn((utterance: SpeechSynthesisUtterance & { onend?: () => void }) => {
           lastUtterance = utterance;
           spokenTexts.push(utterance.text);
+          spokenRates.push(utterance.rate);
         }),
       },
     });
@@ -344,9 +346,14 @@ describe('Lot 4 dictation and poetry UI', () => {
     expect(within(track).getByRole('slider', { name: /déplacer le curseur sur la piste audio/i })).toHaveValue('0');
     expect(screen.getByRole('button', { name: /lire le texte à l’élève/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /lire 5 mots par 5 mots/i })).toBeInTheDocument();
+    const speedControls = screen.getByRole('group', { name: /vitesse de lecture/i });
+    expect(within(speedControls).getByRole('button', { name: /lent/i })).toHaveAttribute('aria-pressed', 'false');
+    expect(within(speedControls).getByRole('button', { name: /moyen/i })).toHaveAttribute('aria-pressed', 'false');
+    expect(within(speedControls).getByRole('button', { name: /rapide/i })).toHaveAttribute('aria-pressed', 'true');
 
     await user.click(screen.getByRole('button', { name: /lire 5 mots par 5 mots/i }));
     expect(spokenTexts.at(-1)).toBe('Emma range dragon cartable rivière.');
+    expect(spokenRates.at(-1)).toBe(0.72);
     act(() => {
       if (lastUtterance) {
         lastUtterance.onend?.();
@@ -361,8 +368,14 @@ describe('Lot 4 dictation and poetry UI', () => {
 
     fireEvent.change(within(track).getByRole('slider', { name: /déplacer le curseur sur la piste audio/i }), { target: { value: '2' } });
     expect(within(track).getByText(/mot 3 sur 10/i)).toBeInTheDocument();
+    await user.click(within(speedControls).getByRole('button', { name: /moyen/i }));
     await user.click(screen.getByRole('button', { name: /lire le texte à l’élève/i }));
     expect(spokenTexts.at(-1)).toBe('dragon cartable rivière. Puis elle avance avec calme.');
+    expect(spokenRates.at(-1)).toBeCloseTo(0.24, 5);
+
+    await user.click(within(speedControls).getByRole('button', { name: /lent/i }));
+    await user.click(screen.getByRole('button', { name: /lire le texte à l’élève/i }));
+    expect(spokenRates.at(-1)).toBeCloseTo(0.12, 5);
   });
 
   it('lets the child write the generated dictation without spellcheck and reveals two help levels after completion', async () => {
@@ -388,11 +401,13 @@ describe('Lot 4 dictation and poetry UI', () => {
     expect(childAnswer).toHaveAttribute('spellcheck', 'false');
     expect(childAnswer).toHaveAttribute('autocomplete', 'off');
     expect(childAnswer).toHaveAttribute('autocorrect', 'off');
+    expect(screen.getByText(/0 mot écrit/i)).toBeInTheDocument();
 
     expect(screen.getByRole('button', { name: /aide niveau 1/i })).toBeDisabled();
     expect(screen.getByRole('button', { name: /aide niveau 2/i })).toBeDisabled();
 
     await user.type(childAnswer, 'Emma range dragn cartable rivière.\nPuis elle avance avec calm.');
+    expect(screen.getByText(/10 mots écrits/i)).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /j'ai fini/i }));
 
     expect(await screen.findByText(/2 fautes réalisées/i)).toBeInTheDocument();

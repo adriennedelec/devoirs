@@ -994,6 +994,17 @@ type ChildWordDictationReview = {
 };
 
 type DictationHelpLevel = 'none' | 'line' | 'word';
+type DictationPlaybackSpeed = 'slow' | 'medium' | 'fast';
+
+const DICTATION_PLAYBACK_SPEEDS: Array<{ value: DictationPlaybackSpeed; label: string; rate: number; helper: string }> = [
+  { value: 'slow', label: 'Lent', rate: 0.12, helper: '6× plus lent' },
+  { value: 'medium', label: 'Moyen', rate: 0.24, helper: '3× plus lent' },
+  { value: 'fast', label: 'Rapide', rate: 0.72, helper: 'vitesse actuelle' },
+];
+
+function getDictationPlaybackRate(speed: DictationPlaybackSpeed): number {
+  return DICTATION_PLAYBACK_SPEEDS.find((option) => option.value === speed)?.rate ?? 0.72;
+}
 
 function splitTextForDictationWords(text: string): string[] {
   return text.trim().match(/\S+/g) ?? [];
@@ -1790,6 +1801,7 @@ function DictationView({
   const [isGeneratedTextHidden, setIsGeneratedTextHidden] = useState(false);
   const [isReadingDictation, setIsReadingDictation] = useState(false);
   const [dictationWordCursor, setDictationWordCursor] = useSessionStorageState(`${exerciseDraftKey}.wordCursor`, 0);
+  const [dictationPlaybackSpeed, setDictationPlaybackSpeed] = useSessionStorageState<DictationPlaybackSpeed>(`${exerciseDraftKey}.playbackSpeed`, 'fast');
   const [childWordDictationAnswer, setChildWordDictationAnswer] = useSessionStorageState(`${exerciseDraftKey}.childAnswer`, '');
   const [childWordDictationReview, setChildWordDictationReview] = useSessionStorageState<ChildWordDictationReview | null>(`${exerciseDraftKey}.childReview`, null);
   const [dictationHelpLevel, setDictationHelpLevel] = useSessionStorageState<DictationHelpLevel>(`${exerciseDraftKey}.helpLevel`, 'none');
@@ -1800,9 +1812,8 @@ function DictationView({
     [generatedTextState],
   );
   const dictationTotalWords = dictationWords.length;
-  const dictationCursorPercent = dictationTotalWords > 0
-    ? (Math.min(dictationWordCursor, dictationTotalWords) / dictationTotalWords) * 100
-    : 0;
+  const dictationCursorPercent = dictationTotalWords === 0 ? 0 : Math.min(100, (Math.min(dictationWordCursor, dictationTotalWords) / dictationTotalWords) * 100);
+  const childWordDictationWordCount = splitTextForDictationWords(childWordDictationAnswer).length;
   const isSpeechSynthesisSupported = typeof window !== 'undefined' && 'speechSynthesis' in window;
 
   const preparedWordSeries = useMemo(
@@ -2026,7 +2037,7 @@ function DictationView({
 
     const utterance = new SpeechSynthesisUtterance(textToRead);
     utterance.lang = 'fr-FR';
-    utterance.rate = 0.72;
+    utterance.rate = getDictationPlaybackRate(dictationPlaybackSpeed);
     utterance.pitch = 1;
     utterance.volume = 1;
     utterance.onboundary = (event) => {
@@ -2325,6 +2336,27 @@ function DictationView({
                             value={dictationWordCursor}
                           />
                         </div>
+                        <div className="dictation-speed-controls" role="group" aria-label="Vitesse de lecture">
+                          <strong>Vitesse de lecture</strong>
+                          <div>
+                            {DICTATION_PLAYBACK_SPEEDS.map((option) => (
+                              <button
+                                aria-label={option.label}
+                                aria-pressed={dictationPlaybackSpeed === option.value}
+                                className={dictationPlaybackSpeed === option.value ? 'active' : ''}
+                                key={option.value}
+                                onClick={() => {
+                                  stopDictationPlayback();
+                                  setDictationPlaybackSpeed(option.value);
+                                }}
+                                type="button"
+                              >
+                                <span>{option.label}</span>
+                                <small>{option.helper}</small>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
                         <div className="dictation-actions" role="group" aria-label="Contrôles de dictée">
                           <button
                             type="button"
@@ -2369,6 +2401,9 @@ function DictationView({
                             spellCheck={false}
                             value={childWordDictationAnswer}
                           />
+                          <small className="child-dictation-word-counter" aria-live="polite">
+                            {childWordDictationWordCount} {childWordDictationWordCount > 1 ? 'mots écrits' : 'mot écrit'}
+                          </small>
                         </label>
                         <div className="dictation-child-actions" role="group" aria-label="Aides de correction enfant">
                           <button className="primary-action" type="button" onClick={finishChildWordDictation}>
