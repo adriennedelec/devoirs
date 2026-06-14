@@ -52,6 +52,36 @@ describe('Lot 3 multiplication module UI', () => {
     expect(screen.queryByRole('button', { name: /question suivante/i })).not.toBeInTheDocument();
   });
 
+  it('garde temporairement une table en cours quand on change de menu puis revient', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /bonjour emma/i })).toBeInTheDocument();
+    });
+
+    const navigation = screen.getByRole('navigation', { name: /navigation enfant/i });
+    await user.click(within(navigation).getByRole('button', { name: /tables/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /7 × 8 = \?/i })).toBeInTheDocument();
+    });
+    await user.click(screen.getByRole('button', { name: '56' }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/question 2 sur 9/i)).toBeInTheDocument();
+    });
+    expect(screen.getByRole('heading', { name: /7 × 6 = \?/i })).toBeInTheDocument();
+
+    await user.click(within(navigation).getByRole('button', { name: /profil/i }));
+    await screen.findByRole('heading', { name: /famille nedelec/i });
+    await user.click(within(navigation).getByRole('button', { name: /tables/i }));
+
+    expect(await screen.findByText(/question 2 sur 9/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /7 × 6 = \?/i })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: /7 × 8 = \?/i })).not.toBeInTheDocument();
+  });
+
   it('persists the multiplication history with the child name when leaving and reopening Tables', async () => {
     const user = userEvent.setup();
     render(<App />);

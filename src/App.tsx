@@ -629,6 +629,47 @@ function writeActiveProfileIdToStorage(profileId: string) {
   }
 }
 
+function readSessionStateFromStorage<T>(key: string, fallback: T): T {
+  if (typeof window === 'undefined') return fallback;
+
+  try {
+    const stored = window.sessionStorage.getItem(key);
+    return stored ? JSON.parse(stored) as T : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function writeSessionStateToStorage<T>(key: string, value: T) {
+  if (typeof window === 'undefined') return;
+
+  try {
+    window.sessionStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    // Temporary exercise drafts are best-effort only.
+  }
+}
+
+function removeSessionStateFromStorage(key: string) {
+  if (typeof window === 'undefined') return;
+
+  try {
+    window.sessionStorage.removeItem(key);
+  } catch {
+    // Ignore restrictive browser modes.
+  }
+}
+
+function useSessionStorageState<T>(key: string, fallback: T) {
+  const [value, setValue] = useState<T>(() => readSessionStateFromStorage(key, fallback));
+
+  useEffect(() => {
+    writeSessionStateToStorage(key, value);
+  }, [key, value]);
+
+  return [value, setValue] as const;
+}
+
 function mergeProfileIntoDashboard(dashboard: ChildDashboard, profile: ChildProfileConfig): ChildDashboard {
   return {
     ...dashboard,
@@ -1222,8 +1263,9 @@ function ReadingView({
   }) => void;
 }) {
   const [sessionState, setSessionState] = useState<ApiState<ReadingSession>>({ status: 'loading' });
-  const [answers, setAnswers] = useState<Record<string, string>>({});
-  const [resultState, setResultState] = useState<ApiState<ReadingAnswerResult> | null>(null);
+  const exerciseDraftKey = `devoirs.exerciseDraft.${dashboard.child.id}.reading`;
+  const [answers, setAnswers] = useSessionStorageState<Record<string, string>>(`${exerciseDraftKey}.answers`, {});
+  const [resultState, setResultState] = useSessionStorageState<ApiState<ReadingAnswerResult> | null>(`${exerciseDraftKey}.resultState`, null);
 
   useEffect(() => {
     let cancelled = false;
@@ -1342,13 +1384,14 @@ function MultiplicationView({
   }) => void;
 }) {
   const [sessionState, setSessionState] = useState<ApiState<MultiplicationSession>>({ status: 'loading' });
-  const [questionIndex, setQuestionIndex] = useState(0);
+  const exerciseDraftKey = `devoirs.exerciseDraft.${dashboard.child.id}.multiplication`;
+  const [questionIndex, setQuestionIndex] = useSessionStorageState(`${exerciseDraftKey}.questionIndex`, 0);
   const [answerState, setAnswerState] = useState<ApiState<MultiplicationAnswerResult> | null>(null);
-  const [firstTryByQuestion, setFirstTryByQuestion] = useState<Record<string, boolean>>({});
-  const [attemptHistory, setAttemptHistory] = useState<MultiplicationAttemptRecord[]>([]);
+  const [firstTryByQuestion, setFirstTryByQuestion] = useSessionStorageState<Record<string, boolean>>(`${exerciseDraftKey}.firstTryByQuestion`, {});
+  const [attemptHistory, setAttemptHistory] = useSessionStorageState<MultiplicationAttemptRecord[]>(`${exerciseDraftKey}.attemptHistory`, []);
   const [completedTableHistory, setCompletedTableHistory] = useState<CompletedMultiplicationTable[]>(() => readMultiplicationTableHistoryFromStorage());
-  const [timerStartedAt, setTimerStartedAt] = useState<number | null>(null);
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [timerStartedAt, setTimerStartedAt] = useSessionStorageState<number | null>(`${exerciseDraftKey}.timerStartedAt`, null);
+  const [elapsedSeconds, setElapsedSeconds] = useSessionStorageState(`${exerciseDraftKey}.elapsedSeconds`, 0);
 
   useEffect(() => {
     let cancelled = false;
@@ -1399,6 +1442,23 @@ function MultiplicationView({
       setElapsedSeconds(0);
     }
     setAnswerState({ status: 'loading' });
+    const selectedAnswerIsCorrect = selectedAnswer === currentQuestion.leftFactor * currentQuestion.rightFactor;
+    const isIntermediateCorrectAnswer = selectedAnswerIsCorrect && questionIndex < (sessionState.status === 'success' ? sessionState.data.totalQuestions - 1 : 0);
+    if (isIntermediateCorrectAnswer) {
+      const scoredFirstTry = firstTryByQuestion[currentQuestion.id] !== false;
+      const optimisticAttemptHistory = [
+        ...attemptHistory.filter((record) => record.questionId !== currentQuestion.id),
+        {
+          questionId: currentQuestion.id,
+          leftFactor: currentQuestion.leftFactor,
+          rightFactor: currentQuestion.rightFactor,
+          correctAnswer: selectedAnswer,
+          scorePoint: scoredFirstTry ? 1 : 0,
+        },
+      ];
+      writeSessionStateToStorage(`${exerciseDraftKey}.attemptHistory`, optimisticAttemptHistory);
+      writeSessionStateToStorage(`${exerciseDraftKey}.questionIndex`, questionIndex + 1);
+    }
     try {
       const result = await submitMultiplicationAnswer(DASHBOARD_CHILD_ID, { questionId: currentQuestion.id, selectedAnswer });
       if (!result.isCorrect) {
@@ -1423,6 +1483,7 @@ function MultiplicationView({
 
       if (!result.sessionSummary) {
         setAnswerState({ status: 'success', data: result });
+        writeSessionStateToStorage(`${exerciseDraftKey}.questionIndex`, questionIndex + 1);
         window.setTimeout(() => {
           setAnswerState(null);
           setQuestionIndex((index) => index + 1);
@@ -1711,26 +1772,27 @@ function DictationView({
   }) => void;
 }) {
   const [sessionState, setSessionState] = useState<ApiState<DictationSession>>({ status: 'loading' });
-  const [dictationMode, setDictationMode] = useState<DictationMode>('word_dictation');
-  const [wordSeries, setWordSeries] = useState('');
-  const [verbSeries, setVerbSeries] = useState('');
-  const [ocrState, setOcrState] = useState<ApiState<WordDictationOcrResult> | null>(null);
-  const [selectedVerbTenses, setSelectedVerbTenses] = useState<VerbTense[]>([]);
-  const [confirmedUnknownWords, setConfirmedUnknownWords] = useState<string[]>([]);
-  const [pendingUnknownWords, setPendingUnknownWords] = useState<string[]>([]);
-  const [generatedTextState, setGeneratedTextState] = useState<ApiState<WordDictationTextResult> | null>(null);
-  const [answerText, setAnswerText] = useState('');
-  const [answerState, setAnswerState] = useState<ApiState<DictationAnswerResult> | null>(null);
-  const [dictationCorrectionMode, setDictationCorrectionMode] = useState<DictationCorrectionMode>('off');
+  const exerciseDraftKey = `devoirs.exerciseDraft.${dashboard.child.id}.dictation`;
+  const [dictationMode, setDictationMode] = useSessionStorageState<DictationMode>(`${exerciseDraftKey}.dictationMode`, 'word_dictation');
+  const [wordSeries, setWordSeries] = useSessionStorageState(`${exerciseDraftKey}.wordSeries`, '');
+  const [verbSeries, setVerbSeries] = useSessionStorageState(`${exerciseDraftKey}.verbSeries`, '');
+  const [ocrState, setOcrState] = useSessionStorageState<ApiState<WordDictationOcrResult> | null>(`${exerciseDraftKey}.ocrState`, null);
+  const [selectedVerbTenses, setSelectedVerbTenses] = useSessionStorageState<VerbTense[]>(`${exerciseDraftKey}.selectedVerbTenses`, []);
+  const [confirmedUnknownWords, setConfirmedUnknownWords] = useSessionStorageState<string[]>(`${exerciseDraftKey}.confirmedUnknownWords`, []);
+  const [pendingUnknownWords, setPendingUnknownWords] = useSessionStorageState<string[]>(`${exerciseDraftKey}.pendingUnknownWords`, []);
+  const [generatedTextState, setGeneratedTextState] = useSessionStorageState<ApiState<WordDictationTextResult> | null>(`${exerciseDraftKey}.generatedTextState`, null);
+  const [answerText, setAnswerText] = useSessionStorageState(`${exerciseDraftKey}.answerText`, '');
+  const [answerState, setAnswerState] = useSessionStorageState<ApiState<DictationAnswerResult> | null>(`${exerciseDraftKey}.answerState`, null);
+  const [dictationCorrectionMode, setDictationCorrectionMode] = useSessionStorageState<DictationCorrectionMode>(`${exerciseDraftKey}.correctionMode`, 'off');
   const [llamaPrompt, setLlamaPrompt] = useState(() => getSavedLlamaDictationPrompt() ?? getDefaultOllamaDictationPromptTemplate());
   const [isLlamaPromptAuto, setIsLlamaPromptAuto] = useState(() => getSavedLlamaDictationPrompt() === null);
   const [isLlamaPromptSaved, setIsLlamaPromptSaved] = useState(false);
   const [isGeneratedTextHidden, setIsGeneratedTextHidden] = useState(false);
   const [isReadingDictation, setIsReadingDictation] = useState(false);
-  const [dictationWordCursor, setDictationWordCursor] = useState(0);
-  const [childWordDictationAnswer, setChildWordDictationAnswer] = useState('');
-  const [childWordDictationReview, setChildWordDictationReview] = useState<ChildWordDictationReview | null>(null);
-  const [dictationHelpLevel, setDictationHelpLevel] = useState<DictationHelpLevel>('none');
+  const [dictationWordCursor, setDictationWordCursor] = useSessionStorageState(`${exerciseDraftKey}.wordCursor`, 0);
+  const [childWordDictationAnswer, setChildWordDictationAnswer] = useSessionStorageState(`${exerciseDraftKey}.childAnswer`, '');
+  const [childWordDictationReview, setChildWordDictationReview] = useSessionStorageState<ChildWordDictationReview | null>(`${exerciseDraftKey}.childReview`, null);
+  const [dictationHelpLevel, setDictationHelpLevel] = useSessionStorageState<DictationHelpLevel>(`${exerciseDraftKey}.helpLevel`, 'none');
   const dictationSpeechInstance = useRef<number>(0);
 
   const dictationWords = useMemo(
