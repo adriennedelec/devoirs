@@ -519,6 +519,55 @@ describe('Lot 4 dictation and poetry UI', () => {
     expect(within(review).getByText('∅')).toHaveClass('dictation-word-error-highlight');
   });
 
+  it('transcribes and analyzes the oral reading automatically when browser speech recognition returns text', async () => {
+    const user = userEvent.setup();
+    let recognitionInstance: any = null;
+    class SpeechRecognitionMock {
+      lang = '';
+      interimResults = false;
+      continuous = false;
+      onresult?: (event: unknown) => void;
+      onend?: () => void;
+      start = vi.fn();
+      stop = vi.fn(() => this.onend?.());
+      constructor() {
+        recognitionInstance = this;
+      }
+    }
+    vi.stubGlobal('webkitSpeechRecognition', SpeechRecognitionMock);
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /bonjour emma/i })).toBeInTheDocument();
+    });
+    const readingCard = screen.getByRole('heading', { name: /lecture/i }).closest('article');
+    expect(readingCard).not.toBeNull();
+    await user.click(within(readingCard!).getByRole('button', { name: /continuer/i }));
+
+    await user.click(await screen.findByRole('button', { name: /démarrer l’enregistrement/i }));
+    expect(screen.getByText(/écoute en cours/i)).toBeInTheDocument();
+    expect(recognitionInstance?.start).toHaveBeenCalled();
+
+    act(() => {
+      recognitionInstance?.onresult?.({
+        results: [
+          [{ transcript: 'Le dragon vit dans la bibliothèque. Emma prête un livre au dragon. Il devient plus gentil.' }],
+        ],
+      });
+    });
+
+    expect((screen.getByLabelText(/transcription de l’enregistrement/i) as HTMLTextAreaElement).value).toContain('Le dragon vit dans la bibliothèque');
+    await user.click(screen.getByRole('button', { name: /arrêter et analyser/i }));
+
+    const analysis = await screen.findByRole('heading', { name: /analyse de l’enregistrement/i });
+    expect(analysis).toBeInTheDocument();
+    const analysisRegion = analysis.closest('section');
+    expect(analysisRegion).not.toBeNull();
+    expect(within(analysisRegion!).getAllByText(/mots par minute/i).length).toBeGreaterThan(0);
+    expect(within(analysisRegion!).getByText(/erreurs détectées/i)).toBeInTheDocument();
+  });
+
   it('builds the Lecture page around AI story generation, recording timing, transcription and statistics', async () => {
     const user = userEvent.setup();
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({

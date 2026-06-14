@@ -1562,9 +1562,12 @@ function ReadingView({
   const [isReadingRecording, setIsReadingRecording] = useState(false);
   const [recordingStartedAt, setRecordingStartedAt] = useState<number | null>(null);
   const [recordingElapsedSeconds, setRecordingElapsedSeconds] = useSessionStorageState(`${exerciseDraftKey}.recordingElapsedSeconds`, 0);
-  const [recordedTranscript, setRecordedTranscript] = useSessionStorageState(`${exerciseDraftKey}.recordedTranscript`, '');
+  const [recordedTranscript, setRecordedTranscriptState] = useSessionStorageState(`${exerciseDraftKey}.recordedTranscript`, '');
   const [recordingAnalysis, setRecordingAnalysis] = useSessionStorageState<ReadingRecordingAnalysis | null>(`${exerciseDraftKey}.recordingAnalysis`, null);
+  const [recordingStatusMessage, setRecordingStatusMessage] = useState('');
   const recordingIntervalRef = useRef<number | null>(null);
+  const readingRecognitionRef = useRef<{ start: () => void; stop: () => void; abort?: () => void; onresult?: ((event: unknown) => void) | null; onerror?: ((event: unknown) => void) | null; onend?: (() => void) | null } | null>(null);
+  const recordedTranscriptRef = useRef(recordedTranscript);
 
   const readingPromptPreview = useMemo(
     () => buildReadingPromptFromTemplate(readingPrompt.trim() || DEFAULT_READING_PROMPT_TEMPLATE, generationFields),
@@ -1593,8 +1596,84 @@ function ReadingView({
   useEffect(() => {
     return () => {
       if (recordingIntervalRef.current !== null) window.clearInterval(recordingIntervalRef.current);
+      readingRecognitionRef.current?.abort?.();
+      readingRecognitionRef.current = null;
     };
   }, []);
+
+  useEffect(() => {
+    recordedTranscriptRef.current = recordedTranscript;
+  }, [recordedTranscript]);
+
+  function setRecordedTranscript(value: string) {
+    recordedTranscriptRef.current = value;
+    setRecordedTranscriptState(value);
+  }
+
+  function getReadingSpeechRecognitionConstructor() {
+    if (typeof window === 'undefined') return null;
+    const speechWindow = window as unknown as {
+      SpeechRecognition?: new () => {
+        lang: string;
+        continuous: boolean;
+        interimResults: boolean;
+        start: () => void;
+        stop: () => void;
+        abort?: () => void;
+        onresult?: ((event: unknown) => void) | null;
+        onerror?: ((event: unknown) => void) | null;
+        onend?: (() => void) | null;
+      };
+      webkitSpeechRecognition?: new () => {
+        lang: string;
+        continuous: boolean;
+        interimResults: boolean;
+        start: () => void;
+        stop: () => void;
+        abort?: () => void;
+        onresult?: ((event: unknown) => void) | null;
+        onerror?: ((event: unknown) => void) | null;
+        onend?: (() => void) | null;
+      };
+    };
+    return speechWindow.SpeechRecognition ?? speechWindow.webkitSpeechRecognition ?? null;
+  }
+
+  function readSpeechRecognitionTranscript(event: unknown) {
+    const results = (event as { results?: ArrayLike<ArrayLike<{ transcript?: string }>> }).results;
+    if (!results) return '';
+    return Array.from(results)
+      .map((result) => Array.from(result).map((item) => item.transcript ?? '').join(' '))
+      .join(' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function stopReadingTimer() {
+    const elapsed = recordingStartedAt ? Math.max(1, Math.floor((Date.now() - recordingStartedAt) / 1000)) : Math.max(1, recordingElapsedSeconds || 1);
+    if (recordingIntervalRef.current !== null) {
+      window.clearInterval(recordingIntervalRef.current);
+      recordingIntervalRef.current = null;
+    }
+    setRecordingElapsedSeconds(elapsed);
+    setIsReadingRecording(false);
+    setRecordingStartedAt(null);
+    return elapsed;
+  }
+
+  function stopSpeechRecognition() {
+    const recognition = readingRecognitionRef.current;
+    if (!recognition) return;
+    recognition.onend = null;
+    recognition.onerror = null;
+    recognition.onresult = null;
+    try {
+      recognition.stop();
+    } catch {
+      recognition.abort?.();
+    }
+    readingRecognitionRef.current = null;
+  }
 
   function updateReadingField(field: keyof ReadingGenerationFields, value: string) {
     setGenerationFields((current) => ({ ...current, [field]: value }));
@@ -1631,27 +1710,63 @@ function ReadingView({
     const startedAt = Date.now();
     setRecordingStartedAt(startedAt);
     setRecordingElapsedSeconds(0);
+    setRecordedTranscript('');
     setIsReadingRecording(true);
     setRecordingAnalysis(null);
+    setRecordingStatusMessage('Écoute en cours… Autorise le micro puis lis le texte à voix haute.');
     if (recordingIntervalRef.current !== null) window.clearInterval(recordingIntervalRef.current);
     recordingIntervalRef.current = window.setInterval(() => {
       setRecordingElapsedSeconds(Math.max(1, Math.floor((Date.now() - startedAt) / 1000)));
     }, 1000);
+
+    const SpeechRecognitionConstructor = getReadingSpeechRecognitionConstructor();
+    if (!SpeechRecognitionConstructor) {
+      setRecordingStatusMessage('Reconnaissance vocale indisponible dans ce navigateur. Tu peux coller la transcription puis cliquer sur Analyser.');
+      return;
+    }
+
+    const recognition = new SpeechRecognitionConstructor();
+    recognition.lang = 'fr-FR';
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.onresult = (event: unknown) => {
+      const transcript = readSpeechRecognitionTranscript(event);
+      if (transcript) {
+        setRecordedTranscript(transcript);
+        setRecordingStatusMessage('Transcription reçue. Tu peux arrêter pour lancer l’analyse.');
+      }
+    };
+    recognition.onerror = () => {
+      setRecordingStatusMessage('Micro non disponible ou autorisation refusée. Colle la transcription puis lance l’analyse.');
+    };
+    recognition.onend = () => {
+      if (isReadingRecording) setRecordingStatusMessage('Écoute interrompue. Relance ou analyse la transcription déjà reçue.');
+    };
+    readingRecognitionRef.current = recognition;
+    try {
+      recognition.start();
+    } catch {
+      setRecordingStatusMessage('Impossible de démarrer le micro. Colle la transcription puis lance l’analyse.');
+    }
   }
 
   function stopReadingRecording() {
-    const elapsed = recordingStartedAt ? Math.max(1, Math.floor((Date.now() - recordingStartedAt) / 1000)) : Math.max(1, recordingElapsedSeconds || 1);
-    if (recordingIntervalRef.current !== null) {
-      window.clearInterval(recordingIntervalRef.current);
-      recordingIntervalRef.current = null;
+    const elapsed = stopReadingTimer();
+    stopSpeechRecognition();
+    const transcript = recordedTranscriptRef.current;
+    if (transcript.trim()) {
+      analyzeTranscript(transcript, elapsed);
+      setRecordingStatusMessage('Analyse terminée à partir de la transcription automatique.');
+      return;
     }
-    setRecordingElapsedSeconds(elapsed);
-    setIsReadingRecording(false);
+    setRecordingStatusMessage('Aucune parole transcrite. Vérifie l’autorisation micro ou colle la transcription avant analyse.');
   }
 
-  function analyzeTranscript() {
+  function analyzeTranscript(transcriptOverride?: string, durationOverride?: number) {
     if (!storyText.trim()) return;
-    const analysis = analyzeReadingRecording(storyText, recordedTranscript, recordingElapsedSeconds || 1);
+    const transcriptToAnalyze = transcriptOverride ?? recordedTranscriptRef.current;
+    const durationToAnalyze = durationOverride ?? (recordingElapsedSeconds || 1);
+    const analysis = analyzeReadingRecording(storyText, transcriptToAnalyze, durationToAnalyze);
     setRecordingAnalysis(analysis);
     const starsEarned = calculateRewardStars('reading', Math.max(0, analysis.totalWords - analysis.errorCount), analysis.errorCount);
     appendActivityRecordToStorage(buildLearningActivityRecord({
@@ -1667,7 +1782,7 @@ function ReadingView({
       durationSeconds: analysis.durationSeconds,
       starsEarned,
       status: analysis.errorCount === 0 ? 'completed' : 'partial',
-      details: { wordsPerMinute: analysis.wordsPerMinute, transcript: recordedTranscript },
+      details: { wordsPerMinute: analysis.wordsPerMinute, transcript: transcriptToAnalyze },
     }));
     onRecordExercise({
       module: 'reading',
@@ -1800,6 +1915,7 @@ function ReadingView({
                   </div>
                 </div>
               </div>
+              {recordingStatusMessage ? <p className="feedback-card reading-recording-status" aria-live="polite">{recordingStatusMessage}</p> : null}
               <label className="transcript-editor">
                 Transcription de l’enregistrement
                 <textarea
@@ -1809,7 +1925,7 @@ function ReadingView({
                   placeholder="La transcription automatique apparaîtra ici. Pour le MVP, colle ou corrige le texte entendu avant analyse."
                 />
               </label>
-              <button className="primary-action" disabled={!storyText.trim() || recordedTranscript.trim().length === 0} type="button" onClick={analyzeTranscript}>
+              <button className="primary-action" disabled={!storyText.trim() || recordedTranscript.trim().length === 0} type="button" onClick={() => analyzeTranscript()}>
                 Analyser la lecture
               </button>
             </div>
