@@ -181,6 +181,18 @@ const ACTIVITY_SUBJECTS = ['Mathématiques', 'Français', 'Poésie', 'Lecture'];
 const DEFAULT_HISTORY_PAGE_SIZE = 10;
 const ACTIVITY_CHART_HEIGHT_PX = 96;
 const DEFAULT_PARENT_CODE = '0000';
+const ADMIN_AUTH_STORAGE_KEY = 'devoirs.adminSession.v1';
+const ADMIN_USERNAME = 'admin';
+const ADMIN_PASSWORD = 'KarineAdrien1287';
+
+function readAdminSessionFromStorage() {
+  if (typeof window === 'undefined') return null;
+  return window.sessionStorage.getItem(ADMIN_AUTH_STORAGE_KEY) === ADMIN_USERNAME ? ADMIN_USERNAME : null;
+}
+
+function writeAdminSessionToStorage(username: string) {
+  window.sessionStorage.setItem(ADMIN_AUTH_STORAGE_KEY, username);
+}
 
 function normalizeParentCode(value: unknown) {
   if (typeof value !== 'string') return DEFAULT_PARENT_CODE;
@@ -5055,14 +5067,66 @@ function RewardSettingsView({ dashboard }: { dashboard: ChildDashboard }) {
   );
 }
 
+function AdminLoginView({ onAuthenticated }: { onAuthenticated: (username: string) => void }) {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+
+  function submitLogin(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (username.trim() !== ADMIN_USERNAME || password !== ADMIN_PASSWORD) {
+      setError('Identifiants incorrects.');
+      return;
+    }
+    writeAdminSessionToStorage(ADMIN_USERNAME);
+    onAuthenticated(ADMIN_USERNAME);
+  }
+
+  return (
+    <main className="admin-auth-page" aria-labelledby="admin-login-title">
+      <section className="admin-auth-card">
+        <div className="admin-auth-icon" aria-hidden="true">🦉</div>
+        <p className="eyebrow">Espace sécurisé</p>
+        <h1 id="admin-login-title">Connexion administrateur</h1>
+        <p className="admin-auth-intro">Connecte-toi pour accéder à l’application Devoirs.</p>
+        <form className="admin-auth-form" onSubmit={submitLogin}>
+          {error ? <p className="state-card error admin-auth-error" role="alert">{error}</p> : null}
+          <label className="field-label">
+            Utilisateur
+            <input
+              autoComplete="username"
+              autoFocus
+              type="text"
+              value={username}
+              onChange={(event) => { setUsername(event.target.value); setError(''); }}
+            />
+          </label>
+          <label className="field-label">
+            Mot de passe
+            <input
+              autoComplete="current-password"
+              type="password"
+              value={password}
+              onChange={(event) => { setPassword(event.target.value); setError(''); }}
+            />
+          </label>
+          <button className="primary-action" type="submit">Se connecter</button>
+        </form>
+      </section>
+    </main>
+  );
+}
+
 function ChildSideNav({
   activePage,
   isPinned,
+  authenticatedUser,
   onNavigate,
   onTogglePinned,
 }: {
   activePage: ChildPage;
   isPinned: boolean;
+  authenticatedUser: string;
   onNavigate: (page: ChildPage) => void;
   onTogglePinned: () => void;
 }) {
@@ -5090,6 +5154,13 @@ function ChildSideNav({
           <span className="nav-label">{label}</span>
         </button>
       ))}
+      <div className="side-nav-user-card" aria-label={`Utilisateur connecté ${authenticatedUser}`}>
+        <span className="side-nav-user-avatar" aria-hidden="true">A</span>
+        <span className="side-nav-user-info nav-label">
+          <strong>{authenticatedUser}</strong>
+          <small>Administrateur</small>
+        </span>
+      </div>
     </nav>
   );
 }
@@ -5162,6 +5233,7 @@ function ActivePage({
 
 export default function App() {
   const [activePage, setActivePage] = useState<ChildPage>('home');
+  const [authenticatedUser, setAuthenticatedUser] = useState<string | null>(() => readAdminSessionFromStorage());
   const [isSideNavPinned, setIsSideNavPinned] = useState(true);
   const [profiles, setProfiles] = useState<ChildProfileConfig[]>(() => readProfilesFromStorage());
   const [activeProfileId, setActiveProfileId] = useState<string>(() => readActiveProfileIdFromStorage(FALLBACK_PROFILE.id));
@@ -5324,12 +5396,17 @@ export default function App() {
     showSideNav && !isSideNavPinned ? 'side-nav-compact-layout' : '',
   ].filter(Boolean).join(' ');
 
+  if (!authenticatedUser) {
+    return <AdminLoginView onAuthenticated={setAuthenticatedUser} />;
+  }
+
   return (
     <div className={layoutClassName}>
       {showSideNav ? (
         <ChildSideNav
           activePage={activePage}
           isPinned={isSideNavPinned}
+          authenticatedUser={authenticatedUser}
           onNavigate={setActivePage}
           onTogglePinned={() => setIsSideNavPinned((isPinned) => !isPinned)}
         />
