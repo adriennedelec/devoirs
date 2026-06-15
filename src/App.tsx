@@ -1938,6 +1938,7 @@ function splitReadingWords(text: string) {
 function normalizeReadingWord(word: string) {
   return word
     .toLocaleLowerCase('fr-FR')
+    .replace(/ç/g, 's')
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '');
@@ -1945,6 +1946,8 @@ function normalizeReadingWord(word: string) {
 
 function getReadingPhoneticWordKey(word: string) {
   const source = normalizeReadingWord(word)
+    .replace(/[-‐‑‒–—]/g, '')
+    .replace(/^(?:l|d|j|m|t|n|s|c)['’]/, '')
     .replace(/^s['’]?/, 's')
     .replace(/^c['’]?/, 's')
     .replace(/^qu/, 'k')
@@ -1955,19 +1958,25 @@ function getReadingPhoneticWordKey(word: string) {
     .replace(/q/g, 'k')
     .replace(/eaux?$/g, 'o')
     .replace(/aux$/g, 'o');
-  if (['ai', 'et', 'est'].includes(source)) return 'e';
+  if (['a', 'as', 'à'].includes(source)) return 'a';
+  if (['ai', 'et', 'est', 'es'].includes(source)) return 'e';
 
+  const hadFinalSilentE = /e$/.test(source);
   const hasSoundedEEnding = /(?:ais|ait|aient|er|ez)$/.test(source);
   const normalized = source
     .replace(/(?:ais|ait|aient|er|ez)$/g, 'e')
     .replace(hasSoundedEEnding ? /$/ : /e$/g, '')
-    .replace(/[tdspxzg]$/g, '')
+    .replace(hadFinalSilentE ? /[dpxzg]$/g : /[tdspxzg]$/g, '')
     .replace(/(.)\1+/g, '$1');
   return normalized;
 }
 
 function getReadingPhoneticPhraseKey(words: string[]) {
-  return words.map(getReadingPhoneticWordKey).join('');
+  return words.map(getReadingPhoneticWordKey).join('')
+    .replace(/^ane/g, 'an')
+    .replace(/ea$/g, 'a')
+    .replace(/ea(?=\b)/g, 'a')
+    .replace(/a+$/g, 'a');
 }
 
 function areReadingChunksPhoneticallyEquivalent(expectedChunk: string[], actualChunk: string[]) {
@@ -1989,7 +1998,7 @@ function pushReadingCorrectChunk(tokens: ReadingAnalysisToken[], expectedChunk: 
   }
 }
 
-function analyzeReadingRecording(storyText: string, transcriptText: string, durationSeconds: number): ReadingRecordingAnalysis {
+export function analyzeReadingRecording(storyText: string, transcriptText: string, durationSeconds: number): ReadingRecordingAnalysis {
   const expectedWords = splitReadingWords(storyText);
   const actualWords = splitReadingWords(transcriptText);
   const tokens: ReadingAnalysisToken[] = [];
@@ -2006,6 +2015,15 @@ function analyzeReadingRecording(storyText: string, transcriptText: string, dura
       tokens.push({ expected, actual, status: 'correct' });
       expectedIndex += 1;
       actualIndex += 1;
+      continue;
+    }
+
+    const expectedTwoWords = expectedWords.slice(expectedIndex, expectedIndex + 2);
+    const actualTwoWords = actualWords.slice(actualIndex, actualIndex + 2);
+    if (expectedTwoWords.length === 2 && actualTwoWords.length === 2 && areReadingChunksPhoneticallyEquivalent(expectedTwoWords, actualTwoWords)) {
+      pushReadingCorrectChunk(tokens, expectedTwoWords, actualTwoWords);
+      expectedIndex += 2;
+      actualIndex += 2;
       continue;
     }
 
