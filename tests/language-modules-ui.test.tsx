@@ -9,6 +9,27 @@ describe('Lot 4 dictation and poetry UI', () => {
     window.localStorage.clear();
   });
 
+  it('shows the updated reading text-size menu ranges including XXL', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /bonjour emma/i })).toBeInTheDocument();
+    });
+
+    const readingCard = screen.getByRole('heading', { name: /lecture/i }).closest('article');
+    expect(readingCard).not.toBeNull();
+    await user.click(within(readingCard!).getByRole('button', { name: /continuer/i }));
+
+    const sizeSelect = await screen.findByLabelText(/taille du texte/i);
+    expect(sizeSelect).toHaveTextContent('XS · 60 à 90 mots');
+    expect(sizeSelect).toHaveTextContent('S · 90 à 150 mots');
+    expect(sizeSelect).toHaveTextContent('M · 150 à 250 mots');
+    expect(sizeSelect).toHaveTextContent('L · 300 à 500 mots');
+    expect(sizeSelect).toHaveTextContent('XL · 600 à 800 mots');
+    expect(sizeSelect).toHaveTextContent('XXL · 1200 à 1800 mots');
+  });
+
   it('saves the edited Llama dictation prompt as the new default and confirms it below the editor', async () => {
     const user = userEvent.setup();
     const customPrompt = 'PROMPT PARENT SAUVEGARDE {{mots}} {{verbes}} {{temps}}';

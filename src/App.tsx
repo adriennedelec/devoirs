@@ -1392,7 +1392,7 @@ function RewardsView({ dashboard }: { dashboard: ChildDashboard }) {
   );
 }
 
-type ReadingTextSize = 'XS' | 'S' | 'M' | 'L' | 'XL';
+type ReadingTextSize = 'XS' | 'S' | 'M' | 'L' | 'XL' | 'XXL';
 
 type ReadingGenerationFields = {
   character: string;
@@ -1419,17 +1419,18 @@ type ReadingRecordingAnalysis = {
 };
 
 const READING_SIZE_OPTIONS: Array<{ value: ReadingTextSize; label: string; wordRange: string }> = [
-  { value: 'XS', label: 'XS', wordRange: '35 à 50 mots' },
-  { value: 'S', label: 'S', wordRange: '60 à 80 mots' },
-  { value: 'M', label: 'M', wordRange: '90 à 130 mots' },
-  { value: 'L', label: 'L', wordRange: '150 à 190 mots' },
-  { value: 'XL', label: 'XL', wordRange: '220 à 280 mots' },
+  { value: 'XS', label: 'XS', wordRange: '60 à 90 mots' },
+  { value: 'S', label: 'S', wordRange: '90 à 150 mots' },
+  { value: 'M', label: 'M', wordRange: '150 à 250 mots' },
+  { value: 'L', label: 'L', wordRange: '300 à 500 mots' },
+  { value: 'XL', label: 'XL', wordRange: '600 à 800 mots' },
+  { value: 'XXL', label: 'XXL', wordRange: '1200 à 1800 mots' },
 ];
 
 const DEFAULT_READING_PROMPT_TEMPLATE = `Tu es un enseignant de lecture pour un enfant de primaire.\n\nÉcris une histoire courte, fluide et bien ponctuée pour entraîner la lecture à voix haute.\n\nContraintes obligatoires :\n- Personnage : {{personnage}}\n- Animal : {{animal}}\n- Objet : {{objet}}\n- Lieu : {{lieu}}\n- Taille : {{taille}}\n\nRègles :\n1. Utilise un vocabulaire simple et naturel.\n2. Fais une seule histoire complète, sans titre, sans liste et sans commentaire.\n3. Évite les phrases trop longues.\n4. Réponds uniquement avec le texte de l'histoire.`;
 
 function getReadingSizeRange(size: ReadingTextSize) {
-  return READING_SIZE_OPTIONS.find((option) => option.value === size)?.wordRange ?? '60 à 80 mots';
+  return READING_SIZE_OPTIONS.find((option) => option.value === size)?.wordRange ?? '90 à 150 mots';
 }
 
 function buildReadingPromptFromTemplate(template: string, fields: ReadingGenerationFields) {
