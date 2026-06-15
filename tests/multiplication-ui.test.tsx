@@ -139,6 +139,76 @@ describe('Lot 3 multiplication module UI', () => {
     });
   });
 
+  it('filtre automatiquement l’historique des tables sur le profil utilisateur actif', async () => {
+    window.localStorage.setItem('devoirs.childProfiles.v1', JSON.stringify([
+      {
+        id: 'enora-demo',
+        name: 'Enora',
+        avatarEmoji: '👧',
+        avatarPhotoUrl: '',
+        profileColor: '#20B486',
+        age: 9,
+        role: 'eleve',
+        schoolLevel: 'CM1',
+      },
+      {
+        id: 'louane-demo',
+        name: 'Louane',
+        avatarEmoji: '👧',
+        avatarPhotoUrl: '',
+        profileColor: '#F25CA2',
+        age: 7,
+        role: 'eleve',
+        schoolLevel: 'CE1',
+      },
+    ]));
+    window.localStorage.setItem('devoirs.activeProfileId.v1', 'enora-demo');
+    window.localStorage.setItem('devoirs.multiplicationTableHistory.v1', JSON.stringify([
+      {
+        id: 'enora-table-7',
+        profileId: 'enora-demo',
+        childName: 'Enora',
+        table: 7,
+        correctCount: 9,
+        wrongCount: 0,
+        score: 9,
+        totalQuestions: 9,
+        durationSeconds: 61,
+        completedAtIso: '2026-06-14T10:00:00.000Z',
+        facts: [],
+      },
+      {
+        id: 'louane-table-8',
+        profileId: 'louane-demo',
+        childName: 'Louane',
+        table: 8,
+        correctCount: 8,
+        wrongCount: 1,
+        score: 8,
+        totalQuestions: 9,
+        durationSeconds: 72,
+        completedAtIso: '2026-06-14T09:00:00.000Z',
+        facts: [],
+      },
+    ]));
+
+    const user = userEvent.setup();
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /bonjour enora/i })).toBeInTheDocument();
+    });
+
+    const navigation = screen.getByRole('navigation', { name: /navigation enfant/i });
+    await user.click(within(navigation).getByRole('button', { name: /tables/i }));
+
+    const history = await screen.findByRole('table', { name: /historique des tables réalisées/i });
+    expect(within(history).getByText('Enora')).toBeInTheDocument();
+    expect(within(history).getByText('Table de 7')).toBeInTheDocument();
+    expect(within(history).queryByText('Louane')).not.toBeInTheDocument();
+    expect(within(history).queryByText('Table de 8')).not.toBeInTheDocument();
+  });
+
   it('enregistre une table terminée sur le profil actif Enora et rafraîchit les données du Profil', async () => {
     const user = userEvent.setup();
     window.localStorage.setItem('devoirs.childProfiles.v1', JSON.stringify([

@@ -61,6 +61,7 @@ export type MultiplicationSessionSummary = {
 
 export type CompletedMultiplicationTable = {
   id: string;
+  profileId?: string;
   childName: string;
   table: number;
   correctCount: number;

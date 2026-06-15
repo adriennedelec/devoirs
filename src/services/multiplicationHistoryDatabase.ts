@@ -37,6 +37,7 @@ export function normalizeCompletedMultiplicationTable(rawRecord: unknown): Compl
 
   return {
     id: typeof candidate.id === 'string' && candidate.id.length > 0 ? candidate.id : cryptoSafeId(),
+    profileId: typeof candidate.profileId === 'string' && candidate.profileId.trim().length > 0 ? candidate.profileId.trim() : undefined,
     childName: typeof candidate.childName === 'string' && candidate.childName.trim().length > 0 ? candidate.childName.trim() : 'Élève',
     table,
     correctCount: Math.max(0, Number(candidate.correctCount) || 0),
