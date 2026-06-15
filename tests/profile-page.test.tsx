@@ -241,6 +241,39 @@ describe('Page Profil famille', () => {
     expect(within(createdCard).getByText(/CM2 • 10 ans/i)).toBeInTheDocument();
   });
 
+  it('permet de définir un ordre unique pour tous les profils famille', async () => {
+    window.localStorage.setItem('devoirs.childProfiles.v1', JSON.stringify([
+      { id: 'emma-demo', name: 'Emma', avatarEmoji: '🧒', avatarPhotoUrl: '', age: 9, role: 'eleve', schoolLevel: 'CM1', profileColor: '#6D5DFC', displayOrder: 2 },
+      { id: 'louane-demo', name: 'Louane', avatarEmoji: '👧', avatarPhotoUrl: '', age: 7, role: 'eleve', schoolLevel: 'CE1', profileColor: '#F25CA2', displayOrder: 1 },
+      { id: 'adrien-parent', name: 'Adrien', avatarEmoji: '👤', avatarPhotoUrl: '', role: 'parent', schoolLevel: '', profileColor: '#7A8AA0', displayOrder: 3 },
+    ]));
+
+    const user = await openProfilePage();
+    const strip = screen.getByRole('region', { name: /profils famille/i });
+    expect(within(strip).getAllByRole('article').map((card) => card.getAttribute('aria-label'))).toEqual([
+      'Profil de Louane',
+      'Profil de Emma',
+      'Profil de Adrien',
+    ]);
+
+    const orderRegion = screen.getByRole('region', { name: /ordre d’affichage/i });
+    expect(within(orderRegion).getByRole('spinbutton', { name: /ordre de louane/i })).toHaveValue(1);
+    expect(within(orderRegion).getByRole('spinbutton', { name: /ordre de emma/i })).toHaveValue(2);
+
+    await user.clear(within(orderRegion).getByRole('spinbutton', { name: /ordre de emma/i }));
+    await user.type(within(orderRegion).getByRole('spinbutton', { name: /ordre de emma/i }), '1');
+    await user.click(within(orderRegion).getByRole('button', { name: /enregistrer l'ordre des profils/i }));
+    expect(within(orderRegion).getByRole('alert')).toHaveTextContent(/le même ordre ne peut pas être utilisé/i);
+
+    await user.clear(within(orderRegion).getByRole('spinbutton', { name: /ordre de emma/i }));
+    await user.type(within(orderRegion).getByRole('spinbutton', { name: /ordre de emma/i }), '4');
+    await user.click(within(orderRegion).getByRole('button', { name: /enregistrer l'ordre des profils/i }));
+
+    await waitFor(() => expect(within(orderRegion).getByText(/ordre enregistré/i)).toBeInTheDocument());
+    const storedProfiles = JSON.parse(window.localStorage.getItem('devoirs.childProfiles.v1') ?? '[]');
+    expect(storedProfiles.find((profile: { id: string; displayOrder?: number }) => profile.id === 'emma-demo')?.displayOrder).toBe(4);
+  });
+
   it('bascule la sidebar entre mode épinglé étendu et mode compact sans renommer les menus', async () => {
     const user = await openProfilePage();
 

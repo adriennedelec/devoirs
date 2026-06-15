@@ -90,6 +90,7 @@ type ChildProfileConfig = {
   age?: number;
   role: ProfileRole;
   schoolLevel: string;
+  displayOrder?: number;
   stars?: number;
   badges?: number;
   streakDays?: number;
@@ -861,13 +862,45 @@ function applyFamilyProfileMigrations(profiles: ChildProfileConfig[]) {
   );
   const migratedProfiles = hasAdrienProfile ? profiles : [...profiles, DEFAULT_ADRIEN_PROFILE];
 
-  return migratedProfiles.map((profile) => {
+  const normalizedProfiles = migratedProfiles.map((profile) => {
     if (profile.id === DEFAULT_ADRIEN_PROFILE.id || profile.name.trim().toLowerCase() === 'adrien') {
       return { ...profile, avatarPhotoUrl: adrienProfilePhotoUrl, profileColor: profile.profileColor || getDefaultProfileColor(profile.id, profile.name, 'parent') };
     }
 
     return { ...profile, profileColor: profile.profileColor || getDefaultProfileColor(profile.id, profile.name, profile.role) };
   });
+
+  return normalizeProfileDisplayOrder(normalizedProfiles);
+}
+
+function normalizeDisplayOrderValue(value: unknown) {
+  const order = Number(value);
+  return Number.isFinite(order) && order > 0 ? Math.floor(order) : undefined;
+}
+
+function normalizeProfileDisplayOrder(profiles: ChildProfileConfig[]) {
+  const usedOrders = new Set<number>();
+  let nextOrder = 1;
+  const withOrders = profiles.map((profile) => {
+    let displayOrder = normalizeDisplayOrderValue(profile.displayOrder);
+    while (displayOrder !== undefined && usedOrders.has(displayOrder)) displayOrder += 1;
+    while (displayOrder === undefined || usedOrders.has(displayOrder)) {
+      displayOrder = nextOrder;
+      nextOrder += 1;
+    }
+    usedOrders.add(displayOrder);
+    nextOrder = Math.max(nextOrder, displayOrder + 1);
+    return { ...profile, displayOrder };
+  });
+
+  return withOrders.sort((left, right) => {
+    const orderDelta = (left.displayOrder ?? Number.MAX_SAFE_INTEGER) - (right.displayOrder ?? Number.MAX_SAFE_INTEGER);
+    return orderDelta || left.name.localeCompare(right.name, 'fr');
+  });
+}
+
+function getNextProfileDisplayOrder(profiles: ChildProfileConfig[]) {
+  return profiles.reduce((maxOrder, profile) => Math.max(maxOrder, profile.displayOrder ?? 0), 0) + 1;
 }
 
 function normalizeProfile(rawProfile: unknown): ChildProfileConfig | null {
@@ -906,6 +939,7 @@ function normalizeProfile(rawProfile: unknown): ChildProfileConfig | null {
   const stars = Number.isFinite(Number(candidate.stars)) ? Math.max(0, Math.floor(Number(candidate.stars))) : 0;
   const badges = Number.isFinite(Number(candidate.badges)) ? Math.max(0, Math.floor(Number(candidate.badges))) : 0;
   const streakDays = Number.isFinite(Number(candidate.streakDays)) ? Math.max(0, Math.floor(Number(candidate.streakDays))) : 0;
+  const displayOrder = normalizeDisplayOrderValue(candidate.displayOrder);
   const progress = Array.isArray(candidate.progress)
     ? candidate.progress
         .filter((item): item is ProfileProgressItem =>
@@ -939,6 +973,7 @@ function normalizeProfile(rawProfile: unknown): ChildProfileConfig | null {
     age: role === 'eleve' ? age ?? FALLBACK_PROFILE.age : age,
     role,
     schoolLevel,
+    displayOrder,
     stars,
     badges,
     streakDays,
@@ -3958,6 +3993,7 @@ function ProfileView({
   activeProfileHistory,
   onActivateProfile,
   onCreateProfile,
+  onUpdateProfileOrders,
 }: {
   dashboard: ChildDashboard;
   profiles: ChildProfileConfig[];
@@ -3966,6 +4002,7 @@ function ProfileView({
   activeProfileHistory: ProfileExerciseHistoryRecord[];
   onActivateProfile: (profileId: string) => void;
   onCreateProfile: (profile: Omit<ChildProfileConfig, 'id'>, profileId?: string) => void;
+  onUpdateProfileOrders: (orders: Record<string, number>) => void;
 }) {
   const [editingProfileId, setEditingProfileId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -3983,6 +4020,8 @@ function ProfileView({
   const [historySort, setHistorySort] = useState<{ key: HistorySortKey; direction: SortDirection }>({ key: 'date', direction: 'desc' });
   const [historyPage, setHistoryPage] = useState(1);
   const [historyPageSize, setHistoryPageSize] = useState(DEFAULT_HISTORY_PAGE_SIZE);
+  const [profileOrderDraft, setProfileOrderDraft] = useState<Record<string, string>>(() => Object.fromEntries(profiles.map((profile, index) => [profile.id, String(profile.displayOrder ?? index + 1)])));
+  const [profileOrderStatus, setProfileOrderStatus] = useState<{ kind: 'success' | 'error'; message: string } | null>(null);
 
   const students = profiles.filter((profile) => profile.role === 'eleve');
   const parents = profiles.filter((profile) => profile.role === 'parent');
@@ -4023,6 +4062,10 @@ function ProfileView({
   useEffect(() => {
     setHistoryPage(1);
   }, [historyFilters, historyPageSize]);
+
+  useEffect(() => {
+    setProfileOrderDraft(Object.fromEntries(profiles.map((profile, index) => [profile.id, String(profile.displayOrder ?? index + 1)])));
+  }, [profiles]);
 
   useEffect(() => {
     if (!detailProfile && !isFamilyModalOpen) return undefined;
@@ -4206,6 +4249,21 @@ function ProfileView({
     );
   }
 
+  function saveProfileOrders() {
+    const orders = profiles.map((profile) => ({ profile, order: Number(profileOrderDraft[profile.id]) }));
+    if (orders.some(({ order }) => !Number.isFinite(order) || order <= 0)) {
+      setProfileOrderStatus({ kind: 'error', message: 'Chaque ordre doit être un nombre positif.' });
+      return;
+    }
+    const uniqueOrders = new Set(orders.map(({ order }) => Math.floor(order)));
+    if (uniqueOrders.size !== orders.length) {
+      setProfileOrderStatus({ kind: 'error', message: 'Le même ordre ne peut pas être utilisé sur plusieurs fiches.' });
+      return;
+    }
+    onUpdateProfileOrders(Object.fromEntries(orders.map(({ profile, order }) => [profile.id, Math.floor(order)])));
+    setProfileOrderStatus({ kind: 'success', message: 'Ordre enregistré.' });
+  }
+
   function renderProfileCard(profile: ChildProfileConfig) {
     const isActive = profile.id === activeProfileId;
     const summary = getProfileSummaryText(profile);
@@ -4300,6 +4358,37 @@ function ProfileView({
         </div>
         <div className="family-profiles-strip">
           {profiles.map((profile) => renderProfileCard(profile))}
+        </div>
+      </section>
+
+      <section className="profile-section profile-order-section" aria-label="Ordre d’affichage des fiches">
+        <div className="section-heading compact-heading">
+          <div>
+            <p className="eyebrow">Ordre d’affichage</p>
+            <h2>Classer les fiches profil</h2>
+            <p>Indique un ordre différent pour chaque personne de la famille afin d’avoir la même liste en local et sur Vercel.</p>
+          </div>
+        </div>
+        <div className="settings-grid profile-order-grid">
+          {profiles.map((profile) => (
+            <label className="field-label compact-field" key={profile.id}>
+              Ordre de {profile.name}
+              <input
+                aria-label={`Ordre de ${profile.name}`}
+                min={1}
+                type="number"
+                value={profileOrderDraft[profile.id] ?? ''}
+                onChange={(event) => {
+                  setProfileOrderDraft((current) => ({ ...current, [profile.id]: event.target.value }));
+                  setProfileOrderStatus(null);
+                }}
+              />
+            </label>
+          ))}
+        </div>
+        <div className="form-actions">
+          <button type="button" className="primary-action" onClick={saveProfileOrders}>Enregistrer l'ordre des profils</button>
+          {profileOrderStatus ? <p className={`form-feedback ${profileOrderStatus.kind}`} role={profileOrderStatus.kind === 'error' ? 'alert' : undefined}>{profileOrderStatus.message}</p> : null}
         </div>
       </section>
 
@@ -4977,6 +5066,7 @@ function ActivePage({
   activeProfile,
   onActivateProfile,
   onCreateProfile,
+  onUpdateProfileOrders,
   exerciseHistory,
   onRecordExercise,
 }: {
@@ -4988,6 +5078,7 @@ function ActivePage({
   activeProfile: ChildProfileConfig;
   onActivateProfile: (profileId: string) => void;
   onCreateProfile: (profile: Omit<ChildProfileConfig, 'id'>, profileId?: string) => void;
+  onUpdateProfileOrders: (orders: Record<string, number>) => void;
   exerciseHistory: ProfileExerciseHistoryRecord[];
   onRecordExercise: (payload: {
     module: ExerciseHistoryModule;
@@ -5020,6 +5111,7 @@ function ActivePage({
         activeProfileHistory={exerciseHistory}
         onActivateProfile={onActivateProfile}
         onCreateProfile={onCreateProfile}
+        onUpdateProfileOrders={onUpdateProfileOrders}
       />;
     case 'database':
       return <ActivityDatabaseView dashboard={dashboard} />;
@@ -5082,14 +5174,14 @@ export default function App() {
 
     if (profileId) {
       setProfiles((currentProfiles) =>
-        currentProfiles.map((currentProfile) =>
+        normalizeProfileDisplayOrder(currentProfiles.map((currentProfile) =>
           currentProfile.id === profileId
             ? {
                 ...currentProfile,
                 ...normalizedProfile,
               }
             : currentProfile,
-        ),
+        )),
       );
       return;
     }
@@ -5097,10 +5189,18 @@ export default function App() {
     const nextProfile: ChildProfileConfig = {
       id: cryptoSafeId(),
       ...normalizedProfile,
+      displayOrder: getNextProfileDisplayOrder(profiles),
     };
 
-    setProfiles((currentProfiles) => [...currentProfiles, nextProfile]);
+    setProfiles((currentProfiles) => normalizeProfileDisplayOrder([...currentProfiles, nextProfile]));
     setActiveProfileId(nextProfile.id);
+  }
+
+  function updateProfileOrders(orders: Record<string, number>) {
+    setProfiles((currentProfiles) => normalizeProfileDisplayOrder(currentProfiles.map((profile) => ({
+      ...profile,
+      displayOrder: orders[profile.id] ?? profile.displayOrder,
+    }))));
   }
 
   function logExerciseForActiveProfile(
@@ -5129,6 +5229,7 @@ export default function App() {
           activeProfile={activeProfile}
           onActivateProfile={setActiveProfileId}
           onCreateProfile={createOrUpdateProfile}
+          onUpdateProfileOrders={updateProfileOrders}
           exerciseHistory={activeProfileHistory}
           onRecordExercise={logExerciseForActiveProfile}
         />
