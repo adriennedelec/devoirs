@@ -163,6 +163,28 @@ describe('Page Profil famille', () => {
     expect(within(familyHeader).getByTestId('family-house-visual')).toHaveClass('family-hero-garden');
   });
 
+  it('ajoute des identifiants utilisateur simple dans la fiche famille', async () => {
+    const user = await openProfilePage();
+
+    const familyHeader = screen.getByRole('region', { name: /en-tête famille/i });
+    await user.click(within(familyHeader).getByRole('button', { name: /modifier le nom de la famille/i }));
+
+    const dialog = screen.getByRole('dialog', { name: /modifier la famille/i });
+    expect(within(dialog).getByRole('textbox', { name: /^utilisateur$/i })).toHaveValue('');
+    expect(within(dialog).getByLabelText(/^mot de passe$/i)).toHaveValue('');
+    expect(within(dialog).getByText(/accès utilisateur simple/i)).toBeInTheDocument();
+    expect(within(dialog).queryByRole('radio', { name: /administrateur/i })).not.toBeInTheDocument();
+
+    await user.type(within(dialog).getByRole('textbox', { name: /^utilisateur$/i }), 'famille');
+    await user.type(within(dialog).getByLabelText(/^mot de passe$/i), 'motdepassefamille');
+    await user.click(within(dialog).getByRole('button', { name: /enregistrer/i }));
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    const storedSettings = JSON.parse(window.localStorage.getItem('devoirs.familySettings.v1') ?? '{}');
+    expect(storedSettings.username).toBe('famille');
+    expect(storedSettings.password).toBe('motdepassefamille');
+  });
+
   it('affiche les KPI famille avec graphiques groupés, période 7 jours et couleurs utilisateur stables', async () => {
     await openProfilePage();
 

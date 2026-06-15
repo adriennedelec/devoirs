@@ -3145,6 +3145,24 @@
   font-weight: 900;
 }
 
+.family-credentials-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  border: 1px solid rgba(109, 93, 252, 0.14);
+  border-radius: 22px;
+  padding: 14px;
+  background: linear-gradient(135deg, #ffffff, #f8f7ff);
+}
+
+.family-credentials-note {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.9rem;
+  font-weight: 850;
+}
+
 .answer-field input,
 .answer-field select {
   border: 1px solid var(--color-border);

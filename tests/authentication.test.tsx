@@ -44,4 +44,31 @@ describe('Authentification administrateur', () => {
     expect(within(navigation).getByText(/^administrateur$/i)).toBeInTheDocument();
     expect(window.sessionStorage.getItem(AUTH_STORAGE_KEY)).toBe('admin');
   });
+
+  it('connecte les identifiants famille comme utilisateur simple', async () => {
+    window.sessionStorage.removeItem(AUTH_STORAGE_KEY);
+    window.localStorage.setItem('devoirs.familySettings.v1', JSON.stringify({
+      name: 'Famille Nedelec',
+      illustration: 'house',
+      username: 'famille',
+      password: 'motdepassefamille',
+    }));
+    const user = userEvent.setup();
+
+    render(<App />);
+
+    await user.type(screen.getByRole('textbox', { name: /utilisateur/i }), 'famille');
+    await user.type(screen.getByLabelText(/mot de passe/i), 'motdepassefamille');
+    await user.click(screen.getByRole('button', { name: /se connecter/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /bonjour emma/i })).toBeInTheDocument();
+    });
+
+    const navigation = screen.getByRole('navigation', { name: /navigation enfant/i });
+    expect(within(navigation).getByText(/^famille$/i)).toBeInTheDocument();
+    expect(within(navigation).getByText(/^utilisateur$/i)).toBeInTheDocument();
+    expect(within(navigation).queryByText(/^administrateur$/i)).not.toBeInTheDocument();
+    expect(JSON.parse(window.sessionStorage.getItem(AUTH_STORAGE_KEY) ?? '{}')).toEqual({ username: 'famille', role: 'user' });
+  });
 });

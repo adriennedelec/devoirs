@@ -114,6 +114,13 @@ type FamilyIllustrationVariant = 'house' | 'garden' | 'stars';
 type FamilySettings = {
   name: string;
   illustration: FamilyIllustrationVariant;
+  username: string;
+  password: string;
+};
+
+type AuthenticatedSession = {
+  username: string;
+  role: 'admin' | 'user';
 };
 
 type ExerciseHistoryStatus = 'success' | 'partial' | 'needs_review';
@@ -185,13 +192,28 @@ const ADMIN_AUTH_STORAGE_KEY = 'devoirs.adminSession.v1';
 const ADMIN_USERNAME = 'admin';
 const ADMIN_PASSWORD = 'KarineAdrien1287';
 
-function readAdminSessionFromStorage() {
+function readAdminSessionFromStorage(): AuthenticatedSession | null {
   if (typeof window === 'undefined') return null;
-  return window.sessionStorage.getItem(ADMIN_AUTH_STORAGE_KEY) === ADMIN_USERNAME ? ADMIN_USERNAME : null;
+  const stored = window.sessionStorage.getItem(ADMIN_AUTH_STORAGE_KEY);
+  if (stored === ADMIN_USERNAME) return { username: ADMIN_USERNAME, role: 'admin' };
+  if (!stored) return null;
+  try {
+    const parsed = JSON.parse(stored) as Partial<AuthenticatedSession>;
+    if (parsed.username && (parsed.role === 'admin' || parsed.role === 'user')) {
+      return { username: parsed.username, role: parsed.role };
+    }
+  } catch {
+    return null;
+  }
+  return null;
 }
 
-function writeAdminSessionToStorage(username: string) {
-  window.sessionStorage.setItem(ADMIN_AUTH_STORAGE_KEY, username);
+function writeAdminSessionToStorage(session: AuthenticatedSession) {
+  if (session.role === 'admin') {
+    window.sessionStorage.setItem(ADMIN_AUTH_STORAGE_KEY, session.username);
+    return;
+  }
+  window.sessionStorage.setItem(ADMIN_AUTH_STORAGE_KEY, JSON.stringify(session));
 }
 
 function normalizeParentCode(value: unknown) {
@@ -1201,7 +1223,7 @@ function buildProfilePayloadFromForm(state: NewProfileForm): Omit<ChildProfileCo
 }
 
 function getDefaultFamilySettings(): FamilySettings {
-  return { name: FAMILY_NAME, illustration: 'house' };
+  return { name: FAMILY_NAME, illustration: 'house', username: '', password: '' };
 }
 
 function normalizeFamilySettings(candidate: unknown): FamilySettings {
@@ -1209,7 +1231,9 @@ function normalizeFamilySettings(candidate: unknown): FamilySettings {
   const raw = candidate as Partial<FamilySettings>;
   const name = typeof raw.name === 'string' && raw.name.trim().length > 0 ? raw.name.trim() : FAMILY_NAME;
   const illustration = FAMILY_ILLUSTRATION_OPTIONS.some((option) => option.id === raw.illustration) ? raw.illustration! : 'house';
-  return { name, illustration };
+  const username = typeof raw.username === 'string' ? raw.username.trim() : '';
+  const password = typeof raw.password === 'string' ? raw.password : '';
+  return { name, illustration, username, password };
 }
 
 function readFamilySettingsFromStorage(): FamilySettings {
@@ -4568,6 +4592,29 @@ function ProfileView({
                   placeholder="Ex: Famille Nedelec"
                 />
               </label>
+              <div className="family-credentials-fields" aria-label="Accès utilisateur simple">
+                <p className="family-credentials-note">Accès utilisateur simple : les utilisateurs famille ne sont pas administrateurs.</p>
+                <label className="answer-field">
+                  <span>Utilisateur</span>
+                  <input
+                    autoComplete="username"
+                    value={familyForm.username}
+                    onChange={(event) => setFamilyForm((current) => ({ ...current, username: event.target.value }))}
+                    placeholder="Ex: famille"
+                    type="text"
+                  />
+                </label>
+                <label className="answer-field">
+                  <span>Mot de passe</span>
+                  <input
+                    autoComplete="new-password"
+                    value={familyForm.password}
+                    onChange={(event) => setFamilyForm((current) => ({ ...current, password: event.target.value }))}
+                    placeholder="Mot de passe famille"
+                    type="password"
+                  />
+                </label>
+              </div>
               <fieldset className="family-illustration-field answer-field" aria-label="Image de la famille">
                 <legend>Image de la famille</legend>
                 <div className="family-illustration-options">
@@ -5067,19 +5114,29 @@ function RewardSettingsView({ dashboard }: { dashboard: ChildDashboard }) {
   );
 }
 
-function AdminLoginView({ onAuthenticated }: { onAuthenticated: (username: string) => void }) {
+function AdminLoginView({ onAuthenticated }: { onAuthenticated: (session: AuthenticatedSession) => void }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
   function submitLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (username.trim() !== ADMIN_USERNAME || password !== ADMIN_PASSWORD) {
+    const trimmedUsername = username.trim();
+    const familySettings = readFamilySettingsFromStorage();
+    const familyUserConfigured = familySettings.username.length > 0 && familySettings.password.length > 0;
+    const matchedAdmin = trimmedUsername === ADMIN_USERNAME && password === ADMIN_PASSWORD;
+    const matchedFamilyUser = familyUserConfigured && trimmedUsername === familySettings.username && password === familySettings.password;
+
+    if (!matchedAdmin && !matchedFamilyUser) {
       setError('Identifiants incorrects.');
       return;
     }
-    writeAdminSessionToStorage(ADMIN_USERNAME);
-    onAuthenticated(ADMIN_USERNAME);
+
+    const nextSession: AuthenticatedSession = matchedAdmin
+      ? { username: ADMIN_USERNAME, role: 'admin' }
+      : { username: familySettings.username, role: 'user' };
+    writeAdminSessionToStorage(nextSession);
+    onAuthenticated(nextSession);
   }
 
   return (
@@ -5126,10 +5183,11 @@ function ChildSideNav({
 }: {
   activePage: ChildPage;
   isPinned: boolean;
-  authenticatedUser: string;
+  authenticatedUser: AuthenticatedSession;
   onNavigate: (page: ChildPage) => void;
   onTogglePinned: () => void;
 }) {
+  const roleLabel = authenticatedUser.role === 'admin' ? 'Administrateur' : 'Utilisateur';
   return (
     <nav className={`child-side-nav ${isPinned ? 'expanded' : 'compact'}`} aria-label="Navigation enfant — menu latéral">
       <div className="side-nav-brand-row">
@@ -5154,11 +5212,11 @@ function ChildSideNav({
           <span className="nav-label">{label}</span>
         </button>
       ))}
-      <div className="side-nav-user-card" aria-label={`Utilisateur connecté ${authenticatedUser}`}>
-        <span className="side-nav-user-avatar" aria-hidden="true">A</span>
+      <div className="side-nav-user-card" aria-label={`Utilisateur connecté ${authenticatedUser.username}`}>
+        <span className="side-nav-user-avatar" aria-hidden="true">{authenticatedUser.username.slice(0, 1).toUpperCase()}</span>
         <span className="side-nav-user-info nav-label">
-          <strong>{authenticatedUser}</strong>
-          <small>Administrateur</small>
+          <strong>{authenticatedUser.username}</strong>
+          <small>{roleLabel}</small>
         </span>
       </div>
     </nav>
@@ -5233,7 +5291,7 @@ function ActivePage({
 
 export default function App() {
   const [activePage, setActivePage] = useState<ChildPage>('home');
-  const [authenticatedUser, setAuthenticatedUser] = useState<string | null>(() => readAdminSessionFromStorage());
+  const [authenticatedUser, setAuthenticatedUser] = useState<AuthenticatedSession | null>(() => readAdminSessionFromStorage());
   const [isSideNavPinned, setIsSideNavPinned] = useState(true);
   const [profiles, setProfiles] = useState<ChildProfileConfig[]>(() => readProfilesFromStorage());
   const [activeProfileId, setActiveProfileId] = useState<string>(() => readActiveProfileIdFromStorage(FALLBACK_PROFILE.id));
