@@ -589,6 +589,34 @@ describe('Lot 4 dictation and poetry UI', () => {
     expect(within(analysisRegion!).getByText(/erreurs détectées/i)).toBeInTheDocument();
   });
 
+  it('accepts phonetically correct oral reading transcriptions against the source text', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({
+      response: "Il brûle et s'en va.",
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /bonjour emma/i })).toBeInTheDocument();
+    });
+
+    const readingCard = screen.getByRole('heading', { name: /lecture/i }).closest('article');
+    expect(readingCard).not.toBeNull();
+    await user.click(within(readingCard!).getByRole('button', { name: /continuer/i }));
+
+    const generationRegion = await screen.findByRole('region', { name: /génération ia de l’histoire/i });
+    await user.click(within(generationRegion).getByRole('button', { name: /^générer$/i }));
+    expect(await screen.findByText(/Il brûle et s'en va/i)).toBeInTheDocument();
+
+    await user.type(screen.getByLabelText(/transcription de l’enregistrement/i), "Il brulait s'en va.");
+    await user.click(screen.getByRole('button', { name: /analyser la lecture/i }));
+
+    const analysisRegion = await screen.findByRole('region', { name: /analyse de l’enregistrement/i });
+    expect(within(analysisRegion).getByRole('row', { name: /erreurs détectées\s+0/i })).toBeInTheDocument();
+    expect(within(analysisRegion).getByText(/précision/i)).toBeInTheDocument();
+  });
+
   it('builds the Lecture page around AI story generation, recording timing, transcription and statistics', async () => {
     const user = userEvent.setup();
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({
@@ -637,7 +665,7 @@ describe('Lot 4 dictation and poetry UI', () => {
 
     await user.type(
       screen.getByLabelText(/transcription de l’enregistrement/i),
-      'Lina rencontre un renar dans la forêt. Elle pose une clé sur un rocher et lit doucement.',
+      'Lina rencontre un renur dans la forêt. Elle pose une clé sur un rocher et lit doucement.',
     );
     await user.click(screen.getByRole('button', { name: /analyser la lecture/i }));
 
@@ -646,7 +674,7 @@ describe('Lot 4 dictation and poetry UI', () => {
     expect(within(analysisRegion).getAllByText(/mots par minute/i).length).toBeGreaterThan(0);
     expect(within(analysisRegion).getByText(/temps total/i)).toBeInTheDocument();
     expect(within(analysisRegion).getAllByText(/erreurs/i).length).toBeGreaterThan(0);
-    expect(within(analysisRegion).getByText('renar')).toHaveClass('reading-word-error');
+    expect(within(analysisRegion).getByText('renur')).toHaveClass('reading-word-error');
     expect(within(analysisRegion).getByText('∅ dorée')).toHaveClass('reading-word-missing');
   });
 

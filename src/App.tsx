@@ -1469,6 +1469,52 @@ function normalizeReadingWord(word: string) {
     .replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '');
 }
 
+function getReadingPhoneticWordKey(word: string) {
+  const source = normalizeReadingWord(word)
+    .replace(/^s['’]?/, 's')
+    .replace(/^c['’]?/, 's')
+    .replace(/^qu/, 'k')
+    .replace(/ph/g, 'f')
+    .replace(/ç/g, 's')
+    .replace(/c(?=[eiy])/g, 's')
+    .replace(/c/g, 'k')
+    .replace(/q/g, 'k')
+    .replace(/eaux?$/g, 'o')
+    .replace(/aux$/g, 'o');
+  if (['ai', 'et', 'est'].includes(source)) return 'e';
+
+  const hasSoundedEEnding = /(?:ais|ait|aient|er|ez)$/.test(source);
+  const normalized = source
+    .replace(/(?:ais|ait|aient|er|ez)$/g, 'e')
+    .replace(hasSoundedEEnding ? /$/ : /e$/g, '')
+    .replace(/[tdspxzg]$/g, '')
+    .replace(/(.)\1+/g, '$1');
+  return normalized;
+}
+
+function getReadingPhoneticPhraseKey(words: string[]) {
+  return words.map(getReadingPhoneticWordKey).join('');
+}
+
+function areReadingChunksPhoneticallyEquivalent(expectedChunk: string[], actualChunk: string[]) {
+  if (expectedChunk.length === 0 || actualChunk.length === 0) return false;
+  return getReadingPhoneticPhraseKey(expectedChunk) === getReadingPhoneticPhraseKey(actualChunk);
+}
+
+function pushReadingCorrectChunk(tokens: ReadingAnalysisToken[], expectedChunk: string[], actualChunk: string[]) {
+  const actualLabel = actualChunk.join(' ');
+  expectedChunk.forEach((expected, index) => {
+    tokens.push({
+      expected,
+      actual: index === 0 ? actualLabel : `↔ ${actualLabel}`,
+      status: 'correct',
+    });
+  });
+  if (actualChunk.length > expectedChunk.length) {
+    actualChunk.slice(expectedChunk.length).forEach((actual) => tokens.push({ expected: '', actual, status: 'correct' }));
+  }
+}
+
 function analyzeReadingRecording(storyText: string, transcriptText: string, durationSeconds: number): ReadingRecordingAnalysis {
   const expectedWords = splitReadingWords(storyText);
   const actualWords = splitReadingWords(transcriptText);
@@ -1482,10 +1528,28 @@ function analyzeReadingRecording(storyText: string, transcriptText: string, dura
     const normalizedExpected = normalizeReadingWord(expected);
     const normalizedActual = normalizeReadingWord(actual);
 
-    if (expected && actual && normalizedExpected === normalizedActual) {
+    if (expected && actual && (normalizedExpected === normalizedActual || areReadingChunksPhoneticallyEquivalent([expected], [actual]))) {
       tokens.push({ expected, actual, status: 'correct' });
       expectedIndex += 1;
       actualIndex += 1;
+      continue;
+    }
+
+    const expectedPair = expectedWords.slice(expectedIndex, expectedIndex + 2);
+    const actualSingle = actualWords.slice(actualIndex, actualIndex + 1);
+    if (expectedPair.length === 2 && actualSingle.length === 1 && areReadingChunksPhoneticallyEquivalent(expectedPair, actualSingle)) {
+      pushReadingCorrectChunk(tokens, expectedPair, actualSingle);
+      expectedIndex += 2;
+      actualIndex += 1;
+      continue;
+    }
+
+    const expectedSingle = expectedWords.slice(expectedIndex, expectedIndex + 1);
+    const actualPair = actualWords.slice(actualIndex, actualIndex + 2);
+    if (expectedSingle.length === 1 && actualPair.length === 2 && areReadingChunksPhoneticallyEquivalent(expectedSingle, actualPair)) {
+      pushReadingCorrectChunk(tokens, expectedSingle, actualPair);
+      expectedIndex += 1;
+      actualIndex += 2;
       continue;
     }
 
