@@ -176,6 +176,35 @@ describe('menus Base de données et Paramétrage', () => {
     expect(activities).not.toEqual(expect.arrayContaining([expect.objectContaining({ id: 'activity-to-delete' })]));
   });
 
+  it('nettoie les profils dupliqués par nom et rôle dans la base locale', async () => {
+    window.localStorage.setItem('devoirs.childProfiles.v1', JSON.stringify([
+      { id: 'louane-import', name: 'Louane', avatarEmoji: '👧', avatarPhotoUrl: '', role: 'eleve', schoolLevel: 'CM1', age: 9, profileColor: '#6D5DFC' },
+      { id: 'louane-default', name: 'Louane', avatarEmoji: 'L', avatarPhotoUrl: '', role: 'eleve', schoolLevel: 'CE1', age: 7, profileColor: '#F59E0B' },
+      { id: 'adrien-import', name: 'Adrien', avatarEmoji: '👨', avatarPhotoUrl: '', role: 'parent', profileColor: '#6D5DFC' },
+      { id: 'adrien-default', name: 'Adrien', avatarEmoji: '👨', avatarPhotoUrl: '', role: 'parent', profileColor: '#111827' },
+      { id: 'enora-demo', name: 'Enora', avatarEmoji: '👧', avatarPhotoUrl: '', role: 'eleve', schoolLevel: '6e', age: 12, profileColor: '#20B486' },
+    ]));
+    window.localStorage.setItem('devoirs.activeProfileId.v1', 'enora-demo');
+
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(await screen.findByRole('button', { name: /base de données/i }));
+    await user.click(screen.getByRole('button', { name: /nettoyer les doublons profils/i }));
+
+    expect(await screen.findByText(/doublons nettoyés : 2 suppression/i)).toBeInTheDocument();
+    const profiles = JSON.parse(window.localStorage.getItem('devoirs.childProfiles.v1') ?? '[]');
+    expect(profiles).toHaveLength(3);
+    expect(profiles).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: 'louane-import', name: 'Louane', age: 9 }),
+      expect.objectContaining({ id: 'adrien-import', name: 'Adrien', role: 'parent' }),
+      expect.objectContaining({ id: 'enora-demo', name: 'Enora' }),
+    ]));
+    expect(profiles).not.toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: 'louane-default' }),
+      expect.objectContaining({ id: 'adrien-default' }),
+    ]));
+  });
+
   it('affiche le menu Paramétrage et persiste les étoiles par exercice', async () => {
     const user = userEvent.setup();
     render(<App />);

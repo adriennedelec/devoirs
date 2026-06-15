@@ -483,6 +483,145 @@ function readStoredArray(storageKey: string): Array<Record<string, unknown>> {
   return Array.isArray(value) ? value.filter((item): item is Record<string, unknown> => typeof item === 'object' && item !== null) : [];
 }
 
+function normalizeProfileIdentityValue(value: unknown) {
+  return typeof value === 'string'
+    ? value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLocaleLowerCase('fr-FR')
+    : '';
+}
+
+function getProfileIdentityKey(record: Record<string, unknown>) {
+  const name = normalizeProfileIdentityValue(record.name);
+  const role = record.role === 'parent' ? 'parent' : 'eleve';
+  return name ? `${role}:${name}` : '';
+}
+
+function replaceProfileIdsInRecord(record: unknown, idRemap: Map<string, string>): unknown {
+  if (Array.isArray(record)) return record.map((item) => replaceProfileIdsInRecord(item, idRemap));
+  if (typeof record !== 'object' || record === null) return record;
+  const nextRecord = { ...(record as Record<string, unknown>) };
+  ['profileId', 'activeProfileId'].forEach((key) => {
+    const value = nextRecord[key];
+    if (typeof value === 'string' && idRemap.has(value)) nextRecord[key] = idRemap.get(value);
+  });
+  Object.entries(nextRecord).forEach(([key, value]) => {
+    if (typeof value === 'object' && value !== null) nextRecord[key] = replaceProfileIdsInRecord(value, idRemap);
+  });
+  return nextRecord;
+}
+
+function remapProfileReferences(idRemap: Map<string, string>) {
+  if (idRemap.size === 0 || typeof window === 'undefined') return;
+
+  [ACTIVITY_DATABASE_STORAGE_KEY, MULTIPLICATION_TABLE_HISTORY_STORAGE_KEY].forEach((storageKey) => {
+    const value = parseStoredJsonValue(storageKey);
+    if (Array.isArray(value)) window.localStorage.setItem(storageKey, JSON.stringify(replaceProfileIdsInRecord(value, idRemap)));
+  });
+
+  const profileHistory = parseStoredJsonValue(PROFILE_EXERCISE_HISTORY_STORAGE_KEY);
+  if (typeof profileHistory === 'object' && profileHistory !== null && !Array.isArray(profileHistory)) {
+    const grouped: Record<string, unknown[]> = {};
+    Object.entries(profileHistory as Record<string, unknown>).forEach(([profileId, entries]) => {
+      const nextProfileId = idRemap.get(profileId) ?? profileId;
+      const nextEntries = replaceProfileIdsInRecord(entries, idRemap) as unknown[];
+      grouped[nextProfileId] = [...(grouped[nextProfileId] ?? []), ...(Array.isArray(nextEntries) ? nextEntries : [])];
+    });
+    window.localStorage.setItem(PROFILE_EXERCISE_HISTORY_STORAGE_KEY, JSON.stringify(grouped));
+  }
+
+  const activeProfileId = window.localStorage.getItem(ACTIVE_PROFILE_ID_KEY);
+  if (activeProfileId && idRemap.has(activeProfileId)) {
+    window.localStorage.setItem(ACTIVE_PROFILE_ID_KEY, idRemap.get(activeProfileId)!);
+  }
+}
+
+function dedupeProfileRecords(records: Array<Record<string, unknown>>) {
+  const seenByIdentity = new Map<string, Record<string, unknown>>();
+  const keptRecords: Array<Record<string, unknown>> = [];
+  const idRemap = new Map<string, string>();
+
+  records.forEach((record) => {
+    const identityKey = getProfileIdentityKey(record);
+    const recordId = typeof record.id === 'string' ? record.id : '';
+    const existing = identityKey ? seenByIdentity.get(identityKey) : undefined;
+    if (existing) {
+      const keptId = typeof existing.id === 'string' ? existing.id : '';
+      if (recordId && keptId && recordId !== keptId) idRemap.set(recordId, keptId);
+      return;
+    }
+    if (identityKey) seenByIdentity.set(identityKey, record);
+    keptRecords.push(record);
+  });
+
+  return { profiles: keptRecords, removed: records.length - keptRecords.length, idRemap };
+}
+
+function cleanupDuplicateProfilesInStorage() {
+  const currentProfiles = readStoredArray(PROFILE_STORAGE_KEY);
+  const result = dedupeProfileRecords(currentProfiles);
+  window.localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(result.profiles));
+  remapProfileReferences(result.idRemap);
+  return result;
+}
+
+function mergeProfileRecordsByPrimaryAndIdentity(primaryKey: string, records: Array<Record<string, unknown>>) {
+  const currentProfiles = readStoredArray(PROFILE_STORAGE_KEY);
+  const byPrimaryKey = new Map<string, Record<string, unknown>>();
+  const byIdentityKey = new Map<string, Record<string, unknown>>();
+  const idRemap = new Map<string, string>();
+  let added = 0;
+  let updated = 0;
+  let deleted = 0;
+
+  currentProfiles.forEach((record) => {
+    const key = record[primaryKey];
+    if (typeof key === 'string' && key.trim().length > 0) byPrimaryKey.set(key, record);
+    const identityKey = getProfileIdentityKey(record);
+    if (identityKey && !byIdentityKey.has(identityKey)) byIdentityKey.set(identityKey, record);
+  });
+
+  records.forEach((record) => {
+    const primaryValue = record[primaryKey];
+    if (typeof primaryValue !== 'string' || primaryValue.trim().length === 0) return;
+    const identityKey = getProfileIdentityKey(record);
+    const existingById = byPrimaryKey.get(primaryValue);
+    const existingByIdentity = identityKey ? byIdentityKey.get(identityKey) : undefined;
+    const existing = existingById ?? existingByIdentity;
+
+    if (isDeletedImportRecord(record)) {
+      if (existing) {
+        deleted += 1;
+        currentProfiles.splice(currentProfiles.indexOf(existing), 1);
+        byPrimaryKey.delete(primaryValue);
+        if (identityKey) byIdentityKey.delete(identityKey);
+      }
+      return;
+    }
+
+    const cleanRecord = { ...record };
+    delete cleanRecord._deleted;
+    delete cleanRecord.deleted;
+    delete cleanRecord.__deleted;
+    if (existing) {
+      updated += 1;
+      const existingId = typeof existing[primaryKey] === 'string' ? existing[primaryKey] : '';
+      if (existingId && existingId !== primaryValue) idRemap.set(existingId, primaryValue);
+      const index = currentProfiles.indexOf(existing);
+      currentProfiles[index] = cleanRecord;
+    } else {
+      added += 1;
+      currentProfiles.push(cleanRecord);
+    }
+    byPrimaryKey.set(primaryValue, cleanRecord);
+    if (identityKey) byIdentityKey.set(identityKey, cleanRecord);
+  });
+
+  const deduped = dedupeProfileRecords(currentProfiles);
+  deduped.idRemap.forEach((value, key) => idRemap.set(key, value));
+  window.localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(deduped.profiles));
+  remapProfileReferences(idRemap);
+  return { added, updated, deleted: deleted + deduped.removed };
+}
+
 function mergeRecordsByPrimaryKey(storageKey: string, primaryKey: string, records: Array<Record<string, unknown>>) {
   const currentRecords = readStoredArray(storageKey);
   const byPrimaryKey = new Map<string, Record<string, unknown>>();
@@ -612,6 +751,7 @@ function importLocalDatabaseSnapshot(rawText: string): LocalDatabaseImportResult
     const mode = table.mode;
     let result = { added: 0, updated: 0, deleted: 0 };
     if (mode === 'singleton') result = importSingletonRecord(table.storageKey, table.records);
+    else if (table.storageKey === PROFILE_STORAGE_KEY) result = mergeProfileRecordsByPrimaryAndIdentity(primaryKey, table.records);
     else if (mode === 'profile-history') result = mergeProfileHistoryRecords(table.storageKey, primaryKey, table.records);
     else if (mode === 'object-records') result = importObjectRecords(table.storageKey, primaryKey, table.records);
     else result = mergeRecordsByPrimaryKey(table.storageKey, primaryKey, table.records);
@@ -4590,6 +4730,14 @@ function ActivityDatabaseView({ dashboard }: { dashboard: ChildDashboard }) {
     }
   }
 
+  function cleanupDuplicateProfiles() {
+    const result = cleanupDuplicateProfilesInStorage();
+    setImportStatus({
+      kind: 'success',
+      message: `Doublons nettoyés : ${result.removed} suppression(s). Recharge la page pour voir la liste à jour.`,
+    });
+  }
+
   return (
     <main className="child-main admin-data-page">
       <ChildTopBar dashboard={dashboard} title="Base de données" />
@@ -4642,6 +4790,7 @@ function ActivityDatabaseView({ dashboard }: { dashboard: ChildDashboard }) {
               />
             </label>
             <button type="button" className="primary-action" disabled={!importText.trim()} onClick={importDatabase}>Importer les données</button>
+            <button type="button" className="secondary-action" onClick={cleanupDuplicateProfiles}>Nettoyer les doublons profils</button>
             {importStatus ? <p className={`form-feedback ${importStatus.kind}`}>{importStatus.message}</p> : null}
           </article>
         </div>
