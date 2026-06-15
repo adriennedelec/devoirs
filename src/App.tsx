@@ -91,6 +91,7 @@ type ChildProfileConfig = {
   role: ProfileRole;
   schoolLevel: string;
   displayOrder?: number;
+  parentCode?: string;
   stars?: number;
   badges?: number;
   streakDays?: number;
@@ -105,6 +106,7 @@ type NewProfileForm = {
   role: ProfileRole;
   schoolLevel: string;
   profileColor: string;
+  parentCode: string;
 };
 
 type FamilyIllustrationVariant = 'house' | 'garden' | 'stars';
@@ -178,6 +180,17 @@ const FAMILY_ILLUSTRATION_OPTIONS: Array<{ id: FamilyIllustrationVariant; label:
 const ACTIVITY_SUBJECTS = ['Mathématiques', 'Français', 'Poésie', 'Lecture'];
 const DEFAULT_HISTORY_PAGE_SIZE = 10;
 const ACTIVITY_CHART_HEIGHT_PX = 96;
+const DEFAULT_PARENT_CODE = '0000';
+
+function normalizeParentCode(value: unknown) {
+  if (typeof value !== 'string') return DEFAULT_PARENT_CODE;
+  const digits = value.replace(/\D/g, '').slice(0, 4);
+  return digits.padStart(4, '0');
+}
+
+function getProfileParentCode(profile: ChildProfileConfig) {
+  return normalizeParentCode(profile.parentCode);
+}
 
 function formatChartAxisTick(value: number) {
   return value.toLocaleString('fr-FR', { maximumFractionDigits: 1 });
@@ -822,6 +835,7 @@ const DEFAULT_FAMILY_PROFILES: ChildProfileConfig[] = [
     profileColor: '#7A8AA0',
     role: 'parent',
     schoolLevel: '',
+    parentCode: DEFAULT_PARENT_CODE,
     stars: 80,
     badges: 0,
     streakDays: 0,
@@ -936,6 +950,7 @@ function normalizeProfile(rawProfile: unknown): ChildProfileConfig | null {
     : typeof candidate.schoolLevel === 'string' && candidate.schoolLevel.trim().length > 0
       ? candidate.schoolLevel.trim()
       : FALLBACK_PROFILE.schoolLevel;
+  const parentCode = role === 'parent' ? normalizeParentCode(candidate.parentCode) : undefined;
   const stars = Number.isFinite(Number(candidate.stars)) ? Math.max(0, Math.floor(Number(candidate.stars))) : 0;
   const badges = Number.isFinite(Number(candidate.badges)) ? Math.max(0, Math.floor(Number(candidate.badges))) : 0;
   const streakDays = Number.isFinite(Number(candidate.streakDays)) ? Math.max(0, Math.floor(Number(candidate.streakDays))) : 0;
@@ -974,6 +989,7 @@ function normalizeProfile(rawProfile: unknown): ChildProfileConfig | null {
     role,
     schoolLevel,
     displayOrder,
+    parentCode,
     stars,
     badges,
     streakDays,
@@ -1114,6 +1130,7 @@ function getDefaultProfileForm(profile?: ChildProfileConfig, role: ProfileRole =
       ? ''
       : (profile?.schoolLevel ?? FALLBACK_PROFILE.schoolLevel),
     profileColor: profile?.profileColor ?? getDefaultProfileColor(profile?.id ?? '', profile?.name ?? '', selectedRole),
+    parentCode: selectedRole === 'parent' ? getProfileParentCode(profile ?? DEFAULT_ADRIEN_PROFILE) : DEFAULT_PARENT_CODE,
   };
 }
 
@@ -1139,6 +1156,7 @@ function normalizeProfilePayload(profile: Omit<ChildProfileConfig, 'id'>): Omit<
     age: role === 'eleve' ? safeAge ?? FALLBACK_PROFILE.age : safeAge,
     role,
     schoolLevel: role === 'parent' ? '' : profile.schoolLevel || FALLBACK_PROFILE.schoolLevel,
+    parentCode: role === 'parent' ? normalizeParentCode(profile.parentCode) : undefined,
     stars: Math.max(0, Math.floor(Number(profile.stars ?? 0))),
     badges: Math.max(0, Math.floor(Number(profile.badges ?? 0))),
     streakDays: Math.max(0, Math.floor(Number(profile.streakDays ?? 0))),
@@ -1162,6 +1180,7 @@ function buildProfilePayloadFromForm(state: NewProfileForm): Omit<ChildProfileCo
     age: state.role === 'parent' && state.age.trim().length === 0 ? undefined : Number(state.age),
     role: state.role,
     schoolLevel: safeSchoolLevel,
+    parentCode: state.role === 'parent' ? normalizeParentCode(state.parentCode) : undefined,
     profileColor: state.profileColor,
     stars: 0,
     badges: 0,
@@ -4145,6 +4164,9 @@ function ProfileView({
         setFormError('Choisis un niveau scolaire valide.');
         return;
       }
+    } else if (!/^\d{4}$/.test(formState.parentCode)) {
+      setFormError('Le code parent doit contenir 4 chiffres.');
+      return;
     }
 
     onCreateProfile(buildProfilePayloadFromForm(formState), editingProfileId ?? undefined);
@@ -4711,7 +4733,7 @@ function ProfileView({
                 <label>
                   <input
                     checked={formState.role === 'parent'}
-                    onChange={() => setFormState((current) => ({ ...current, role: 'parent', schoolLevel: '', age: '', profileColor: getDefaultProfileColor('', current.name, 'parent') }))}
+                    onChange={() => setFormState((current) => ({ ...current, role: 'parent', schoolLevel: '', age: '', parentCode: normalizeParentCode(current.parentCode), profileColor: getDefaultProfileColor('', current.name, 'parent') }))}
                     type="radio"
                     name="profile-role"
                     value="parent"
@@ -4767,7 +4789,22 @@ function ProfileView({
                   </fieldset>
                 </>
               ) : (
-                <p className="parent-modal-note"><User size={16} /> Rôle affiché : Parent</p>
+                <>
+                  <p className="parent-modal-note"><User size={16} /> Rôle affiché : Parent</p>
+                  <label className="answer-field">
+                    <span>Code parent</span>
+                    <input
+                      aria-label="Code parent"
+                      inputMode="numeric"
+                      maxLength={4}
+                      pattern="\d{4}"
+                      type="text"
+                      value={formState.parentCode}
+                      onChange={(event) => { setFormState((current) => ({ ...current, parentCode: event.target.value.replace(/\D/g, '').slice(0, 4) })); setFormError(''); }}
+                      placeholder="0000"
+                    />
+                  </label>
+                </>
               )}
 
               <div className="profile-form-actions modal-actions">
@@ -5130,6 +5167,9 @@ export default function App() {
   const [activeProfileId, setActiveProfileId] = useState<string>(() => readActiveProfileIdFromStorage(FALLBACK_PROFILE.id));
   const [dashboardState, setDashboardState] = useState<ApiState<ChildDashboard>>({ status: 'loading' });
   const [profileExerciseHistory, setProfileExerciseHistory] = useState<ProfileExerciseHistoryMap>(() => readProfileExerciseHistoryFromStorage());
+  const [pendingParentProfileId, setPendingParentProfileId] = useState<string | null>(null);
+  const [parentCodeAttempt, setParentCodeAttempt] = useState('');
+  const [parentCodeError, setParentCodeError] = useState('');
 
   const activeProfile = useMemo(() => {
     return profiles.find((profile) => profile.id === activeProfileId) ?? profiles[0] ?? FALLBACK_PROFILE;
@@ -5168,6 +5208,39 @@ export default function App() {
   useEffect(() => {
     writeProfileExerciseHistoryToStorage(profileExerciseHistory);
   }, [profileExerciseHistory]);
+
+  function requestActivateProfile(profileId: string) {
+    if (profileId === activeProfileId) return;
+    const targetProfile = profiles.find((profile) => profile.id === profileId);
+    if (targetProfile?.role === 'parent') {
+      setPendingParentProfileId(profileId);
+      setParentCodeAttempt('');
+      setParentCodeError('');
+      return;
+    }
+    setActiveProfileId(profileId);
+  }
+
+  function closeParentCodeDialog() {
+    setPendingParentProfileId(null);
+    setParentCodeAttempt('');
+    setParentCodeError('');
+  }
+
+  function submitParentCode(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const targetProfile = profiles.find((profile) => profile.id === pendingParentProfileId);
+    if (!targetProfile) {
+      closeParentCodeDialog();
+      return;
+    }
+    if (parentCodeAttempt !== getProfileParentCode(targetProfile)) {
+      setParentCodeError('Code incorrect.');
+      return;
+    }
+    setActiveProfileId(targetProfile.id);
+    closeParentCodeDialog();
+  }
 
   function createOrUpdateProfile(profile: Omit<ChildProfileConfig, 'id'>, profileId?: string) {
     const normalizedProfile = normalizeProfilePayload(profile);
@@ -5227,7 +5300,7 @@ export default function App() {
           profiles={profiles}
           activeProfileId={activeProfileId}
           activeProfile={activeProfile}
-          onActivateProfile={setActiveProfileId}
+          onActivateProfile={requestActivateProfile}
           onCreateProfile={createOrUpdateProfile}
           onUpdateProfileOrders={updateProfileOrders}
           exerciseHistory={activeProfileHistory}
@@ -5241,6 +5314,7 @@ export default function App() {
   }, [activePage, activeProfileId, activeProfile, dashboardState, profiles, activeProfileHistory]);
 
   const showSideNav = dashboardState.status === 'success';
+  const pendingParentProfile = profiles.find((profile) => profile.id === pendingParentProfileId) ?? null;
   const layoutClassName = [
     activePage === 'multiplication'
       ? 'child-app-layout has-side-nav multiplication-app-layout'
@@ -5264,8 +5338,49 @@ export default function App() {
         <ActiveProfileSwitcher
           profiles={profiles}
           activeProfile={activeProfile}
-          onActivateProfile={setActiveProfileId}
+          onActivateProfile={requestActivateProfile}
         />
+      ) : null}
+      {pendingParentProfile ? (
+        <div className="profile-modal-backdrop" role="presentation" onMouseDown={closeParentCodeDialog}>
+          <section
+            className="profile-modal parent-code-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="parent-code-title"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <div className="profile-modal-header">
+              <div>
+                <p className="eyebrow">Sécurité parent</p>
+                <h2 id="parent-code-title">Code parent requis</h2>
+              </div>
+              <button type="button" className="modal-close-button" onClick={closeParentCodeDialog} aria-label="Fermer la modale">×</button>
+            </div>
+            <form className="profile-form profile-modal-form" onSubmit={submitParentCode}>
+              <p>Entre le code à 4 chiffres pour utiliser le profil {pendingParentProfile.name}.</p>
+              {parentCodeError ? <p className="state-card error" role="alert">{parentCodeError}</p> : null}
+              <label className="answer-field">
+                <span>Code parent</span>
+                <input
+                  aria-label="Code parent"
+                  autoFocus
+                  inputMode="numeric"
+                  maxLength={4}
+                  pattern="\d{4}"
+                  type="text"
+                  value={parentCodeAttempt}
+                  onChange={(event) => { setParentCodeAttempt(event.target.value.replace(/\D/g, '').slice(0, 4)); setParentCodeError(''); }}
+                  placeholder="0000"
+                />
+              </label>
+              <div className="profile-form-actions modal-actions">
+                <button className="secondary-action" type="button" onClick={closeParentCodeDialog}>Annuler</button>
+                <button className="primary-action" type="submit">Valider</button>
+              </div>
+            </form>
+          </section>
+        </div>
       ) : null}
       <div className="child-app-shell">
         {shell}

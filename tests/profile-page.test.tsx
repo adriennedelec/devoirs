@@ -241,6 +241,45 @@ describe('Page Profil famille', () => {
     expect(within(createdCard).getByText(/CM2 • 10 ans/i)).toBeInTheDocument();
   });
 
+  it('protège la bascule parent par un code à 4 chiffres configurable', async () => {
+    const user = await openProfilePage();
+    const parentCard = screen.getByRole('article', { name: /profil de adrien/i });
+    const louaneCard = screen.getByRole('article', { name: /profil de louane/i });
+
+    await user.click(within(parentCard).getByRole('button', { name: /activer adrien/i }));
+    const defaultCodeDialog = screen.getByRole('dialog', { name: /code parent requis/i });
+    await user.type(within(defaultCodeDialog).getByRole('textbox', { name: /code parent/i }), '0000');
+    await user.click(within(defaultCodeDialog).getByRole('button', { name: /valider/i }));
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: /code parent requis/i })).not.toBeInTheDocument());
+    expect(within(parentCard).getByText(/^Actif$/i)).toBeInTheDocument();
+
+    await user.click(within(parentCard).getByRole('button', { name: /modifier adrien/i }));
+    const editDialog = screen.getByRole('dialog', { name: /modifier le profil/i });
+    const codeInput = within(editDialog).getByRole('textbox', { name: /code parent/i });
+    expect(codeInput).toHaveValue('0000');
+    await user.clear(codeInput);
+    await user.type(codeInput, '1234');
+    await user.click(within(editDialog).getByRole('button', { name: /enregistrer/i }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+
+    await user.click(within(louaneCard).getByRole('button', { name: /activer louane/i }));
+    await user.click(within(parentCard).getByRole('button', { name: /activer adrien/i }));
+    const codeDialog = screen.getByRole('dialog', { name: /code parent requis/i });
+    await user.type(within(codeDialog).getByRole('textbox', { name: /code parent/i }), '0000');
+    await user.click(within(codeDialog).getByRole('button', { name: /valider/i }));
+    expect(within(codeDialog).getByRole('alert')).toHaveTextContent(/code incorrect/i);
+
+    await user.clear(within(codeDialog).getByRole('textbox', { name: /code parent/i }));
+    await user.type(within(codeDialog).getByRole('textbox', { name: /code parent/i }), '1234');
+    await user.click(within(codeDialog).getByRole('button', { name: /valider/i }));
+
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: /code parent requis/i })).not.toBeInTheDocument());
+    expect(within(parentCard).getByText(/^Actif$/i)).toBeInTheDocument();
+    expect(window.localStorage.getItem('devoirs.activeProfileId.v1')).toBe('adrien-parent');
+    const storedProfiles = JSON.parse(window.localStorage.getItem('devoirs.childProfiles.v1') ?? '[]');
+    expect(storedProfiles.find((profile: { id: string; parentCode?: string }) => profile.id === 'adrien-parent')?.parentCode).toBe('1234');
+  });
+
   it('permet de définir un ordre unique pour tous les profils famille', async () => {
     window.localStorage.setItem('devoirs.childProfiles.v1', JSON.stringify([
       { id: 'emma-demo', name: 'Emma', avatarEmoji: '🧒', avatarPhotoUrl: '', age: 9, role: 'eleve', schoolLevel: 'CM1', profileColor: '#6D5DFC', displayOrder: 2 },
