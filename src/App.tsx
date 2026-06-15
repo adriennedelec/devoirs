@@ -379,6 +379,250 @@ const PROFILE_PHOTO_OPTIONS = (() => {
 const PROFILE_STORAGE_KEY = 'devoirs.childProfiles.v1';
 const ACTIVE_PROFILE_ID_KEY = 'devoirs.activeProfileId.v1';
 const FAMILY_SETTINGS_STORAGE_KEY = 'devoirs.familySettings.v1';
+const ACTIVITY_DATABASE_STORAGE_KEY = 'devoirs.activityRecords.v1';
+const MULTIPLICATION_TABLE_HISTORY_STORAGE_KEY = 'devoirs.multiplicationTableHistory.v1';
+const REWARD_SETTINGS_STORAGE_KEY = 'devoirs.rewardSettings.v1';
+
+type LocalDatabaseTableMode = 'upsert-delete' | 'singleton' | 'profile-history' | 'object-records';
+
+type LocalDatabaseTableDefinition = {
+  storageKey: string;
+  label: string;
+  primaryKey: string;
+  mode: LocalDatabaseTableMode;
+  singletonKey?: string;
+};
+
+const LOCAL_DATABASE_TABLES: LocalDatabaseTableDefinition[] = [
+  { storageKey: PROFILE_STORAGE_KEY, label: 'Profils famille', primaryKey: 'id', mode: 'upsert-delete' },
+  { storageKey: ACTIVE_PROFILE_ID_KEY, label: 'Profil actif', primaryKey: 'key', mode: 'singleton', singletonKey: 'activeProfileId' },
+  { storageKey: ACTIVITY_DATABASE_STORAGE_KEY, label: 'Activités', primaryKey: 'id', mode: 'upsert-delete' },
+  { storageKey: PROFILE_EXERCISE_HISTORY_STORAGE_KEY, label: 'Historique par profil', primaryKey: 'id', mode: 'profile-history' },
+  { storageKey: MULTIPLICATION_TABLE_HISTORY_STORAGE_KEY, label: 'Historique tables', primaryKey: 'id', mode: 'upsert-delete' },
+  { storageKey: REWARD_SETTINGS_STORAGE_KEY, label: 'Récompenses', primaryKey: 'key', mode: 'object-records' },
+  { storageKey: FAMILY_SETTINGS_STORAGE_KEY, label: 'Paramètres famille', primaryKey: 'key', mode: 'singleton', singletonKey: 'familySettings' },
+  { storageKey: LLAMA_DICTATION_PROMPT_STORAGE_KEY, label: 'Prompt dictée', primaryKey: 'key', mode: 'singleton', singletonKey: 'wordDictationPrompt' },
+];
+
+type LocalDatabaseTableExport = {
+  storageKey: string;
+  label?: string;
+  primaryKey: string;
+  mode: LocalDatabaseTableMode | string;
+  records: Array<Record<string, unknown>>;
+};
+
+type LocalDatabaseExport = {
+  schemaVersion: number;
+  app: 'devoirs';
+  exportedAtIso: string;
+  mergePolicy: string;
+  tables: LocalDatabaseTableExport[];
+};
+
+type LocalDatabaseImportResult = {
+  added: number;
+  updated: number;
+  deleted: number;
+  tables: number;
+};
+
+function parseStoredJsonValue(storageKey: string): unknown {
+  if (typeof window === 'undefined') return null;
+  const rawValue = window.localStorage.getItem(storageKey);
+  if (rawValue === null) return null;
+  try {
+    return JSON.parse(rawValue);
+  } catch {
+    return rawValue;
+  }
+}
+
+function recordsFromStoredValue(table: typeof LOCAL_DATABASE_TABLES[number]): Array<Record<string, unknown>> {
+  const value = parseStoredJsonValue(table.storageKey);
+  if (Array.isArray(value)) return value.filter((item): item is Record<string, unknown> => typeof item === 'object' && item !== null);
+  if (table.mode === 'profile-history' && typeof value === 'object' && value !== null) {
+    return Object.values(value as Record<string, unknown>).flatMap((list) => Array.isArray(list) ? list : [])
+      .filter((item): item is Record<string, unknown> => typeof item === 'object' && item !== null);
+  }
+  if (table.mode === 'object-records' && typeof value === 'object' && value !== null) {
+    return Object.entries(value as Record<string, unknown>).map(([key, record]) => ({
+      key,
+      ...(typeof record === 'object' && record !== null ? record as Record<string, unknown> : { value: record }),
+    }));
+  }
+  if (table.mode === 'singleton') {
+    if (value === null || value === '') return [];
+    return [{ key: table.singletonKey ?? table.storageKey, value }];
+  }
+  return [];
+}
+
+function buildLocalDatabaseExport(): LocalDatabaseExport {
+  return {
+    schemaVersion: 1,
+    app: 'devoirs',
+    exportedAtIso: new Date().toISOString(),
+    mergePolicy: 'primary-key-upsert-delete: un record avec _deleted=true supprime la ligne portant la même clé primaire ; sinon la ligne est ajoutée ou mise à jour.',
+    tables: LOCAL_DATABASE_TABLES.map((table) => ({
+      storageKey: table.storageKey,
+      label: table.label,
+      primaryKey: table.primaryKey,
+      mode: table.mode,
+      records: recordsFromStoredValue(table),
+    })),
+  };
+}
+
+function isDeletedImportRecord(record: Record<string, unknown>) {
+  return record._deleted === true || record.deleted === true || record.__deleted === true;
+}
+
+function readStoredArray(storageKey: string): Array<Record<string, unknown>> {
+  const value = parseStoredJsonValue(storageKey);
+  return Array.isArray(value) ? value.filter((item): item is Record<string, unknown> => typeof item === 'object' && item !== null) : [];
+}
+
+function mergeRecordsByPrimaryKey(storageKey: string, primaryKey: string, records: Array<Record<string, unknown>>) {
+  const currentRecords = readStoredArray(storageKey);
+  const byPrimaryKey = new Map<string, Record<string, unknown>>();
+  currentRecords.forEach((record) => {
+    const key = record[primaryKey];
+    if (typeof key === 'string' && key.trim().length > 0) byPrimaryKey.set(key, record);
+  });
+
+  let added = 0;
+  let updated = 0;
+  let deleted = 0;
+  records.forEach((record) => {
+    const key = record[primaryKey];
+    if (typeof key !== 'string' || key.trim().length === 0) return;
+    if (isDeletedImportRecord(record)) {
+      if (byPrimaryKey.delete(key)) deleted += 1;
+      return;
+    }
+    if (byPrimaryKey.has(key)) updated += 1;
+    else added += 1;
+    const cleanRecord = { ...record };
+    delete cleanRecord._deleted;
+    delete cleanRecord.deleted;
+    delete cleanRecord.__deleted;
+    byPrimaryKey.set(key, cleanRecord);
+  });
+  window.localStorage.setItem(storageKey, JSON.stringify(Array.from(byPrimaryKey.values())));
+  return { added, updated, deleted };
+}
+
+function mergeProfileHistoryRecords(storageKey: string, primaryKey: string, records: Array<Record<string, unknown>>) {
+  const currentValue = parseStoredJsonValue(storageKey);
+  const currentHistory = typeof currentValue === 'object' && currentValue !== null && !Array.isArray(currentValue)
+    ? currentValue as Record<string, Array<Record<string, unknown>>>
+    : {};
+  const flatRecords = Object.values(currentHistory).flatMap((list) => Array.isArray(list) ? list : []);
+  const { added, updated, deleted } = mergeRecordsIntoLocalMap(flatRecords, primaryKey, records);
+  const grouped = flatRecords.reduce<Record<string, Array<Record<string, unknown>>>>((lookup, record) => {
+    const profileId = typeof record.profileId === 'string' && record.profileId.trim().length > 0 ? record.profileId : 'unknown-profile';
+    lookup[profileId] = [...(lookup[profileId] ?? []), record];
+    return lookup;
+  }, {});
+  window.localStorage.setItem(storageKey, JSON.stringify(grouped));
+  return { added, updated, deleted };
+}
+
+function mergeRecordsIntoLocalMap(currentRecords: Array<Record<string, unknown>>, primaryKey: string, records: Array<Record<string, unknown>>) {
+  const byPrimaryKey = new Map<string, Record<string, unknown>>();
+  currentRecords.forEach((record) => {
+    const key = record[primaryKey];
+    if (typeof key === 'string' && key.trim().length > 0) byPrimaryKey.set(key, record);
+  });
+  let added = 0;
+  let updated = 0;
+  let deleted = 0;
+  records.forEach((record) => {
+    const key = record[primaryKey];
+    if (typeof key !== 'string' || key.trim().length === 0) return;
+    if (isDeletedImportRecord(record)) {
+      if (byPrimaryKey.delete(key)) deleted += 1;
+      return;
+    }
+    if (byPrimaryKey.has(key)) updated += 1;
+    else added += 1;
+    const cleanRecord = { ...record };
+    delete cleanRecord._deleted;
+    delete cleanRecord.deleted;
+    delete cleanRecord.__deleted;
+    byPrimaryKey.set(key, cleanRecord);
+  });
+  currentRecords.splice(0, currentRecords.length, ...Array.from(byPrimaryKey.values()));
+  return { added, updated, deleted };
+}
+
+function importSingletonRecord(storageKey: string, records: Array<Record<string, unknown>>) {
+  const record = records[0];
+  if (!record) return { added: 0, updated: 0, deleted: 0 };
+  if (isDeletedImportRecord(record)) {
+    const existed = window.localStorage.getItem(storageKey) !== null;
+    window.localStorage.removeItem(storageKey);
+    return { added: 0, updated: 0, deleted: existed ? 1 : 0 };
+  }
+  const existed = window.localStorage.getItem(storageKey) !== null;
+  const value = record.value;
+  window.localStorage.setItem(storageKey, typeof value === 'string' ? value : JSON.stringify(value ?? ''));
+  return { added: existed ? 0 : 1, updated: existed ? 1 : 0, deleted: 0 };
+}
+
+function importObjectRecords(storageKey: string, primaryKey: string, records: Array<Record<string, unknown>>) {
+  const currentValue = parseStoredJsonValue(storageKey);
+  const objectValue = typeof currentValue === 'object' && currentValue !== null && !Array.isArray(currentValue)
+    ? { ...currentValue as Record<string, unknown> }
+    : {};
+  let added = 0;
+  let updated = 0;
+  let deleted = 0;
+  records.forEach((record) => {
+    const key = record[primaryKey];
+    if (typeof key !== 'string' || key.trim().length === 0) return;
+    if (isDeletedImportRecord(record)) {
+      if (key in objectValue) deleted += 1;
+      delete objectValue[key];
+      return;
+    }
+    const cleanRecord = { ...record };
+    delete cleanRecord[primaryKey];
+    delete cleanRecord._deleted;
+    if (key in objectValue) updated += 1;
+    else added += 1;
+    objectValue[key] = Object.keys(cleanRecord).length === 1 && 'value' in cleanRecord ? cleanRecord.value : cleanRecord;
+  });
+  window.localStorage.setItem(storageKey, JSON.stringify(objectValue));
+  return { added, updated, deleted };
+}
+
+function importLocalDatabaseSnapshot(rawText: string): LocalDatabaseImportResult {
+  if (typeof window === 'undefined') return { added: 0, updated: 0, deleted: 0, tables: 0 };
+  const parsed = JSON.parse(rawText) as Partial<LocalDatabaseExport>;
+  if (!parsed || parsed.schemaVersion !== 1 || !Array.isArray(parsed.tables)) {
+    throw new Error('Format d’import invalide : export Devoirs v1 attendu.');
+  }
+
+  const allowedStorageKeys = new Set(LOCAL_DATABASE_TABLES.map((table) => table.storageKey));
+  return parsed.tables.reduce<LocalDatabaseImportResult>((summary, table) => {
+    if (!table || !allowedStorageKeys.has(table.storageKey) || !Array.isArray(table.records)) return summary;
+    const primaryKey = typeof table.primaryKey === 'string' && table.primaryKey.trim().length > 0 ? table.primaryKey : 'id';
+    const mode = table.mode;
+    let result = { added: 0, updated: 0, deleted: 0 };
+    if (mode === 'singleton') result = importSingletonRecord(table.storageKey, table.records);
+    else if (mode === 'profile-history') result = mergeProfileHistoryRecords(table.storageKey, primaryKey, table.records);
+    else if (mode === 'object-records') result = importObjectRecords(table.storageKey, primaryKey, table.records);
+    else result = mergeRecordsByPrimaryKey(table.storageKey, primaryKey, table.records);
+    return {
+      added: summary.added + result.added,
+      updated: summary.updated + result.updated,
+      deleted: summary.deleted + result.deleted,
+      tables: summary.tables + 1,
+    };
+  }, { added: 0, updated: 0, deleted: 0, tables: 0 });
+}
 
 const DEFAULT_FAMILY_PROFILES: ChildProfileConfig[] = [
   {
@@ -4322,9 +4566,29 @@ function formatActivityDateTime(dateIso: string) {
 function ActivityDatabaseView({ dashboard }: { dashboard: ChildDashboard }) {
   const [moduleFilter, setModuleFilter] = useState<StoredActivityModule | 'all'>('all');
   const [records] = useState<ActivityRecord[]>(() => readActivityRecordsFromStorage());
+  const [exportText, setExportText] = useState('');
+  const [importText, setImportText] = useState('');
+  const [importStatus, setImportStatus] = useState<{ kind: 'success' | 'error'; message: string } | null>(null);
   const filteredRecords = moduleFilter === 'all' ? records : records.filter((record) => record.module === moduleFilter);
   const totalStars = filteredRecords.reduce((total, record) => total + record.starsEarned, 0);
   const totalDuration = filteredRecords.reduce((total, record) => total + record.durationSeconds, 0);
+
+  function prepareExport() {
+    setExportText(JSON.stringify(buildLocalDatabaseExport(), null, 2));
+    setImportStatus(null);
+  }
+
+  function importDatabase() {
+    try {
+      const result = importLocalDatabaseSnapshot(importText);
+      setImportStatus({
+        kind: 'success',
+        message: `Import terminé : ${result.added} ajout(s), ${result.updated} mise(s) à jour, ${result.deleted} suppression(s). Recharge la page pour appliquer le profil actif.`,
+      });
+    } catch (error: unknown) {
+      setImportStatus({ kind: 'error', message: error instanceof Error ? error.message : 'Import impossible.' });
+    }
+  }
 
   return (
     <main className="child-main admin-data-page">
@@ -4339,6 +4603,47 @@ function ActivityDatabaseView({ dashboard }: { dashboard: ChildDashboard }) {
           <strong>{filteredRecords.length}</strong>
           <span>activité{filteredRecords.length > 1 ? 's' : ''}</span>
           <small>{totalStars} ⭐ · {formatDuration(totalDuration)}</small>
+        </div>
+      </section>
+
+      <section className="admin-panel" aria-labelledby="database-sync-title">
+        <div className="section-heading compact">
+          <p className="eyebrow">Synchronisation locale</p>
+          <h2 id="database-sync-title">Export / import des données Devoirs</h2>
+          <p>Chaque table déclare sa clé primaire. À l’import, une ligne avec la même clé est mise à jour, une nouvelle clé est ajoutée, et <code>_deleted: true</code> supprime la ligne.</p>
+        </div>
+        <div className="settings-grid">
+          <article className="settings-card">
+            <h3>Exporter depuis ce navigateur</h3>
+            <p>Copie ce JSON puis colle-le dans la version Vercel pour retrouver profils, activités, historiques et paramétrages.</p>
+            <button type="button" className="primary-action" onClick={prepareExport}>Préparer l'export</button>
+            <label className="field-label">
+              Données exportées
+              <textarea
+                className="prompt-editor"
+                readOnly
+                rows={10}
+                value={exportText}
+                placeholder="Clique sur Préparer l'export pour générer le JSON."
+              />
+            </label>
+          </article>
+          <article className="settings-card">
+            <h3>Importer dans ce navigateur</h3>
+            <p>Colle un export Devoirs. Le merge utilise les clés primaires et respecte les suppressions explicites.</p>
+            <label className="field-label">
+              Coller un export Devoirs
+              <textarea
+                className="prompt-editor"
+                rows={10}
+                value={importText}
+                onChange={(event) => setImportText(event.target.value)}
+                placeholder='{"schemaVersion":1,"tables":[...]}'
+              />
+            </label>
+            <button type="button" className="primary-action" disabled={!importText.trim()} onClick={importDatabase}>Importer les données</button>
+            {importStatus ? <p className={`form-feedback ${importStatus.kind}`}>{importStatus.message}</p> : null}
+          </article>
         </div>
       </section>
 
