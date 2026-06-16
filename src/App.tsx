@@ -7,6 +7,7 @@ import type {
   DictationAnswerResult,
   DictationSession,
   DictationMode,
+  PoetryLibraryText,
   PoetryLineRecitalFeedback,
   PoetryRecitalResult,
   PoetrySession,
@@ -27,6 +28,7 @@ import {
   getChildDashboard,
   getDictationSession,
   getMultiplicationSession,
+  getPoetryLibraryTexts,
   getPoetrySession,
   getReadingSession,
   dictationVerbTenseOptions,
@@ -1447,6 +1449,39 @@ function maskPoetryLine(line: string): string {
     .split('')
     .map((char) => (char.trim() === '' ? char : '•'))
     .join('');
+}
+
+function buildPoetryPracticeLinesFromText(text: string) {
+  return splitPoetryTextIntoLines(text).map((line, index) => ({
+    id: `custom-line-${index + 1}`,
+    label: `Ligne ${index + 1}`,
+    text: line,
+    hiddenText: maskPoetryLine(line),
+    status: index === 0 ? 'known' as const : index < 4 ? 'practice' as const : 'locked' as const,
+  }));
+}
+
+type BrowserTextDetector = new () => {
+  detect: (source: ImageBitmap) => Promise<Array<{ rawValue?: string }>>;
+};
+
+async function extractPoetryTextFromFile(file: File): Promise<string> {
+  if (file.type.startsWith('text/') || /\.(txt|md|csv)$/i.test(file.name)) {
+    return file.text();
+  }
+
+  if (file.type.startsWith('image/') && typeof window !== 'undefined' && 'TextDetector' in window && 'createImageBitmap' in window) {
+    const detector = new ((window as Window & { TextDetector?: BrowserTextDetector }).TextDetector!)();
+    const bitmap = await window.createImageBitmap(file);
+    try {
+      const detected = await detector.detect(bitmap);
+      return detected.map((item) => item.rawValue ?? '').filter(Boolean).join('\n');
+    } finally {
+      bitmap.close();
+    }
+  }
+
+  return '';
 }
 
 type ChildWordDictationFeedbackWord = {
@@ -3867,14 +3902,24 @@ function PoetryView({
   }) => void;
 }) {
   const [sessionState, setSessionState] = useState<ApiState<PoetrySession>>({ status: 'loading' });
+  const [poetryLibrary, setPoetryLibrary] = useState<PoetryLibraryText[]>([]);
+  const [selectedPoemId, setSelectedPoemId] = useState('');
+  const [importedPoetryText, setImportedPoetryText] = useState('');
+  const [importStatus, setImportStatus] = useState<string>('');
   const [recitalState, setRecitalState] = useState<ApiState<PoetryRecitalResult> | null>(null);
   const [hideWords, setHideWords] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    getPoetrySession(MOCK_LEARNING_SERVICE_CHILD_ID)
-      .then((session) => {
-        if (!cancelled) setSessionState({ status: 'success', data: session });
+    Promise.all([
+      getPoetrySession(MOCK_LEARNING_SERVICE_CHILD_ID),
+      getPoetryLibraryTexts(MOCK_LEARNING_SERVICE_CHILD_ID),
+    ])
+      .then(([session, library]) => {
+        if (cancelled) return;
+        setPoetryLibrary(library);
+        setSelectedPoemId(library[0]?.id ?? session.poemId);
+        setSessionState({ status: 'success', data: session });
       })
       .catch((error: unknown) => {
         if (!cancelled) setSessionState({ status: 'error', message: error instanceof Error ? error.message : 'Impossible de charger la poésie.' });
@@ -3882,11 +3927,53 @@ function PoetryView({
     return () => { cancelled = true; };
   }, [dashboard.child.id]);
 
+  const selectedPoem = poetryLibrary.find((poem) => poem.id === selectedPoemId);
+  const displayedPoetryTitle = importedPoetryText.trim()
+    ? 'Poésie importée'
+    : selectedPoem?.title ?? (sessionState.status === 'success' ? sessionState.data.title : 'Poésie');
+  const displayedPoetryAuthor = importedPoetryText.trim()
+    ? 'Texte fourni par la famille'
+    : selectedPoem?.author ?? 'Jean de La Fontaine';
+  const displayedPoetryText = importedPoetryText.trim()
+    ? importedPoetryText
+    : selectedPoem?.text ?? (sessionState.status === 'success' ? sessionState.data.lines.join('\n') : '');
+  const displayedPoetryLines = buildPoetryPracticeLinesFromText(displayedPoetryText);
+
+  function handlePoetrySelection(poemId: string) {
+    setSelectedPoemId(poemId);
+    setImportedPoetryText('');
+    setImportStatus('Fable chargée dans la zone de texte.');
+    setHideWords(false);
+    setRecitalState(null);
+  }
+
+  async function handlePoetryFileImport(file: File | null, source: 'file' | 'photo') {
+    if (!file) return;
+    setImportStatus('OCR en cours…');
+    setRecitalState(null);
+    try {
+      const detectedText = (await extractPoetryTextFromFile(file)).trim();
+      if (!detectedText) {
+        setImportStatus('OCR non disponible dans ce navigateur : colle ou corrige le texte dans la zone ci-dessous.');
+        return;
+      }
+      setImportedPoetryText(detectedText);
+      setImportStatus(source === 'photo' ? 'Photo OCRisée : vérifie le texte avant de réciter.' : 'Fichier importé : vérifie le texte avant de réciter.');
+      setHideWords(false);
+    } catch {
+      setImportStatus('Lecture impossible : colle le texte manuellement dans la zone ci-dessous.');
+    }
+  }
+
   async function validateRecital() {
     if (sessionState.status !== 'success') return;
     setRecitalState({ status: 'loading' });
     try {
-      const result = await submitPoetryRecital(MOCK_LEARNING_SERVICE_CHILD_ID, { poemId: sessionState.data.poemId, confidence: 'ready' });
+      const result = await submitPoetryRecital(MOCK_LEARNING_SERVICE_CHILD_ID, {
+        poemId: selectedPoem?.id ?? sessionState.data.poemId,
+        poemText: displayedPoetryText,
+        confidence: 'ready',
+      });
       const isCompleted = result.status === 'completed';
       const starsEarned = calculateRewardStars('poetry', isCompleted ? 1 : 0, isCompleted ? 0 : 1);
       setRecitalState({ status: 'success', data: result });
@@ -3895,19 +3982,19 @@ function PoetryView({
         profileName: dashboard.child.firstName,
         module: 'poetry',
         moduleLabel: 'Poésie',
-        exerciseLabel: sessionState.data.title,
+        exerciseLabel: displayedPoetryTitle,
         score: isCompleted ? 1 : 0,
         totalQuestions: 1,
         correctCount: isCompleted ? 1 : 0,
         wrongCount: isCompleted ? 0 : 1,
         starsEarned,
         status: isCompleted ? 'completed' : 'partial',
-        details: { poemId: sessionState.data.poemId, feedbackTitle: result.feedbackTitle },
+        details: { poemId: result.poemId, feedbackTitle: result.feedbackTitle },
       }));
       onRecordExercise({
         module: 'poetry',
         moduleLabel: 'Poésie',
-        exercise: sessionState.data.title,
+        exercise: displayedPoetryTitle,
         resultLabel: result.status === 'completed' ? 'Complété' : result.status,
         status: result.status === 'completed' ? 'success' : 'partial',
         details: result.feedbackMessage,
@@ -3928,15 +4015,56 @@ function PoetryView({
             <div className="language-mascot" aria-hidden="true">🎙️</div>
             <div>
               <p className="eyebrow">Mission mémoire</p>
-              <h2 id="poetry-title">{sessionState.data.title}</h2>
+              <h2 id="poetry-title">{displayedPoetryTitle}</h2>
               <p>{sessionState.data.instruction}</p>
+              <div className="poetry-source-panel" aria-label="Choisir ou importer une poésie">
+                <label htmlFor="poetry-library-select">Choisir une fable de La Fontaine</label>
+                <select
+                  id="poetry-library-select"
+                  value={selectedPoemId}
+                  onChange={(event) => handlePoetrySelection(event.target.value)}
+                >
+                  {poetryLibrary.map((poem) => <option key={poem.id} value={poem.id}>{poem.title}</option>)}
+                </select>
+                <div className="poetry-import-actions">
+                  <label className="audio-button" htmlFor="poetry-file-import">Importer un fichier</label>
+                  <input
+                    id="poetry-file-import"
+                    type="file"
+                    accept=".txt,.md,text/*,image/*"
+                    onChange={(event) => void handlePoetryFileImport(event.target.files?.[0] ?? null, 'file')}
+                  />
+                  <label className="audio-button" htmlFor="poetry-photo-import">Prendre une photo</label>
+                  <input
+                    id="poetry-photo-import"
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    onChange={(event) => void handlePoetryFileImport(event.target.files?.[0] ?? null, 'photo')}
+                  />
+                </div>
+                {importStatus ? <p className="poetry-import-status">{importStatus}</p> : null}
+              </div>
+              <label className="poetry-text-label" htmlFor="poetry-text-display">Texte de la poésie</label>
+              <textarea
+                id="poetry-text-display"
+                className="poetry-textarea"
+                value={displayedPoetryText}
+                onChange={(event) => {
+                  setImportedPoetryText(event.target.value);
+                  setImportStatus('Texte modifié manuellement.');
+                  setRecitalState(null);
+                }}
+                rows={12}
+              />
+              <p className="poetry-import-status">{displayedPoetryAuthor} · {displayedPoetryLines.length} ligne{displayedPoetryLines.length > 1 ? 's' : ''}</p>
               <div className="poetry-mode-row">
                 {sessionState.data.memoryModes.map((mode) => (
                   <button className="audio-button" key={mode} type="button" onClick={() => mode === 'Cacher des mots' && setHideWords((value) => !value)}>{mode}</button>
                 ))}
               </div>
-              <div className="poem-lines" aria-label="Texte de la poésie">
-                {sessionState.data.practiceLines.map((line) => <p key={line.id}><strong>{line.label}</strong> — {hideWords ? line.hiddenText : line.text}</p>)}
+              <div className="poem-lines" aria-label="Lignes de mémorisation de la poésie">
+                {displayedPoetryLines.map((line) => <p key={line.id}><strong>{line.label}</strong> — {hideWords ? line.hiddenText : line.text}</p>)}
               </div>
             </div>
           </section>
@@ -3951,7 +4079,7 @@ function PoetryView({
           <section className="page-card recital-card">
             <p className="eyebrow">Récitation simulée</p>
             <h2>Quand tu es prête, valide ta récitation.</h2>
-            <button className="primary-action" type="button" onClick={validateRecital} disabled={recitalState?.status === 'loading'}>J’ai récité ma poésie</button>
+            <button className="primary-action" type="button" onClick={validateRecital} disabled={recitalState?.status === 'loading' || displayedPoetryLines.length === 0}>J’ai récité ma poésie</button>
             {recitalState?.status === 'loading' ? <p className="feedback-card">La mascotte écoute ton effort…</p> : null}
             {recitalState?.status === 'error' ? <p className="feedback-card error">{recitalState.message}</p> : null}
             {recitalState?.status === 'success' ? (

@@ -86,6 +86,20 @@ export type DictationAnswerResult = {
   retryLabel: string;
 };
 
+export type PoetryLibraryText = {
+  id: string;
+  title: string;
+  author: string;
+  text: string;
+};
+
+export type PoetryOcrResult = {
+  source: 'file' | 'photo';
+  fileName: string;
+  detectedText: string;
+  helperText: string;
+};
+
 export type PoetryStepStatus = 'completed' | 'current' | 'locked';
 
 export type PoetryStep = {

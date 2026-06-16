@@ -186,7 +186,7 @@ describe('Profil et modules branchés sur la base activité', () => {
     render(<App />);
     await user.click(await screen.findByRole('button', { name: /poésie/i }));
 
-    await screen.findByRole('heading', { name: /poésie des saisons/i });
+    await screen.findByRole('heading', { name: /la cigale et la fourmi/i });
     await user.click(screen.getByRole('button', { name: /j’ai récité ma poésie/i }));
 
     await waitFor(() => {
@@ -196,7 +196,7 @@ describe('Profil et modules branchés sur la base activité', () => {
         profileId: 'emma-demo',
         module: 'poetry',
         moduleLabel: 'Poésie',
-        exerciseLabel: 'Poésie des saisons',
+        exerciseLabel: 'La Cigale et la Fourmi',
         status: 'completed',
         score: 1,
         totalQuestions: 1,

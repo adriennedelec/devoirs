@@ -13,6 +13,7 @@ import type {
   WordDictationTextResult,
   PoetryLineRecitalFeedback,
   PoetryRecitalResult,
+  PoetryLibraryText,
   PoetryRecitalSubmission,
   PoetrySession,
 } from '../types/language';
@@ -27,6 +28,7 @@ import {
   childDashboardMock,
   dictationSessionMock,
   multiplicationSessionMock,
+  poetryLibraryTexts,
   poetrySessionMock,
   readingSessionMock,
 } from './mockData';
@@ -813,6 +815,13 @@ export async function submitDictationAnswer(
   };
 }
 
+export async function getPoetryLibraryTexts(childId: string): Promise<PoetryLibraryText[]> {
+  await apiDelay();
+  assertKnownChild(childId);
+
+  return cloneApiPayload(poetryLibraryTexts);
+}
+
 export async function getPoetrySession(childId: string): Promise<PoetrySession> {
   await apiDelay();
   assertKnownChild(childId);
@@ -830,7 +839,7 @@ export async function submitPoetryRecital(
   const { poemId, poemText, transcriptText, confidence, recitationMode, lineIndex } = submission;
   const expectedPoemText = poemText ?? poetrySessionMock.lines.join('\n');
 
-  if (poemId !== poetrySessionMock.poemId) {
+  if (poemId !== poetrySessionMock.poemId && !poemText) {
     throw new Error(`Poésie inconnue : ${poemId}`);
   }
 
@@ -851,7 +860,7 @@ export async function submitPoetryRecital(
 
   if (mode === 'line' && confidence === undefined && !isManualPractice) {
     return {
-      poemId: poetrySessionMock.poemId,
+      poemId,
       status: evaluation.status,
       earnedStars: evaluation.status === 'completed' ? poetrySessionMock.rewardStars : 0,
       feedbackTitle: evaluation.status === 'completed' ? 'Très bien, tu as dit cette ligne !' : 'Essaie encore cette ligne.',
@@ -867,7 +876,7 @@ export async function submitPoetryRecital(
 
   if (mode === 'full' && confidence === undefined && isManualPractice) {
     return {
-      poemId: poetrySessionMock.poemId,
+      poemId,
       status: 'needs_practice',
       earnedStars: 0,
       feedbackTitle: 'Il faut valider la récitation',
@@ -884,7 +893,7 @@ export async function submitPoetryRecital(
     const isLineCorrect = lineFeedback?.isCorrect ?? false;
     if (isLineCorrect) {
       return {
-        poemId: poetrySessionMock.poemId,
+        poemId,
         status: evaluation.status,
         earnedStars: evaluation.status === 'completed' ? poetrySessionMock.rewardStars : 0,
         feedbackTitle: evaluation.nextLineToPractice === undefined ? 'Super ! Toute la poésie est mémorisée.' : 'Très bien, ligne réussie',
@@ -899,7 +908,7 @@ export async function submitPoetryRecital(
     }
 
     return {
-      poemId: poetrySessionMock.poemId,
+      poemId,
       status: 'needs_practice',
       earnedStars: 0,
       feedbackTitle: 'Presque prêt !',
@@ -914,7 +923,7 @@ export async function submitPoetryRecital(
   if (evaluation.status === 'completed' || confidence === 'ready') {
     const isValidated = evaluation.status === 'completed' || confidence === 'ready';
     return {
-      poemId: poetrySessionMock.poemId,
+      poemId,
       status: isValidated ? 'completed' : 'needs_practice',
       earnedStars: isValidated ? poetrySessionMock.rewardStars : 0,
       feedbackTitle: isValidated ? 'Bravo, récitation validée !' : 'Il faut encore progresser',
@@ -929,7 +938,7 @@ export async function submitPoetryRecital(
   }
 
   return {
-    poemId: poetrySessionMock.poemId,
+    poemId,
     status: 'needs_practice',
     earnedStars: 0,
     feedbackTitle: 'Encore une tentative',

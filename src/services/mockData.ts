@@ -1,5 +1,5 @@
 import type { ChildDashboard } from '../types/api';
-import type { DictationSession, PoetrySession } from '../types/language';
+import type { DictationSession, PoetryLibraryText, PoetrySession } from '../types/language';
 import type { MultiplicationSession } from '../types/multiplication';
 import type { ReadingSession } from '../types/reading';
 
@@ -166,6 +166,149 @@ export const dictationSessionMock: DictationSession = {
   hints: ['La phrase commence par une majuscule.', 'Il y a un accent circonflexe dans forêt.', 'N’oublie pas le point final.'],
   rewardStars: 4,
 };
+
+
+export const poetryLibraryTexts: PoetryLibraryText[] = [
+  {
+    id: 'la-cigale-et-la-fourmi',
+    title: 'La Cigale et la Fourmi',
+    author: 'Jean de La Fontaine',
+    text: `La Cigale, ayant chanté
+Tout l’été,
+Se trouva fort dépourvue
+Quand la bise fut venue.
+Pas un seul petit morceau
+De mouche ou de vermisseau.
+Elle alla crier famine
+Chez la Fourmi sa voisine,
+La priant de lui prêter
+Quelque grain pour subsister
+Jusqu’à la saison nouvelle.
+« Je vous paierai, lui dit-elle,
+Avant l’août, foi d’animal,
+Intérêt et principal. »
+La Fourmi n’est pas prêteuse :
+C’est là son moindre défaut.
+« Que faisiez-vous au temps chaud ?
+Dit-elle à cette emprunteuse.
+— Nuit et jour à tout venant
+Je chantais, ne vous déplaise.
+— Vous chantiez ? j’en suis fort aise.
+Eh bien ! dansez maintenant. »`,
+  },
+  {
+    id: 'le-corbeau-et-le-renard',
+    title: 'Le Corbeau et le Renard',
+    author: 'Jean de La Fontaine',
+    text: `Maître Corbeau, sur un arbre perché,
+Tenait en son bec un fromage.
+Maître Renard, par l’odeur alléché,
+Lui tint à peu près ce langage :
+« Hé ! bonjour, Monsieur du Corbeau.
+Que vous êtes joli ! que vous me semblez beau !
+Sans mentir, si votre ramage
+Se rapporte à votre plumage,
+Vous êtes le Phénix des hôtes de ces bois. »
+À ces mots le Corbeau ne se sent pas de joie ;
+Et pour montrer sa belle voix,
+Il ouvre un large bec, laisse tomber sa proie.
+Le Renard s’en saisit, et dit : « Mon bon Monsieur,
+Apprenez que tout flatteur
+Vit aux dépens de celui qui l’écoute.
+Cette leçon vaut bien un fromage, sans doute. »
+Le Corbeau honteux et confus
+Jura, mais un peu tard, qu’on ne l’y prendrait plus.`,
+  },
+  {
+    id: 'le-loup-et-lagneau',
+    title: 'Le Loup et l’Agneau',
+    author: 'Jean de La Fontaine',
+    text: `La raison du plus fort est toujours la meilleure :
+Nous l’allons montrer tout à l’heure.
+Un Agneau se désaltérait
+Dans le courant d’une onde pure.
+Un Loup survient à jeun qui cherchait aventure,
+Et que la faim en ces lieux attirait.
+« Qui te rend si hardi de troubler mon breuvage ?
+Dit cet animal plein de rage :
+Tu seras châtié de ta témérité.
+— Sire, répond l’Agneau, que Votre Majesté
+Ne se mette pas en colère ;
+Mais plutôt qu’elle considère
+Que je me vas désaltérant
+Dans le courant,
+Plus de vingt pas au-dessous d’Elle ;
+Et que par conséquent, en aucune façon,
+Je ne puis troubler sa boisson.
+— Tu la troubles, reprit cette bête cruelle,
+Et je sais que de moi tu médis l’an passé.
+— Comment l’aurais-je fait si je n’étais pas né ?
+Reprit l’Agneau ; je tette encor ma mère.
+— Si ce n’est toi, c’est donc ton frère.
+— Je n’en ai point. — C’est donc quelqu’un des tiens :
+Car vous ne m’épargnez guère,
+Vous, vos bergers et vos chiens.
+On me l’a dit : il faut que je me venge. »
+Là-dessus, au fond des forêts
+Le Loup l’emporte, et puis le mange,
+Sans autre forme de procès.`,
+  },
+  {
+    id: 'le-lievre-et-la-tortue',
+    title: 'Le Lièvre et la Tortue',
+    author: 'Jean de La Fontaine',
+    text: `Rien ne sert de courir ; il faut partir à point.
+Le Lièvre et la Tortue en sont un témoignage.
+« Gageons, dit celle-ci, que vous n’atteindrez point
+Sitôt que moi ce but. — Sitôt ? Êtes-vous sage ?
+Repartit l’animal léger.
+Ma commère, il vous faut purger
+Avec quatre grains d’ellébore.
+— Sage ou non, je parie encore. »
+Ainsi fut fait ; et de tous deux
+On mit près du but les enjeux.
+Savoir quoi, ce n’est pas l’affaire,
+Ni de quel juge l’on convint.
+Notre Lièvre n’avait que quatre pas à faire ;
+J’entends de ceux qu’il fait lorsque prêt d’être atteint
+Il s’éloigne des chiens, les renvoie aux calendes,
+Et leur fait arpenter les landes.
+Ayant, dis-je, du temps de reste pour brouter,
+Pour dormir et pour écouter
+D’où vient le vent, il laisse la Tortue
+Aller son train de Sénateur.
+Elle part, elle s’évertue ;
+Elle se hâte avec lenteur.
+Lui cependant méprise une telle victoire,
+Tient la gageure à peu de gloire,
+Croit qu’il y va de son honneur
+De partir tard. Il broute, il se repose,
+Il s’amuse à toute autre chose
+Qu’à la gageure. À la fin quand il vit
+Que l’autre touchait presque au bout de la carrière,
+Il partit comme un trait ; mais les élans qu’il fit
+Furent vains : la Tortue arriva la première.`,
+  },
+  {
+    id: 'la-grenouille-et-le-boeuf',
+    title: 'La Grenouille qui veut se faire aussi grosse que le Bœuf',
+    author: 'Jean de La Fontaine',
+    text: `Une Grenouille vit un Bœuf
+Qui lui sembla de belle taille.
+Elle qui n’était pas grosse en tout comme un œuf,
+Envieuse, s’étend, et s’enfle, et se travaille,
+Pour égaler l’animal en grosseur,
+Disant : « Regardez bien, ma sœur ;
+Est-ce assez ? dites-moi ; n’y suis-je point encore ?
+— Nenni. — M’y voici donc ? — Point du tout. — M’y voilà ?
+— Vous n’en approchez point. » La chétive pécore
+S’enfla si bien qu’elle creva.
+Le monde est plein de gens qui ne sont pas plus sages :
+Tout bourgeois veut bâtir comme les grands seigneurs,
+Tout petit prince a des ambassadeurs,
+Tout marquis veut avoir des pages.`,
+  },
+];
 
 export const poetrySessionMock: PoetrySession = {
   childId: 'emma-demo',

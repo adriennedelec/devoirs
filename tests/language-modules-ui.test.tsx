@@ -692,9 +692,22 @@ describe('Lot 4 dictation and poetry UI', () => {
     await user.click(within(poetryCard!).getByRole('button', { name: /continuer/i }));
 
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: /poésie des saisons/i })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /la cigale et la fourmi/i })).toBeInTheDocument();
     });
-    expect(screen.getByText(/le printemps réveille les jardins/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/choisir une fable/i)).toHaveValue('la-cigale-et-la-fourmi');
+    expect((screen.getByLabelText(/texte de la poésie/i) as HTMLTextAreaElement).value).toContain('La Cigale, ayant chanté');
+
+    await user.selectOptions(screen.getByLabelText(/choisir une fable/i), 'le-corbeau-et-le-renard');
+    expect(screen.getByRole('heading', { name: /le corbeau et le renard/i })).toBeInTheDocument();
+    expect((screen.getByLabelText(/texte de la poésie/i) as HTMLTextAreaElement).value).toContain('Maître Corbeau');
+
+    const importFile = new File(['Mon cartable dort\nSous la lune douce'], 'ma-poesie.txt', { type: 'text/plain' });
+    await user.upload(screen.getByLabelText(/importer un fichier/i), importFile);
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /poésie importée/i })).toBeInTheDocument();
+    });
+    expect(screen.getByLabelText(/texte de la poésie/i)).toHaveValue('Mon cartable dort\nSous la lune douce');
+    expect(screen.getByText(/fichier importé/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /j’ai récité ma poésie/i })).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /j’ai récité ma poésie/i }));

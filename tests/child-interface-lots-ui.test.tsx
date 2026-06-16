@@ -165,8 +165,8 @@ describe('Lots 5-11 complete child interface', () => {
     await waitFor(() => expect(screen.getByRole('heading', { name: /bonjour emma/i })).toBeInTheDocument());
     const poetryCard = screen.getByRole('heading', { name: /poésie/i }).closest('article');
     await user.click(within(poetryCard!).getByRole('button', { name: /continuer/i }));
-    await waitFor(() => expect(screen.getByRole('heading', { name: /poésie des saisons/i })).toBeInTheDocument());
-    expect(screen.getByText(/ligne 1/i)).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole('heading', { name: /la cigale et la fourmi/i })).toBeInTheDocument());
+    expect(screen.getByText(/^Ligne 1$/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /cacher des mots/i })).toBeInTheDocument();
   });
 });

@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   getDictationSession,
+  getPoetryLibraryTexts,
   getPoetrySession,
   extractWordDictationWordsFromOcr,
   generateWordDictationText,
@@ -327,6 +328,28 @@ describe('Lot 4 dictation and poetry services', () => {
     expect(result.words).toEqual(['dragon', 'dragonnn', 'cartable']);
     expect(result.unknownWords).toEqual(['dragonnn']);
     expect(result.helperText).toMatch(/à confirmer/i);
+  });
+
+  it('returns the five main La Fontaine fables for poetry selection and accepts custom poem text', async () => {
+    const library = await getPoetryLibraryTexts('emma-demo');
+
+    expect(library.map((poem) => poem.title)).toEqual([
+      'La Cigale et la Fourmi',
+      'Le Corbeau et le Renard',
+      'Le Loup et l’Agneau',
+      'Le Lièvre et la Tortue',
+      'La Grenouille qui veut se faire aussi grosse que le Bœuf',
+    ]);
+    expect(library[0].text).toContain('La Cigale, ayant chanté');
+
+    const result = await submitPoetryRecital('emma-demo', {
+      poemId: library[1].id,
+      poemText: library[1].text,
+      confidence: 'ready',
+    });
+
+    expect(result.poemId).toBe('le-corbeau-et-le-renard');
+    expect(result.status).toBe('completed');
   });
 
   it('returns a poetry session and validates a simulated recital', async () => {
