@@ -3908,6 +3908,11 @@ function PoetryView({
   const [importStatus, setImportStatus] = useState<string>('');
   const [recitalState, setRecitalState] = useState<ApiState<PoetryRecitalResult> | null>(null);
   const [hideWords, setHideWords] = useState(false);
+  const [manualLineVisibility, setManualLineVisibility] = useState<Record<string, boolean>>({});
+  const [topMaskCount, setTopMaskCount] = useState(0);
+  const [bottomVisibleUntil, setBottomVisibleUntil] = useState(0);
+  const [isPoetryListening, setIsPoetryListening] = useState(false);
+  const poetrySpeechUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -3938,12 +3943,76 @@ function PoetryView({
     ? importedPoetryText
     : selectedPoem?.text ?? (sessionState.status === 'success' ? sessionState.data.lines.join('\n') : '');
   const displayedPoetryLines = buildPoetryPracticeLinesFromText(displayedPoetryText);
+  const effectiveBottomVisibleUntil = bottomVisibleUntil || displayedPoetryLines.length;
+
+  useEffect(() => {
+    setBottomVisibleUntil(displayedPoetryLines.length);
+  }, [displayedPoetryText, displayedPoetryLines.length]);
+
+  useEffect(() => () => {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+  }, []);
+
+  function resetPoetryPracticeControls() {
+    setHideWords(false);
+    setManualLineVisibility({});
+    setTopMaskCount(0);
+    setBottomVisibleUntil(0);
+    stopPoetryListening();
+  }
+
+  function isPoetryLineHidden(lineId: string, index: number) {
+    const manualValue = manualLineVisibility[lineId];
+    if (manualValue !== undefined) return manualValue;
+    return hideWords || index < topMaskCount || index >= effectiveBottomVisibleUntil;
+  }
+
+  function togglePoetryLine(lineId: string, index: number) {
+    const currentlyHidden = isPoetryLineHidden(lineId, index);
+    setManualLineVisibility((current) => ({ ...current, [lineId]: !currentlyHidden }));
+  }
+
+  function stopPoetryListening() {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+    poetrySpeechUtteranceRef.current = null;
+    setIsPoetryListening(false);
+  }
+
+  function listenToPoetry() {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window) || !('SpeechSynthesisUtterance' in window)) {
+      setImportStatus('Lecture vocale non disponible dans ce navigateur.');
+      return;
+    }
+
+    if (isPoetryListening) {
+      stopPoetryListening();
+      return;
+    }
+
+    const textToRead = displayedPoetryText.trim();
+    if (!textToRead) return;
+
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(textToRead);
+    utterance.lang = 'fr-FR';
+    utterance.rate = 0.78;
+    utterance.pitch = 1;
+    utterance.onend = () => setIsPoetryListening(false);
+    utterance.onerror = () => setIsPoetryListening(false);
+    poetrySpeechUtteranceRef.current = utterance;
+    setIsPoetryListening(true);
+    window.speechSynthesis.speak(utterance);
+  }
 
   function handlePoetrySelection(poemId: string) {
     setSelectedPoemId(poemId);
     setImportedPoetryText('');
     setImportStatus('Fable chargée dans la zone de texte.');
-    setHideWords(false);
+    resetPoetryPracticeControls();
     setRecitalState(null);
   }
 
@@ -3959,7 +4028,7 @@ function PoetryView({
       }
       setImportedPoetryText(detectedText);
       setImportStatus(source === 'photo' ? 'Photo OCRisée : vérifie le texte avant de réciter.' : 'Fichier importé : vérifie le texte avant de réciter.');
-      setHideWords(false);
+      resetPoetryPracticeControls();
     } catch {
       setImportStatus('Lecture impossible : colle le texte manuellement dans la zone ci-dessous.');
     }
@@ -4053,19 +4122,71 @@ function PoetryView({
                 onChange={(event) => {
                   setImportedPoetryText(event.target.value);
                   setImportStatus('Texte modifié manuellement.');
+                  resetPoetryPracticeControls();
                   setRecitalState(null);
                 }}
                 rows={12}
               />
               <p className="poetry-import-status">{displayedPoetryAuthor} · {displayedPoetryLines.length} ligne{displayedPoetryLines.length > 1 ? 's' : ''}</p>
               <div className="poetry-mode-row">
-                {sessionState.data.memoryModes.map((mode) => (
-                  <button className="audio-button" key={mode} type="button" onClick={() => mode === 'Cacher des mots' && setHideWords((value) => !value)}>{mode}</button>
-                ))}
+                <button className="audio-button" type="button" onClick={listenToPoetry}>{isPoetryListening ? 'Arrêter l’écoute' : 'Écouter'}</button>
+                <button className="audio-button" type="button" onClick={() => setHideWords((value) => !value)}>{hideWords ? 'Afficher tout' : 'Cacher des mots'}</button>
+                <button className="audio-button" type="button">Réciter</button>
               </div>
-              <div className="poem-lines" aria-label="Lignes de mémorisation de la poésie">
-                {displayedPoetryLines.map((line) => <p key={line.id}><strong>{line.label}</strong> — {hideWords ? line.hiddenText : line.text}</p>)}
-              </div>
+              <section className="poetry-workbench" aria-labelledby="poetry-workbench-title">
+                <div className="poetry-workbench-header">
+                  <div>
+                    <p className="eyebrow">Zone de travail de l’enfant</p>
+                    <h3 id="poetry-workbench-title">Mémoriser ligne par ligne</h3>
+                    <p>Clique sur “Ligne 1”, “Ligne 2”… pour masquer ou afficher une ligne précise.</p>
+                  </div>
+                  <button className="audio-button" type="button" onClick={resetPoetryPracticeControls}>Tout afficher</button>
+                </div>
+                <div className="poetry-mask-controls" aria-label="Curseurs de masquage de la poésie">
+                  <label>
+                    Masquer depuis le haut
+                    <input
+                      aria-label="Masquer les lignes du haut"
+                      type="range"
+                      min={0}
+                      max={displayedPoetryLines.length}
+                      value={topMaskCount}
+                      onChange={(event) => setTopMaskCount(Number(event.target.value))}
+                    />
+                    <span>{topMaskCount === 0 ? 'aucune ligne masquée en haut' : `${topMaskCount} ligne${topMaskCount > 1 ? 's' : ''} masquée${topMaskCount > 1 ? 's' : ''} en haut`}</span>
+                  </label>
+                  <label>
+                    Masquer depuis le bas
+                    <input
+                      aria-label="Masquer les lignes du bas"
+                      type="range"
+                      min={0}
+                      max={displayedPoetryLines.length}
+                      value={displayedPoetryLines.length - effectiveBottomVisibleUntil}
+                      onChange={(event) => setBottomVisibleUntil(displayedPoetryLines.length - Number(event.target.value))}
+                    />
+                    <span>{displayedPoetryLines.length - effectiveBottomVisibleUntil === 0 ? 'aucune ligne masquée en bas' : `${displayedPoetryLines.length - effectiveBottomVisibleUntil} ligne${displayedPoetryLines.length - effectiveBottomVisibleUntil > 1 ? 's' : ''} masquée${displayedPoetryLines.length - effectiveBottomVisibleUntil > 1 ? 's' : ''} en bas`}</span>
+                  </label>
+                </div>
+                <div className="poem-lines" aria-label="Lignes de mémorisation de la poésie">
+                  {displayedPoetryLines.map((line, index) => {
+                    const lineHidden = isPoetryLineHidden(line.id, index);
+                    return (
+                      <p className={lineHidden ? 'poem-line is-hidden' : 'poem-line'} key={line.id}>
+                        <button
+                          className="poem-line-toggle"
+                          type="button"
+                          aria-pressed={lineHidden}
+                          onClick={() => togglePoetryLine(line.id, index)}
+                        >
+                          {line.label}
+                        </button>
+                        <span aria-label={lineHidden ? `${line.label} masquée` : `${line.label} affichée`}>{lineHidden ? line.hiddenText : line.text}</span>
+                      </p>
+                    );
+                  })}
+                </div>
+              </section>
             </div>
           </section>
           <section className="poetry-steps" aria-label="Étapes de poésie">

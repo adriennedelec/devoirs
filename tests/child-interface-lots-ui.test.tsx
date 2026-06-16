@@ -1,6 +1,6 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import App from '../src/App';
 
 describe('Lots 5-11 complete child interface', () => {
@@ -166,7 +166,46 @@ describe('Lots 5-11 complete child interface', () => {
     const poetryCard = screen.getByRole('heading', { name: /poésie/i }).closest('article');
     await user.click(within(poetryCard!).getByRole('button', { name: /continuer/i }));
     await waitFor(() => expect(screen.getByRole('heading', { name: /la cigale et la fourmi/i })).toBeInTheDocument());
-    expect(screen.getByText(/^Ligne 1$/i)).toBeInTheDocument();
+    const speechSpeak = vi.fn((utterance: SpeechSynthesisUtterance) => utterance.onend?.call(utterance, {} as SpeechSynthesisEvent));
+    Object.defineProperty(window, 'speechSynthesis', {
+      configurable: true,
+      value: { speak: speechSpeak, cancel: vi.fn() },
+    });
+    Object.defineProperty(window, 'SpeechSynthesisUtterance', {
+      configurable: true,
+      value: class MockSpeechSynthesisUtterance {
+        text: string;
+        lang = '';
+        rate = 1;
+        pitch = 1;
+        onend: ((event: SpeechSynthesisEvent) => void) | null = null;
+        onerror: ((event: SpeechSynthesisErrorEvent) => void) | null = null;
+        constructor(text: string) {
+          this.text = text;
+        }
+      },
+    });
+
+    await user.click(screen.getByRole('button', { name: /écouter/i }));
+    expect(speechSpeak).toHaveBeenCalledTimes(1);
+    expect(speechSpeak.mock.calls[0][0].text).toContain('La Cigale, ayant chanté');
+
+    const lineOneButton = screen.getByRole('button', { name: /^Ligne 1$/i });
+    expect(screen.getByLabelText(/ligne 1 affichée/i)).toHaveTextContent(/La Cigale/);
+    await user.click(lineOneButton);
+    expect(lineOneButton).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByLabelText(/ligne 1 masquée/i)).toHaveTextContent(/••/);
+    await user.click(lineOneButton);
+    expect(lineOneButton).toHaveAttribute('aria-pressed', 'false');
+
+    await user.click(screen.getByRole('button', { name: /tout afficher/i }));
+    fireEvent.change(screen.getByLabelText(/masquer les lignes du haut/i), { target: { value: '2' } });
+    expect(screen.getByLabelText(/ligne 1 masquée/i)).toBeInTheDocument();
+    await user.click(lineOneButton);
+    expect(screen.getByLabelText(/ligne 1 affichée/i)).toHaveTextContent(/La Cigale/);
+
+    fireEvent.change(screen.getByLabelText(/masquer les lignes du bas/i), { target: { value: '1' } });
+    expect(screen.getByText(/1 ligne masquée en bas/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /cacher des mots/i })).toBeInTheDocument();
   });
 });

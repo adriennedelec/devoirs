@@ -1629,20 +1629,95 @@
   margin: 8px 0 10px;
 }
 
+.poetry-workbench {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+  padding: 18px;
+  border-radius: 28px;
+  background: linear-gradient(135deg, #fff8dc, #f2eeff);
+  border: 1px solid rgba(109, 93, 252, 0.16);
+}
+
+.poetry-workbench-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.poetry-workbench-header h3,
+.poetry-workbench-header p {
+  margin: 0;
+}
+
+.poetry-mask-controls {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.poetry-mask-controls label {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.76);
+  color: var(--color-primary-dark);
+  font-weight: 900;
+}
+
+.poetry-mask-controls input[type="range"] {
+  width: 100%;
+  accent-color: var(--color-primary);
+}
+
+.poetry-mask-controls span {
+  color: #6f6a86;
+  font-size: 0.88rem;
+  font-weight: 800;
+}
+
 .poem-lines {
   display: grid;
   gap: 8px;
-  margin: 16px 0 0;
+  margin: 0;
   padding: 18px;
   border-radius: 24px;
   background: #f4f0ff;
 }
 
-.poem-lines p {
+.poem-line {
+  display: grid;
+  grid-template-columns: minmax(92px, max-content) 1fr;
+  align-items: center;
+  gap: 10px;
   margin: 0;
   color: var(--color-primary-dark);
   font-size: 1.08rem;
   font-weight: 900;
+}
+
+.poem-line-toggle {
+  border: 0;
+  border-radius: 999px;
+  padding: 8px 12px;
+  background: #ffffff;
+  color: var(--color-primary-dark);
+  box-shadow: 0 6px 14px rgba(109, 93, 252, 0.12);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.9rem;
+}
+
+.poem-line-toggle[aria-pressed="true"] {
+  background: #6d5dfc;
+  color: #ffffff;
+}
+
+.poem-line.is-hidden span {
+  color: #8b86a3;
+  letter-spacing: 0.05em;
 }
 
 .poetry-steps {
