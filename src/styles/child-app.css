@@ -1698,35 +1698,51 @@
 
 .poetry-timeline-slider {
   position: absolute;
-  inset: 30px 0;
+  top: 30px;
+  bottom: 30px;
   display: flex;
   justify-content: center;
   pointer-events: none;
 }
 
+.poetry-timeline-slider.top {
+  left: 0;
+  right: 50%;
+  z-index: 3;
+}
+
+.poetry-timeline-slider.bottom {
+  left: 50%;
+  right: 0;
+  z-index: 2;
+}
+
 .poetry-timeline-slider span {
   position: absolute;
-  left: 6px;
-  right: 6px;
-  padding: 3px 6px;
+  width: 42px;
+  padding: 3px 5px;
   border-radius: 999px;
   background: rgba(109, 93, 252, 0.12);
   color: var(--color-primary-dark);
-  font-size: 0.64rem;
+  font-size: 0.58rem;
   font-weight: 900;
+  line-height: 1.05;
   text-align: center;
+  pointer-events: none;
 }
 
 .poetry-timeline-slider.top span {
   top: -22px;
+  right: -2px;
 }
 
 .poetry-timeline-slider.bottom span {
   bottom: -22px;
+  left: -2px;
 }
 
 .poetry-timeline-slider input[type="range"] {
-  width: calc(100% - 56px);
+  width: 34px;
   height: 100%;
   writing-mode: vertical-lr;
   appearance: slider-vertical;
