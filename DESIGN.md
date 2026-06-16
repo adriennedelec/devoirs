@@ -1,493 +1,619 @@
-# DESIGN.md — Devoirs
+---
+version: alpha
+name: Devoirs Enfants Magical Learning App
+description: Child-first homework and learning app. Soft magical educational adventure, API-ready, parent-assisted, playful but serious.
+colors:
+  background: "#F3EFFF"
+  backgroundSoft: "#EEF6FF"
+  pageProfile: "#F8F9FF"
+  surface: "#FFFFFF"
+  surfaceTint: "#FFF8EF"
+  primary: "#6D5DFC"
+  primaryAccessible: "#4B3BC4"
+  primaryDark: "#332A7C"
+  secondary: "#4E7DFF"
+  sky: "#4CC9F0"
+  star: "#FFC83D"
+  success: "#22A05A"
+  successSoft: "#E6FBEF"
+  warning: "#D97706"
+  warningSoft: "#FFF4CF"
+  error: "#D63D24"
+  errorSoft: "#FFF0EC"
+  text: "#1F2A44"
+  muted: "#667085"
+  border: "#E4DEF8"
+typography:
+  h1:
+    fontFamily: Nunito, Quicksand, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif
+    fontSize: 2.25rem
+    fontWeight: 800
+    lineHeight: 1.05
+    letterSpacing: "-0.03em"
+  h2:
+    fontFamily: Nunito, Quicksand, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif
+    fontSize: 1.5rem
+    fontWeight: 780
+    lineHeight: 1.12
+    letterSpacing: "-0.02em"
+  body:
+    fontFamily: Nunito, Quicksand, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif
+    fontSize: 1rem
+    fontWeight: 500
+    lineHeight: 1.45
+  child-large:
+    fontFamily: Nunito, Quicksand, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif
+    fontSize: 1.125rem
+    fontWeight: 760
+    lineHeight: 1.25
+  helper:
+    fontFamily: Nunito, Quicksand, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif
+    fontSize: 0.9rem
+    fontWeight: 600
+    lineHeight: 1.35
+rounded:
+  sm: 14px
+  md: 18px
+  lg: 24px
+  xl: 30px
+  pill: 999px
+spacing:
+  xs: 6px
+  sm: 10px
+  md: 16px
+  lg: 24px
+  xl: 32px
+components:
+  button-primary:
+    backgroundColor: "{colors.primaryAccessible}"
+    textColor: "#FFFFFF"
+    rounded: "{rounded.md}"
+    padding: 14px
+  button-primary-hover:
+    backgroundColor: "{colors.primaryDark}"
+    textColor: "#FFFFFF"
+    rounded: "{rounded.md}"
+    padding: 14px
+  button-secondary:
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.primaryDark}"
+    rounded: "{rounded.md}"
+    padding: 12px
+  card:
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.text}"
+    rounded: "{rounded.xl}"
+    padding: 24px
+  exercise-card:
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.text}"
+    rounded: "{rounded.xl}"
+    padding: 28px
+  input:
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.text}"
+    rounded: "{rounded.md}"
+    padding: 14px
+  badge-star:
+    backgroundColor: "{colors.warningSoft}"
+    textColor: "{colors.primaryDark}"
+    rounded: "{rounded.pill}"
+    padding: 8px
+  badge-success:
+    backgroundColor: "{colors.successSoft}"
+    textColor: "#147348"
+    rounded: "{rounded.pill}"
+    padding: 8px
+  badge-error:
+    backgroundColor: "{colors.errorSoft}"
+    textColor: "#B6321D"
+    rounded: "{rounded.pill}"
+    padding: 8px
+---
 
-## Intention visuelle
+## Overview
 
-L’application doit ressembler à une **aventure éducative douce**, pas à un logiciel scolaire adulte.
+Devoirs est une application d’aide aux devoirs pour enfants du primaire. Sa direction visuelle est **magical learning adventure** : un univers doux, rassurant, pastel, ludique et guidant, qui transforme les devoirs en petites missions éducatives.
 
-Les visuels sources du dossier `sources/interface enfant/` montrent une direction forte :
+**North star:** “Je pars en mission, je progresse, je gagne des étoiles, et je comprends mes devoirs.”
 
-- univers magique, pastel, rassurant ;
-- mascottes et personnages cartoon ;
-- cartes blanches arrondies ;
-- couleurs violettes, bleues, jaunes et vertes ;
-- progression visible ;
-- récompenses immédiates ;
-- écrans conçus pour tablette / mobile.
+Le produit doit rester pédagogiquement sérieux, mais ne doit jamais ressembler à un dashboard SaaS adulte. L’enfant doit se sentir encouragé, guidé et en sécurité. Les parents gardent le contrôle sur la préparation, les profils, les prompts, les imports et la validation.
 
-Le design doit donner à l’enfant l’impression de :
+### Inheritance from the global charter
 
-> “Je pars en mission, je progresse, je gagne des étoiles, et je comprends mes devoirs.”
+This local charter inherits from `/Users/nedelecadrien/.hermes/design/GLOBAL_DESIGN.md`.
 
-## Public cible
+Local Devoirs overrides:
 
-Priorité : enfants du primaire.
+- The visual identity is child-first, pastel and magical, not adult SaaS cockpit.
+- Density is lower on child screens; parent/admin screens may be denser but must remain soft.
+- Typography uses rounded friendly fonts: Nunito/Quicksand/system fallback.
+- Purple/lavender is the main child action color, not the global blue fallback.
+- Rewards, stars, avatars, mascots and encouraging copy are core UI primitives.
 
-Conséquences UI :
+Global rules that still apply:
 
-- textes courts ;
-- vocabulaire simple ;
-- boutons larges ;
-- icônes explicites ;
-- feedback immédiat ;
-- peu d’options simultanées ;
-- contraste suffisant ;
-- typographie arrondie et lisible ;
-- animations légères, non distrayantes.
+- Preserve existing UI/flows unless Adrien explicitly asks for redesign.
+- Prefer CSS-only or minimal changes when possible.
+- No broad redesign without explicit request.
+- Tables require search, filters and useful column sorting when tables exist.
+- Verification is proportional to risk.
+- Do not invent dependencies or replace the stack without approval.
 
-## Références visuelles analysées
+### Site-specific decisions validated for Devoirs
 
-### Interface enfant
+- **Urgency:** this project is a priority; keep changes small, useful and directly applicable.
+- **Child-first:** child screens must be playful, soft and one-action-at-a-time.
+- **Parent-assisted:** parent/admin preparation can be more structured, but should not become cold or enterprise-like.
+- **Magical but functional:** gradients, stars, mascots and avatars are welcome only when they preserve clarity and learning flow.
+- **Sidebar stays:** the app uses a fixed left child navigation on desktop/tablet. Do not revert to a bottom nav unless explicitly requested.
+- **Fixed full-height sidebar:** the left menu must descend visually to the bottom of the viewport and remain fixed/sticky on desktop/tablet.
+- **Connected user pinned bottom-left:** when authentication exists, the connected user name/logout area is fixed at the bottom-left of the sidebar, never floating in the middle of the menu.
+- **Active profile selector:** the active child/user selector is a global control available on every page, currently top-right. It should show the child character/photo immediately before the child's name — not initials when a photo/personnage exists, not the school level, not “profil actif”. Do not hide profile switching inside the Profile page only.
+- **Less bold typography:** Devoirs should feel friendly and readable, not visually shouted. Reserve very heavy weights for short key labels/badges; body text, helper text, cards and tables use medium weights.
+- **Moderate exercise scale:** exercise questions must be prominent but not oversized; multiplication questions like `7 × 8` should usually stay around `2.6–3.2rem` desktop instead of huge hero typography.
+- **Local-first data:** many features use `localStorage` and mock/API-ready service layers. Design must support persistence, export/import and future backend migration.
+- **No punitive UX:** errors are treated as “almost there” learning moments, not failures.
 
-- `dashboard enfant.png` : écran d’accueil principal enfant.
-- `parcours.png` : chemin de progression pédagogique.
-- `dashboard table multiplication.png` : hub de matière / tables de multiplication.
-- `table multiplication revision.png` : exercice QCM avec feedback.
-- `multiplication.png` : exercice de complétion de table.
-- `apprendre poesie.png` : apprentissage guidé d’une poésie.
-- `recite poesie.png` : récitation avec détection d’erreurs.
-- `lecture.png` : lecture à voix haute avec score.
-- `dictee.png` : dictée avec audio et zone d’écriture.
-- `defi parents.png` : défi enfant vs parents.
-- `gamification.png` : progression, niveaux, avatar, badges.
-- `gamification2.png` : univers personnalisable.
-- `vraie vie.png` : missions pédagogiques dans le quotidien.
+## Colors
 
-### Autres sources à analyser ensuite
+### Palette roles
 
-- `dashboard parents.png`
-- `dashboard enseignant.png`
-- `enseignant_preparer un devoir.png`
-- `teacher dashboard.png`
-- `evaluation DYS.png`
-- `compere comere.jpg`
+- **Background `#F3EFFF`:** main magical pastel lavender canvas.
+- **Background Soft `#EEF6FF`:** soft blue secondary background.
+- **Profile Page `#F8F9FF`:** calm family/profile area.
+- **Surface `#FFFFFF`:** cards, exercises, modals, panels.
+- **Surface Tint `#FFF8EF`:** warm reward/mission surfaces.
+- **Primary `#6D5DFC`:** magical purple accent and child action color.
+- **Primary Accessible `#4B3BC4`:** primary button color when white text is used.
+- **Primary Dark `#332A7C`:** headings, strong labels, deep contrast.
+- **Secondary `#4E7DFF`:** blue action/learning highlight.
+- **Sky `#4CC9F0`:** playful info/audio/reading accent.
+- **Star `#FFC83D`:** stars, rewards and positive energy.
+- **Success `#22A05A`:** correct, mastered, completed.
+- **Warning `#D97706`:** attention, retry, almost-there state.
+- **Error `#D63D24`:** correction/error, but never punitive full-screen red.
+- **Text `#1F2A44`:** primary readable text.
+- **Muted `#667085`:** helper text and metadata.
 
-## Palette recommandée
+### Color rules
 
-Tokens de départ :
+- Purple is the main child action language.
+- Yellow/star is for rewards, points, progress and celebration.
+- Green means mastered/correct/completed.
+- Orange means “try again / pay attention” without shame.
+- Red/error must be limited and softened; never use harsh failure screens for children.
+- Parent/admin technical areas may use more white/blue/lavender surfaces, but should remain friendly.
+- Do not overuse rainbow colors. Every color must map to learning, progress, profile identity, or state.
+
+### Profile colors
+
+Family/profile colors are stable per profile ID/user. Reuse the same color for:
+
+- profile cards;
+- active user/profile chip;
+- activity overview dots;
+- histogram bars;
+- profile list indicators.
+
+A profile color follows the profile, not chart order.
+
+## Typography
+
+### Font direction
+
+Use rounded, friendly, highly readable typography:
 
 ```css
-:root {
-  --color-bg: #f3efff;
-  --color-bg-soft: #eef6ff;
-  --color-card: #ffffff;
-  --color-card-tint: #fff8ef;
-
-  --color-primary: #7c5cff;
-  --color-primary-dark: #4b3bc4;
-  --color-secondary: #4cc9f0;
-
-  --color-star: #ffbf3f;
-  --color-success: #45c486;
-  --color-warning: #ff9f43;
-  --color-error: #ff6b6b;
-
-  --color-text: #24324b;
-  --color-text-muted: #6f7890;
-  --color-border: #e4def8;
-}
+font-family: Nunito, Quicksand, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 ```
 
-## Typographie
+### Rules
 
-Direction : police arrondie, enfantine mais propre.
+- Texts are short, direct and in French.
+- Child labels must be understandable without adult interpretation.
+- Avoid thin weights; use confident rounded weights.
+- Minimum comfortable font size for child actions.
+- Use strong size hierarchy for the current task/question.
+- Parent technical details can be smaller but must remain readable.
+- Do not use dense adult dashboard typography on child screens.
+- Avoid making most text bold. Default copy is medium; use bold for short labels, active nav, primary CTA and key results only.
+- Exercise numbers/questions should be large enough to focus the child, but never so large that they dominate the whole screen or reduce calmness.
 
-Recommandations possibles :
+### Copy tone
 
-- `Nunito`
-- `Quicksand`
-- `Baloo 2` pour certains titres
-- fallback : `system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`
+Use:
 
-Règles :
+- “Bravo, tu avances !”
+- “Presque ! Regarde encore ce détail.”
+- “Super, on continue !”
+- “Tu as gagné des étoiles.”
 
-- titres très lisibles ;
-- éviter les textes fins ;
-- taille minimum confortable ;
-- lignes courtes ;
-- utiliser gras / couleurs pour guider l’œil.
+Avoid:
 
-## Structure d’écran enfant
+- “Faux.”
+- “Erreur.”
+- “Raté.”
+- shame, pressure, or ranking language.
 
-### Layout mobile/tablette-first
+## Layout
 
-Les écrans doivent être conçus d’abord pour un format portrait.
+### Shell and navigation
 
-Structure recommandée :
+The app uses a left child sidebar on desktop/tablet.
 
-```txt
-AppShellEnfant
-├── SideNav
-│   ├── mascotte / marque
-│   ├── Accueil
-│   ├── Parcours
-│   ├── Récompenses
-│   ├── Lecture
-│   └── Profil
-├── TopBar
-│   ├── avatar / prénom
-│   ├── étoiles
-│   └── notifications
-└── MainContent
-    ├── cartes / mission / exercice
-    └── mascotte / conseil
+- Sidebar width target: `250px`.
+- The sidebar remains visible for core modules, including multiplication, unless Adrien explicitly asks for a fullscreen exception.
+- On desktop/tablet the sidebar must extend top-to-bottom (`height: 100vh`) and remain fixed/sticky while page content scrolls.
+- The right shell should use the full remaining viewport width when the page needs space: `calc(100vw - 250px)`.
+- Do not re-center major child flows in a narrow desktop container if Adrien asked for full-width use.
+- On small screens, compact the sidebar/rail while preserving accessible navigation names.
+
+### Active user/profile controls
+
+- The active profile selector is a global top-right control across pages.
+- The top-right profile selector displays only the child character/photo immediately followed by the child name. Do not add the school level, role, status, or “profil actif” in that top chip.
+- It must allow switching users from non-profile pages without navigating away.
+- Avoid decorative online/status dots unless explicitly requested.
+- If provisional authentication is active, show connected username and dynamic role label (`Administrateur` or `Utilisateur`) at the bottom of the left sidebar.
+- Show logout when authentication exists.
+- Show light/dark toggle only if the mode exists; no fake toggle.
+
+### Child screen density
+
+- One main activity per screen or section.
+- Large, obvious primary action.
+- Few choices visible at once for children.
+- Parent preparation sections may be denser but must be grouped into calm cards.
+- Do not overload child screens with adult KPIs.
+
+### Width rules
+
+- No global horizontal overflow.
+- Full-width modules such as `Dictée` and `Tables` must fill the right shell when appropriate.
+- Nested wrappers must not reintroduce narrow max-width constraints when the page is meant to be full-width.
+- Long names, prompts, URLs and generated text must wrap inside cards.
+
+## Elevation & Depth
+
+Use soft, friendly depth:
+
+- White cards over pastel background.
+- Rounded surfaces with soft shadows.
+- Exercise cards feel tactile and safe.
+- Avoid harsh black shadows.
+- Avoid glassmorphism that reduces readability.
+
+Recommended shadow:
+
+```css
+box-shadow: 0 12px 32px rgba(31, 42, 68, 0.08);
 ```
 
-Règle actuelle : la navigation principale est un **menu latéral fixe**, plus lisible sur desktop/tablette et compactée en rail vertical sur petits écrans. Il ne doit plus revenir en barre basse sauf demande explicite.
+Interactive cards may lift by 1–2px maximum. Animations must be soft and optional/reduced-motion compatible.
 
-Sur desktop :
+## Shapes
 
-- conserver un conteneur central façon tablette ;
-- placer le contenu à droite du rail latéral ;
-- éviter d’étirer les cartes sur toute la largeur ;
-- éventuellement ajouter un fond décoratif.
+- Main cards: 24–30px radius.
+- Exercise cards: 30px radius.
+- Inputs/buttons: 18px radius.
+- Pills/badges: 999px.
+- Avatars/photos: circular or rounded according to profile-photo picker context.
+- Avoid sharp corporate corners on child screens.
 
-## Composants UI obligatoires
+## Components
 
-### Composants shell
+### Child app shell
+
+Core shell components:
 
 - `ChildAppShell`
-- `ChildTopBar`
-- `ChildBottomNav`
-- `PageHeader`
-- `MascotTip`
-
-### Composants progression
-
-- `StarCounter`
-- `ProgressRing`
-- `ProgressBar`
-- `DailyGoalCard`
-- `LevelBadge`
-- `StreakBadge`
-- `AchievementBadge`
-
-### Composants activités
-
-- `ActivityCard`
-- `LearningPathMap`
-- `LearningPathStep`
-- `SubjectHubCard`
-- `ExerciseModeCard`
-
-### Composants exercices
-
-- `ExerciseCard`
-- `AnswerChoice`
-- `CorrectionFeedback`
-- `HintCard`
-- `AudioPlayerCard`
-- `StepProgress`
-- `RewardToast`
-
-### Écran Lecture — génération IA et lecture chronométrée
-
-La page `Lecture` est structurée en 4 blocs lisibles :
-
-- **Générer l’histoire** : champs `Personnage`, `Animal`, `Objet`, `Lieu`, `Taille du texte` avec choix `XS`, `S`, `M`, `L`, `XL`, puis bouton `Générer` ;
-- **Définir le prompt** : textarea parent avec placeholders stables `{{personnage}}`, `{{animal}}`, `{{objet}}`, `{{lieu}}`, `{{taille}}` et aperçu du prompt réellement envoyé à l’IA ;
-- **Texte à lire** : carte de lecture enfant, bouton audio conservé, bouton `Démarrer l’enregistrement`, bouton `Arrêter et analyser`, chronomètre visible ;
-- **Analyse de l’enregistrement** : transcription éditable, mots corrects/erreurs/mots manquants colorés, KPI `Mots par minute`, `Temps total`, `Erreurs`, `Précision`, puis tableau de statistiques.
-
-Règle UX : l’analyse doit rester encourageante et exploitable par le parent. Les erreurs sont visibles en couleur, mais le texte ne doit pas culpabiliser l’enfant. Le bloc compréhension existant reste disponible en bonus afin de préserver la continuité pédagogique.
-
-### Écran Dictée — modes mots / normale
-
-Le module `Dictée magique` doit distinguer clairement deux usages :
-
-- **Dictée de mots** (mode affiché en premier) : espace parent pleine largeur pour saisir une série de mots ; tout séparateur courant (espace, retour ligne, virgule, point, slash, tiret, etc.) découpe la saisie en mots distincts avant validation ;
-- **Dictée normale** : conservation du flux existant avec phrase à écouter, zone d’écriture et correction mot par mot ;
-- shell dictée en pleine largeur disponible à droite du menu latéral (`calc(100vw - 250px)`), sans rester limité à la largeur standard des petits modules ;
-- sélecteur de mode en deux cartes arrondies, état actif violet ;
-- import des mots via `Importer un fichier` et `Prendre une photo` (`capture="environment"`), branché sur un service OCR API-ready ;
-- retour OCR doux (`3 mots détectés par OCR...`) puis remplissage automatique du champ `Série de mots` ;
-- comparer chaque mot découpé au dictionnaire français embarqué/API-ready (environ 336 000 mots via `an-array-of-french-words`) ; si un mot saisi ou OCRisé n’est pas reconnu, afficher une carte douce `Mot à confirmer` avec le ou les mots concernés et un bouton `Confirmer et générer` ;
-- choix des temps verbaux sous forme de cases à cocher multi-sélection : `Présent`, `Imparfait`, `Passé composé`, `Futur` ;
-- bouton `Générer le texte` qui produit une mini-histoire courte, naturelle, logique et adaptée à un enfant du primaire uniquement via `IA locale Ollama` (`llama3.1:8b` via `/api/ollama/generate`, proxy Vite vers `http://127.0.0.1:11434`) ; l’ancienne option `Local secours` est supprimée ; pendant la génération, le bouton devient `Génération en cours` avec trois points animés et une ligne d’attente indique que `Ollama écrit puis l’app vérifie les mots` ; le service valide que tous les mots demandés apparaissent **une seule fois chacun**, sans répétition mécanique de formules comme “le mot …” ou “elle utilise aussi …”, et sans associations absurdes (`rencontrer une citrouille`, `rencontrer une banane`, etc.) ; en cas d’oubli/répétition, le service relance le modèle avec les erreurs détectées puis affiche une erreur explicite si Ollama n’atteint toujours pas le contrat après les relances ;
-- carte de résultat masquée par défaut : titre `Texte masqué pour l’élève`, bloc occulté, liste de mots inclus visible pour le parent ;
-- action `Lire le texte à l’élève` mise en avant ;
-- action secondaire `Afficher pour le parent` pour vérifier le texte généré sans l’exposer immédiatement à l’enfant.
+- left child navigation / side nav
+- global active profile selector
+- optional authenticated sidebar footer
+- page-specific main content
 
-Règle UX : le texte généré par l’app est fait pour être lu/oralisé à l’élève et ne doit pas s’afficher en clair par défaut. Le parent garde le contrôle de la préparation ; l’enfant voit surtout un environnement rassurant et une action de lecture.
+Rules:
 
-### Écran Tables de multiplication — refonte magique
+- Preserve route labels and accessible navigation names.
+- Do not remove sidebar during visual redesign unless explicitly asked.
+- Screenshots used as visual reference must not rename existing app content/profiles/routes.
 
-L’écran `Tables de multiplication` doit garder le **design magique premium** tout en restant dans le shell enfant standard : le **menu latéral fixe reste visible** pour ne pas casser la navigation globale.
+### Buttons
 
-Structure visuelle :
+- Primary child actions: purple accessible button with white text.
+- Secondary actions: white/lavender button with purple text.
+- Audio/speech actions may use sky/blue accent.
+- Reward actions may use star/yellow accent with dark text.
+- Destructive parent/admin actions use softened error styling and confirmation.
+- Buttons must be large enough for touch.
 
-- fond dégradé violet pastel `#7A5AF8` / lavande / bleu clair `#DFF2FF`, texture nuageuse légère et étoiles scintillantes ;
-- header très grand (`48px+`) avec titre `Tables de multiplication`, sous-titre encourageant et carte `⭐ 125 Étoiles` ;
-- sélecteur horizontal de tables `2` à `10`, boutons blancs arrondis, état actif en dégradé violet ;
-- trois cartes de progression : objectif du jour, série actuelle, niveau joueur ;
-- grande carte exercice blanche `32px` avec personnage enfant, robot, coffre, bulle BD et carte aide ;
-- fond magique violet → bleu pastel appliqué à tout le layout multiplication pour éviter tout effet de “bloc” ou délimitation blanche autour de la zone ;
-- header plus compact que la première version XXL afin de réduire le scroll sans perdre l’effet premium ;
-- sélecteur de table horizontal 2 à 10 avec boutons condensés ;
-- trois cartes de progression condensées en ligne ;
-- grande carte d’exercice en 2 colonnes mais avec espacements réduits : bulle d’encouragement + personnages + aide/chrono à gauche, question QCM à droite ;
-- une **question de multiplication à la fois** (`7 × 8 = ?`) avec 4 boutons QCM larges et rassurants ;
-- bande de progression `2×` à `10×` pour montrer les facteurs déjà réussis / à revoir ;
-- bouton `Écouter la question` violet ;
-- chronomètre latéral qui affiche `00:00` au départ et démarre dès le premier clic de réponse ;
-- tableau bas `Historique des tables réalisées` listant, pour chaque table terminée, le nom de l’élève, la date/heure, les réponses justes, les réponses fausses, le score obtenu, le temps passé et les calculs `2 × table` à `10 × table` avec chips vertes/rouges ;
-- historique conservé dans une base locale `localStorage` pour survivre aux changements de page / rechargements ;
-- position des réponses QCM mélangée par question pour que la bonne réponse ne soit pas toujours au même emplacement ;
-- conservation de la navigation directe vers `Tables`, `Dictée`, `Poésie` dans le menu latéral.
-
-Règle UX : une bonne réponse avance automatiquement à la question suivante ; une erreur garde la même question active. Le chrono ne démarre pas au chargement de l’écran mais au premier essai de réponse. Le fond magique doit se prolonger sur toute la page (y compris derrière le shell à droite du menu) sans bordure visuelle de conteneur. Le score final reste basé sur la réussite du premier coup, la table complète marque les calculs à revoir en rouge, puis le tableau d’historique sert de carnet de progrès lisible sans transformer l’écran enfant en dashboard adulte.
-
-### Composants gamification
-
-- `AvatarCard`
-- `TreasureChestCard`
-- `RewardGrid`
-- `InventoryItem`
-- `UniverseCard`
-- `MissionCard`
-
-## États UI à prévoir partout
-
-Chaque écran API-compatible doit avoir :
+### Cards
 
-- `loading` : chargement avec squelette doux ;
-- `success` : contenu normal ;
-- `empty` : aucun devoir / aucune mission ;
-- `error` : message rassurant + action réessayer ;
-- `locked` : contenu verrouillé ;
-- `completed` : succès visible ;
-- `inProgress` : progression claire.
+Card types:
 
-## Écrans prioritaires
+- Mission card.
+- Exercise card.
+- Reward card.
+- Profile/family card.
+- Parent preparation card.
+- Result/feedback card.
+- Activity history card/table wrapper.
 
-### 1. Dashboard enfant
+Rules:
 
-Rôle : entrée principale.
+- Child cards use large radius, soft shadow, clear title, short copy.
+- Parent cards can be denser, but must keep the same friendly visual language.
+- Cards must not contain too many competing CTAs.
 
-Contenu :
+### Forms
 
-- accueil personnalisé ;
-- étoiles ;
-- progression globale ;
-- objectif du jour ;
-- mission principale avec CTA immédiat ;
-- activités ;
-- badges récents ;
-- défi en cours ;
-- rappels ;
-- navigation basse.
+Forms differ by audience.
 
-Implémentation Lot 5 : cockpit quotidien avec message `Aujourd’hui...`, carte mission principale, CTA `Je commence ma mission`, mascotte et progression claire.
+Child forms:
 
-### 2. Parcours
+- Very large fields.
+- Clear label and hint.
+- Minimal simultaneous fields.
+- Immediate feedback.
 
-Rôle : montrer la progression long terme.
+Parent/admin forms:
 
-Contenu :
+- Labels above fields.
+- Placeholders/examples in gray.
+- Comfortable spacing.
+- Visible validation.
+- Long prompt textareas and generated previews use readable monospace only when useful.
+- Prompt editors must make the distinction between template and real interpolated prompt explicit.
 
-- étapes complétées ;
-- étapes verrouillées ;
-- matières ;
-- étoiles ;
-- objectif final ;
-- encouragement mascotte.
+### Tables and history lists
 
-Implémentation Lot 6 : parcours par mondes (`Île des calculs`, `Monde des mots`, `Forêt des histoires`, `Scène des poètes`) avec progression, statut et badges débloqués.
+Tables are allowed mainly for parent/admin/history views, not as the default child experience.
 
-### 3. Tables de multiplication
+When a table exists, it inherits the global rule:
 
-Rôle : hub matière.
+- global search when useful;
+- filters when the dataset can grow;
+- sorting on useful columns;
+- readable empty state;
+- no horizontal overflow;
+- mobile fallback or horizontal-safe card rows.
 
-Contenu :
+Specific Devoirs tables:
 
-- tables 2 à 10 ;
-- état de maîtrise ;
-- modes d’entraînement ;
-- records ;
-- astuces ;
-- bouton continuer.
+- Multiplication history: child/profile, table, date/time, correct, wrong, score, elapsed time, per-fact chips.
+- Activity history: normal-weight cells and headers when Adrien asks to remove bold; no hidden bold via sort buttons or result pills.
+- Database/export pages: clear raw-row table, search/filter/sort, upsert/delete indicators.
 
-### 4. Exercice multiplication
+### Badges, stars and rewards
 
-Rôle : activité courte.
+- Stars are positive reward currency, shown with real star icons where requested.
+- Child profile cards show collected-star totals from activity records, not static profile fixture values.
+- Keep lifetime collected stars distinct from future spendable balance.
+- Badges must be short and celebratory.
+- Locked rewards should feel motivating, not frustrating.
 
-Contenu :
+### Feedback components
 
-- question centrale ;
-- réponses larges ;
-- feedback immédiat ;
-- étoiles gagnées ;
-- astuce ;
-- prochaine question.
+Feedback must be immediate, kind and specific.
 
-Implémentation Lot 3 puis Lot 9 :
+- Correct: green/celebratory with stars.
+- Retry: orange/warm “almost” message.
+- Error/correction: red only for the specific correction marker, never a punitive screen.
+- Completion: summary + reward + next step.
 
-- entrée depuis la carte `Tables de multiplication` ;
-- hub de tables en chips larges avec progression ;
-- mini-série de 9 questions avec indicateur `Question N sur 9` ;
-- chaque série couvre toute la table de `2 × table` à `10 × table`, dans un ordre mélangé ;
-- carte QCM centrale avec mascotte hibou ;
-- réponses sous forme de gros boutons tactiles ;
-- feedback `Bravo` / `Presque` jamais culpabilisant ;
-- une erreur garde la même question active jusqu’à ce que l’enfant trouve juste ;
-- une bonne réponse intermédiaire fait avancer automatiquement, sans bouton manuel `Question suivante` ;
-- résumé final `Série terminée !` avec score sur 9 ;
-- table complète affichée en fin de session, avec calculs manqués au premier essai en rouge ;
-- état `loading` pendant la préparation et la soumission.
+### Modals and drawers
 
-### 5. Dictée
+- Use modals for parent edit/create flows, family profile editing, imports and confirmations.
+- Use drawers only if the interaction benefits from keeping context visible.
+- Modals must fit viewport with internal scrolling.
+- Child-critical flows should avoid complex modal stacks.
 
-Rôle : écouter, écrire, corriger.
+### Profile and family page
 
-Contenu :
+The profile/family page is a product area, not just settings.
 
-- audio ;
-- consigne ;
-- zone d’écriture ;
-- indice ;
-- correction ;
-- récompense.
+Rules:
 
-Implémentation Lot 4 puis Lot 10 :
+- Keep existing user names and data; screenshots are visual references only.
+- Family banner and profile cards may be rich and visual.
+- Profile cards show avatar/photo, name, role, child progress, stars, mission summary and edit action.
+- Parents do not require age/school level.
+- Children require age and school level.
+- Profile display order is explicit and persisted, not inferred from name or insertion order.
+- Profile colors must remain consistent across dots and charts.
+- Avatar/photo selection is visual and accessible.
 
-- bouton `Écouter la phrase` simulé ;
-- indices visibles en pastilles ;
-- grande zone `Ta phrase` ;
-- correction douce avec texte corrigé ;
-- correction mot par mot avec statuts `correct`, accent/ponctuation, mot différent ou manquant ;
-- bouton `Réessayer doucement` ;
-- feedback `Super dictée !` ou `Très proche !` ;
-- pas d’audio réel ni stockage vocal en V1.
+### Activity charts
 
+- Charts must be driven by real `ActivityRecord` data when available.
+- Demo fallback is acceptable only when database is empty.
+- Zeros are true zeros: no fake minimum bar for zero values.
+- Y axis and bar scale must match.
+- Use profile colors consistently across histogram bars and legends/dots.
+- Avoid decorative charts that do not reflect real data.
 
-### 6. Lecture
+### Multiplication module
 
-Rôle : lire, comprendre, répondre.
+The multiplication screen is a magical exercise, but its functional contract is strict.
 
-Implémentation Lot 8 : module `Le dragon qui aimait les livres`, audio simulé `Écouter l’histoire`, texte court en paragraphes, 3 questions de compréhension et feedback final.
+Must preserve:
 
-### 7. Poésie
+- sidebar visible by default;
+- table selector from 2 to 10;
+- 9-question session covering factors 2→10;
+- QCM with 4 large answers;
+- varied/randomized correct-answer position;
+- correct intermediate answer auto-advances;
+- wrong answer stays on same question with gentle help;
+- score based on first-try success;
+- final summary and full table review;
+- missed facts in red/soft correction style;
+- side chronometer starting only on first answer click;
+- persisted completed-table history filtered to active profile;
+- guard against duplicate history rows after completion.
 
-Rôle : apprentissage en étapes.
+Visual direction:
 
-Étapes :
+- magical violet→pastel-blue gradient;
+- white rounded exercise card;
+- stars/sparkles/mascot/treasure when useful;
+- compact enough to reduce scroll;
+- full remaining viewport width beside sidebar.
 
-1. écouter ;
-2. comprendre ;
-3. mémoriser ;
-4. réciter.
+### Dictée module
 
-La reconnaissance vocale réelle peut être simulée en V1.
+Dictation is parent-prepared, child-delivered.
 
-Implémentation Lot 4 puis Lot 11 :
+Modes:
 
-- poésie affichée en lignes courtes dans une carte douce ;
-- étapes visibles `Écouter`, `Comprendre`, `Mémoriser`, `Réciter` ;
-- mémorisation ligne par ligne (`Ligne 1`, `Ligne 2`, etc.) ;
-- modes `Lire`, `Cacher des mots`, `Réciter` ;
-- bouton `J’ai récité ma poésie` ;
-- feedback immédiat et étoiles ;
-- récitation simulée sans enregistrement vocal.
+- `Dictée de mots` first.
+- `Dictée normale` preserved.
 
+Rules:
 
-### 7. Récompenses / progression
-
-Rôle : motivation.
-
-Contenu :
-
-- avatar ;
-- niveau ;
-- étoiles ;
-- badges ;
-- streak ;
-- objets débloqués.
-
-Implémentation Lot 7 : boutique magique avec récompenses débloquées/verrouillées, coûts en étoiles et historique récent des gains.
-
-## Règles de feedback enfant
-
-### Succès
-
-- message court ;
-- animation douce ;
-- couleur verte / jaune ;
-- étoiles visibles ;
-- encouragement précis.
-
-Exemple :
-
-```txt
-Bravo ! Tu as trouvé 7 × 8 = 56. +10 étoiles
-```
-
-### Erreur
-
-Ne jamais dire seulement “faux”.
-
-Préférer :
-
-```txt
-Presque ! Regarde : 7 × 8, c’est 7 × 4 puis encore ×2.
-```
-
-### Progression
-
-Toujours montrer le prochain pas :
-
-```txt
-Encore 2 bonnes réponses et tu débloques le badge Champion des tables.
-```
-
-## Accessibilité et DYS
-
-Le projet devra intégrer tôt des options adaptées :
-
-- police lisible / éventuellement OpenDyslexic en option ;
-- interlignage augmenté ;
-- consignes audio ;
-- réduction des animations ;
-- contraste renforcé ;
-- texte segmenté ;
-- mode sans timer ;
-- correction bienveillante ;
-- pictogrammes en plus du texte.
-
-## API compatibility côté design
-
-Aucun écran ne doit dépendre de contenu figé.
-
-Tous les composants doivent recevoir des props issues de structures proches API :
-
-```ts
-type ChildDashboard = {
-  child: ChildProfile;
-  progress: GlobalProgress;
-  dailyGoal: DailyGoal;
-  activities: ActivitySummary[];
-  recentBadges: Badge[];
-  activeChallenge?: ChallengeSummary;
-  reminders: Reminder[];
-};
-```
-
-Les composants UI doivent ignorer la provenance des données :
-
-```txt
-mockData → service → composant
-API réelle → service → composant
-```
-
-## À éviter
-
-- UI adulte type dashboard SaaS ;
-- trop de texte ;
-- trop de statistiques visibles pour l’enfant ;
-- gamification punitive ;
-- timers obligatoires ;
-- stockage voix/photo sans réflexion parentale ;
-- composants qui contiennent directement les données métier ;
-- pages impossibles à brancher à une API.
-
-## Phrase de référence design
-
-> Une interface magique, claire et rassurante, qui transforme les devoirs en petites missions guidées et récompensantes, tout en restant pédagogiquement sérieuse et techniquement branchable à une API.
+- Word input splits on common separators: spaces, lines, commas, periods, semicolons, slashes, dashes, apostrophes and punctuation.
+- Unknown words show a parent confirmation card.
+- Ollama/local LLM is mandatory for word-dictation text generation when that flow is used; no deterministic “local secours” copy.
+- Generated text must be a natural, age-appropriate mini-story, not mechanical “le mot…” sentences.
+- Prompt editor remains a reusable template with `{{mots}}`, `{{verbes}}`, `{{temps}}` visible.
+- Real prompt preview shows the interpolated prompt sent to Ollama.
+- Do not auto-regenerate when options change; generation is deliberate.
+- Show generated text to the parent under `Texte produit par Ollama` when requested by current UX, but child delivery remains controlled through reading/audio controls.
+- Child text can be masked with bullets while preserving state.
+- Reading controls: read text, stop, previous segment, slow child tempo, repeat each phrase twice.
+- Always show validation checks (`bons ✅` / `mauvais ⚠️`) even when generated output is imperfect.
+
+### Lecture module
+
+Reading can be AI-generated and recorded.
+
+Pattern:
+
+1. Generate story: `Personnage`, `Animal`, `Objet`, `Lieu`, size `XS/S/M/L/XL/XXL`.
+2. Prompt editor: stable placeholders and real prompt preview.
+3. Text to read: story card, audio button, start/stop recording, timer.
+4. Analysis: transcript, colored word errors, stats table.
+
+Size contract:
+
+- XS = 60–90 words.
+- S = 90–150 words.
+- M = 150–250 words.
+- L = 300–500 words.
+- XL = 600–800 words.
+- XXL = 1200–1800 words.
+
+If the UI says recording starts, it must attempt real browser SpeechRecognition or provide a clear fallback/manual transcript path.
+
+### Poésie module
+
+Poetry is staged and gentle.
+
+Rules:
+
+- Parent can choose a poem or paste/import text.
+- Full poem source remains editable.
+- `Écouter` uses browser speech synthesis when supported.
+- Child workbench repeats lines line-by-line.
+- Line labels can toggle visibility.
+- Top/bottom mask controls use a single vertical timeline with non-crossing handles.
+- Per-line manual overrides remain possible.
+- Recital recording reuses the Lecture recording/analyse pattern.
+
+### Import, OCR and local data
+
+- OCR/import flows must be API-ready services, not hardcoded UI-only logic.
+- Show detected content and let parent correct before use.
+- Data stored in `localStorage` must be exportable/importable when used as persistent product data.
+- Vercel/GitHub does not synchronize local browser storage; design must expose migration/export/import flows when data matters.
+
+### AI and automation
+
+- AI is parent/operator-assisted, not magic replacing the parent.
+- Always show prompt/preview/source/confidence/checks when useful.
+- Failed AI output should not block the workflow if a reviewable result exists; show checks and allow correction.
+- Avoid making child-facing AI feel unpredictable or scary.
+
+## Do's and Don'ts
+
+### Do
+
+- Keep the child experience soft, magical and encouraging.
+- Preserve existing functional contracts during visual redesign.
+- Use typed/mock/API-ready service boundaries.
+- Keep child flows one-action-at-a-time.
+- Use real data for charts/history when available.
+- Keep profile switching global and accessible.
+- Use full-width shells for modules that need space.
+- Verify no horizontal overflow after layout changes.
+- Update README/DESIGN/CADRAGE when product behavior changes.
+
+### Don't
+
+- Do not make child screens look like adult SaaS dashboards.
+- Do not remove the sidebar, QCM flow, table selector, history, profile persistence or final summaries during redesign.
+- Do not use punitive language.
+- Do not use fake decorative stats when activity data exists.
+- Do not rely only on prompt wording for LLM correctness; keep software checks.
+- Do not hide data persistence behind browser-local assumptions.
+- Do not create tables without search/filter/sort when they are operational parent/history tables.
+- Do not add broad libraries or redesign systems without approval.
+
+## Functional Block Inventory
+
+This local charter covers current and future blocks:
+
+- Child shell/sidebar/global profile switcher.
+- Dashboard/home missions.
+- Learning path/worlds.
+- Rewards/shop/stars/badges.
+- Multiplication tables and history.
+- Dictation normal and word-dictation.
+- Reading generation/recording/analysis.
+- Poetry selection/memorization/recital.
+- Profile/family management.
+- Avatar photo picker and source assets.
+- Activity database and raw data page.
+- Settings/reward rules.
+- Export/import local data.
+- Parent/admin preparation areas.
+- OCR/import panels.
+- AI prompt editors and generated previews.
+- Empty/loading/error/success states.
+- Responsive/full-width shell rules.
+
+## Agent Instructions
+
+Before editing UI in this repo, agents must:
+
+1. Read `/Users/nedelecadrien/.hermes/design/GLOBAL_DESIGN.md`.
+2. Read this local `DESIGN.md`.
+3. Apply `child-learning-webapp-development` project rules.
+4. Inspect existing CSS in `src/styles/tokens.css`, `src/styles/base.css`, and `src/styles/child-app.css`.
+5. Preserve current feature contracts unless Adrien explicitly asks for a behavior change.
+6. If a screenshot is used as reference, copy visual style only; do not rename routes, profiles, or product data.
+
+Verification is proportional:
+
+- Charter-only edits: run `npx -y @google/design.md lint DESIGN.md`.
+- Micro visual edits: targeted tests/source review when relevant.
+- Medium/significant UI edits: `npm test`, `npm run build`, and browser smoke on `5175` if route accessible.
+- Child-critical flows: browser smoke the exact interaction and check console errors.
+
+## Visual QA Checklist
+
+Before declaring Devoirs UI work done:
+
+- Does the screen still feel child-first, not adult dashboard?
+- Is copy supportive and in French?
+- Is the sidebar/navigation preserved where expected?
+- Is the global profile selector still available?
+- Is there no horizontal overflow?
+- Are long names/prompts/texts wrapped inside cards?
+- Are buttons large enough for touch?
+- Are errors gentle and actionable?
+- Are tables/history views searchable/filterable/sortable when operational?
+- Are profile colors/stars/charts consistent with real data?
+- Did the change preserve localStorage/API-ready service contracts?
+- Did verification match the risk of the change?
