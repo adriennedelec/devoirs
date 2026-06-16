@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode, FormEvent, CSSProperties, KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent } from 'react';
-import { BookOpen, Database, Flame, Gift, GraduationCap, Home, MapIcon, Mic, PencilLine, Settings, Sparkles, Star, Trophy, User, UserRound, Users } from 'lucide-react';
+import { BookOpen, Database, Flame, Gift, GraduationCap, Home, LogOut, MapIcon, Mic, PencilLine, Settings, Sparkles, Star, Trophy, User, UserRound, Users } from 'lucide-react';
 import type { ApiState, ChildDashboard } from './types/api';
 import type { ActivityRecord, StoredActivityModule } from './types/activity';
 import type {
@@ -218,6 +218,11 @@ function writeAdminSessionToStorage(session: AuthenticatedSession) {
     return;
   }
   window.sessionStorage.setItem(ADMIN_AUTH_STORAGE_KEY, JSON.stringify(session));
+}
+
+function clearAdminSessionFromStorage() {
+  if (typeof window === 'undefined') return;
+  window.sessionStorage.removeItem(ADMIN_AUTH_STORAGE_KEY);
 }
 
 function normalizeParentCode(value: unknown) {
@@ -4590,7 +4595,7 @@ function ProfileAvatar({ profile, size = 'medium' }: { profile: ChildProfileConf
       {profile.avatarPhotoUrl ? (
         <img src={profile.avatarPhotoUrl} alt="" />
       ) : (
-        <span>{profile.name.slice(0, 1).toUpperCase()}</span>
+        <span>{profile.avatarEmoji || profile.name.slice(0, 1).toUpperCase()}</span>
       )}
     </div>
   );
@@ -5846,12 +5851,14 @@ function ChildSideNav({
   authenticatedUser,
   onNavigate,
   onTogglePinned,
+  onLogout,
 }: {
   activePage: ChildPage;
   isPinned: boolean;
   authenticatedUser: AuthenticatedSession;
   onNavigate: (page: ChildPage) => void;
   onTogglePinned: () => void;
+  onLogout: () => void;
 }) {
   const roleLabel = authenticatedUser.role === 'admin' ? 'Administrateur' : 'Utilisateur';
   return (
@@ -5884,6 +5891,15 @@ function ChildSideNav({
           <strong>{authenticatedUser.username}</strong>
           <small>{roleLabel}</small>
         </span>
+        <button
+          type="button"
+          className="side-nav-logout-button"
+          aria-label="Se déconnecter"
+          title="Se déconnecter"
+          onClick={onLogout}
+        >
+          <LogOut size={16} />
+        </button>
       </div>
     </nav>
   );
@@ -6124,6 +6140,11 @@ export default function App() {
     return <AdminLoginView onAuthenticated={setAuthenticatedUser} />;
   }
 
+  function logout() {
+    clearAdminSessionFromStorage();
+    setAuthenticatedUser(null);
+  }
+
   return (
     <div className={layoutClassName}>
       {showSideNav ? (
@@ -6133,6 +6154,7 @@ export default function App() {
           authenticatedUser={authenticatedUser}
           onNavigate={setActivePage}
           onTogglePinned={() => setIsSideNavPinned((isPinned) => !isPinned)}
+          onLogout={logout}
         />
       ) : null}
       {showSideNav ? (

@@ -59,6 +59,14 @@ describe('Lot 2 child navigation', () => {
     expect(navigation).toBeInTheDocument();
     expect(navigation).toHaveClass('child-side-nav');
     expect(navigation).toHaveAccessibleName(/menu latéral/i);
+    expect(within(navigation).getByLabelText(/utilisateur connecté admin/i)).toBeInTheDocument();
+    expect(within(navigation).getByRole('button', { name: /se déconnecter/i })).toBeInTheDocument();
+
+    const activeUserSwitcher = screen.getByRole('region', { name: /sélecteur utilisateur actif/i });
+    const activeUserButton = within(activeUserSwitcher).getByRole('button', { name: /changer d’utilisateur actif : emma/i });
+    expect(within(activeUserButton).getByText('🧒')).toBeInTheDocument();
+    expect(within(activeUserButton).getByText('Emma')).toBeInTheDocument();
+    expect(within(activeUserButton).queryByText(/CM1|profil actif|élève|connecté/i)).not.toBeInTheDocument();
   });
 
   it('ajoute un nouveau profil sans erreur', async () => {

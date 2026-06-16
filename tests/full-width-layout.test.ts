@@ -17,6 +17,17 @@ describe('profile activity chart layout contract', () => {
 });
 
 describe('full-width menu page layout', () => {
+  it('keeps the authenticated sidebar fixed full-height with the user card pinned at the bottom', () => {
+    expect(css).toMatch(/\.child-side-nav\s*{[^}]*position:\s*fixed/s);
+    expect(css).toMatch(/\.child-side-nav\s*{[^}]*top:\s*0/s);
+    expect(css).toMatch(/\.child-side-nav\s*{[^}]*left:\s*0/s);
+    expect(css).toMatch(/\.child-side-nav\s*{[^}]*height:\s*100vh/s);
+    expect(css).toMatch(/\.child-side-nav\s*{[^}]*display:\s*flex/s);
+    expect(css).toMatch(/\.child-side-nav\s*{[^}]*flex-direction:\s*column/s);
+    expect(css).toMatch(/\.side-nav-user-card\s*{[^}]*margin-top:\s*auto/s);
+    expect(css).toMatch(/\.side-nav-logout-button\s*{/s);
+  });
+
   it('uses the full viewport width minus the left sidebar for every menu page shell', () => {
     expect(css).toMatch(/\.has-side-nav \.child-app-shell\s*{[^}]*width:\s*calc\(100vw - 250px\)/s);
     expect(css).toMatch(/\.has-side-nav \.child-app-shell\s*{[^}]*max-width:\s*none/s);

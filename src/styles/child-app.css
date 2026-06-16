@@ -23,14 +23,14 @@
   background: rgba(255, 255, 255, 0.94);
   color: #1f2a44;
   box-shadow: 0 16px 34px rgba(31, 42, 68, 0.12);
-  font-weight: 1000;
+  font-weight: 760;
   cursor: pointer;
   backdrop-filter: blur(12px);
 }
 
 .global-active-profile-button .family-avatar {
-  width: 34px;
-  height: 34px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
 }
 
@@ -348,18 +348,22 @@
 
 .child-side-nav {
   position: fixed;
-  top: 18px;
-  bottom: 18px;
-  left: 18px;
+  top: 0;
+  bottom: auto;
+  left: 0;
   z-index: 10;
-  display: grid;
-  align-content: start;
-  grid-template-rows: auto repeat(10, auto) 1fr auto;
-  gap: 10px;
-  width: 214px;
-  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  box-sizing: border-box;
+  width: 250px;
+  height: 100vh;
+  padding: 14px 14px;
   border: 1px solid rgba(255, 255, 255, 0.82);
-  border-radius: 30px;
+  border-left: 0;
+  border-top: 0;
+  border-bottom: 0;
+  border-radius: 0 30px 30px 0;
   background: rgba(255, 255, 255, 0.92);
   box-shadow: var(--shadow-card);
   backdrop-filter: blur(18px);
@@ -369,17 +373,17 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 8px;
-  padding: 8px 10px 12px;
+  margin-bottom: 2px;
+  padding: 6px 10px 8px;
   color: var(--color-primary-dark);
 }
 
 .side-nav-brand span {
   display: grid;
   place-items: center;
-  width: 42px;
-  height: 42px;
-  border-radius: 17px;
+  width: 38px;
+  height: 38px;
+  border-radius: 16px;
   background: linear-gradient(135deg, #fff, #fff1ca);
   box-shadow: var(--shadow-card);
   font-size: 1.45rem;
@@ -396,10 +400,10 @@
   gap: 10px;
   border: 0;
   border-radius: 20px;
-  padding: 12px 14px;
+  padding: 9px 12px;
   color: var(--color-text-muted);
   background: transparent;
-  font-weight: 900;
+  font-weight: 760;
   font-size: 0.92rem;
   text-align: left;
 }
@@ -414,26 +418,45 @@
 }
 
 .side-nav-user-card {
-  grid-row: -1;
   display: flex;
   align-items: center;
   gap: 10px;
   min-width: 0;
   margin-top: auto;
-  padding: 10px;
-  border-radius: 20px;
+  padding: 8px;
+  border-radius: 18px;
   background: linear-gradient(135deg, rgba(109, 93, 252, 0.12), rgba(255, 255, 255, 0.94));
   color: var(--color-text);
   box-shadow: inset 0 0 0 1px rgba(109, 93, 252, 0.12);
+}
+
+.side-nav-logout-button {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  margin-left: auto;
+  border: 0;
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--color-primary-dark);
+  cursor: pointer;
+}
+
+.side-nav-logout-button:hover,
+.side-nav-logout-button:focus-visible {
+  background: #fff;
+  box-shadow: inset 0 0 0 1px rgba(109, 93, 252, 0.18);
 }
 
 .side-nav-user-avatar {
   display: grid;
   place-items: center;
   flex: 0 0 auto;
-  width: 38px;
-  height: 38px;
-  border-radius: 15px;
+  width: 34px;
+  height: 34px;
+  border-radius: 13px;
   background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
   color: #fff;
   font-weight: 900;
@@ -452,7 +475,7 @@
 .side-nav-user-info small {
   color: var(--color-text-muted);
   font-size: 0.72rem;
-  font-weight: 800;
+  font-weight: 650;
 }
 
 .admin-auth-page {
@@ -690,7 +713,8 @@
 
 .question-card h2 {
   margin: 0 0 16px;
-  font-size: clamp(2.4rem, 8vw, 5rem);
+  font-size: clamp(2.4rem, 5vw, 3.2rem);
+  font-weight: 760;
   color: var(--color-primary-dark);
 }
 
