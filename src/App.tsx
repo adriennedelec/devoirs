@@ -4142,49 +4142,56 @@ function PoetryView({
                   </div>
                   <button className="audio-button" type="button" onClick={resetPoetryPracticeControls}>Tout afficher</button>
                 </div>
-                <div className="poetry-mask-controls" aria-label="Curseurs de masquage de la poésie">
-                  <label>
-                    Masquer depuis le haut
-                    <input
-                      aria-label="Masquer les lignes du haut"
-                      type="range"
-                      min={0}
-                      max={displayedPoetryLines.length}
-                      value={topMaskCount}
-                      onChange={(event) => setTopMaskCount(Number(event.target.value))}
-                    />
+                <div className="poetry-practice-layout">
+                  <div className="poetry-vertical-timeline" aria-label="Timeline verticale de masquage ligne par ligne">
+                    <div className="poetry-timeline-track" aria-hidden="true">
+                      {displayedPoetryLines.map((line) => <span key={line.id}>{line.label.replace('Ligne ', '')}</span>)}
+                    </div>
+                    <label className="poetry-timeline-slider top">
+                      <span>Masquer depuis le haut</span>
+                      <input
+                        aria-label="Masquer les lignes du haut"
+                        type="range"
+                        min={0}
+                        max={displayedPoetryLines.length}
+                        value={topMaskCount}
+                        onChange={(event) => setTopMaskCount(Number(event.target.value))}
+                      />
+                    </label>
+                    <label className="poetry-timeline-slider bottom">
+                      <span>Masquer depuis le bas</span>
+                      <input
+                        aria-label="Masquer les lignes du bas"
+                        type="range"
+                        min={0}
+                        max={displayedPoetryLines.length}
+                        value={displayedPoetryLines.length - effectiveBottomVisibleUntil}
+                        onChange={(event) => setBottomVisibleUntil(displayedPoetryLines.length - Number(event.target.value))}
+                      />
+                    </label>
+                  </div>
+                  <div className="poetry-mask-summary" aria-live="polite">
                     <span>{topMaskCount === 0 ? 'aucune ligne masquée en haut' : `${topMaskCount} ligne${topMaskCount > 1 ? 's' : ''} masquée${topMaskCount > 1 ? 's' : ''} en haut`}</span>
-                  </label>
-                  <label>
-                    Masquer depuis le bas
-                    <input
-                      aria-label="Masquer les lignes du bas"
-                      type="range"
-                      min={0}
-                      max={displayedPoetryLines.length}
-                      value={displayedPoetryLines.length - effectiveBottomVisibleUntil}
-                      onChange={(event) => setBottomVisibleUntil(displayedPoetryLines.length - Number(event.target.value))}
-                    />
                     <span>{displayedPoetryLines.length - effectiveBottomVisibleUntil === 0 ? 'aucune ligne masquée en bas' : `${displayedPoetryLines.length - effectiveBottomVisibleUntil} ligne${displayedPoetryLines.length - effectiveBottomVisibleUntil > 1 ? 's' : ''} masquée${displayedPoetryLines.length - effectiveBottomVisibleUntil > 1 ? 's' : ''} en bas`}</span>
-                  </label>
-                </div>
-                <div className="poem-lines" aria-label="Lignes de mémorisation de la poésie">
-                  {displayedPoetryLines.map((line, index) => {
-                    const lineHidden = isPoetryLineHidden(line.id, index);
-                    return (
-                      <p className={lineHidden ? 'poem-line is-hidden' : 'poem-line'} key={line.id}>
-                        <button
-                          className="poem-line-toggle"
-                          type="button"
-                          aria-pressed={lineHidden}
-                          onClick={() => togglePoetryLine(line.id, index)}
-                        >
-                          {line.label}
-                        </button>
-                        <span aria-label={lineHidden ? `${line.label} masquée` : `${line.label} affichée`}>{lineHidden ? line.hiddenText : line.text}</span>
-                      </p>
-                    );
-                  })}
+                  </div>
+                  <div className="poem-lines" aria-label="Lignes de mémorisation de la poésie">
+                    {displayedPoetryLines.map((line, index) => {
+                      const lineHidden = isPoetryLineHidden(line.id, index);
+                      return (
+                        <p className={lineHidden ? 'poem-line is-hidden' : 'poem-line'} key={line.id}>
+                          <button
+                            className="poem-line-toggle"
+                            type="button"
+                            aria-pressed={lineHidden}
+                            onClick={() => togglePoetryLine(line.id, index)}
+                          >
+                            {line.label}
+                          </button>
+                          <span aria-label={lineHidden ? `${line.label} masquée` : `${line.label} affichée`}>{lineHidden ? line.hiddenText : line.text}</span>
+                        </p>
+                      );
+                    })}
+                  </div>
                 </div>
               </section>
             </div>
