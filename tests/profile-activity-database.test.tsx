@@ -97,10 +97,10 @@ describe('Profil et modules branchés sur la base activité', () => {
     zeroSubjectBars.forEach((bar) => expect(bar).toHaveStyle({ width: '0%' }));
 
     const history = screen.getByRole('region', { name: /historique détaillé des activités/i });
-    expect(within(history).getByText(/total des résultats : 2/i)).toBeInTheDocument();
+    expect(within(history).getByText(/1\s*–\s*2\s*sur\s*2\s*activités/i)).toBeInTheDocument();
     const table = within(history).getByRole('table', { name: /activités famille/i });
-    expect(within(table).getByText('Table de 7')).toBeInTheDocument();
-    expect(within(table).getByText('Le dragon qui aimait les livres')).toBeInTheDocument();
+    expect(within(table).getAllByText('Table de 7').some((element) => element.closest('tbody'))).toBe(true);
+    expect(within(table).getAllByText('Le dragon qui aimait les livres').some((element) => element.closest('tbody'))).toBe(true);
     expect(within(table).getByText('89%')).toBeInTheDocument();
     expect(within(table).getByText('100%')).toBeInTheDocument();
   });

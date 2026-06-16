@@ -69,6 +69,45 @@ describe('Lot 2 child navigation', () => {
     expect(within(activeUserButton).queryByText(/CM1|profil actif|élève|connecté/i)).not.toBeInTheDocument();
   });
 
+  it('keeps the Devoirs design shell on every sidebar page', async () => {
+    const user = userEvent.setup();
+    const { container } = render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /bonjour emma/i })).toBeInTheDocument();
+    });
+
+    const pages = [
+      { button: /accueil/i, marker: /bonjour emma/i },
+      { button: /parcours/i, marker: /mon parcours/i },
+      { button: /récompenses/i, marker: /mes récompenses/i },
+      { button: /lecture/i, marker: /^lecture$/i },
+      { button: /tables/i, marker: /réussis 9 calculs/i },
+      { button: /dictée/i, marker: /dictée magique/i },
+      { button: /poésie/i, marker: /^poésie$/i },
+      { button: /profil/i, marker: /famille nedelec/i },
+      { button: /base de données/i, marker: /base de données/i },
+      { button: /paramétrage/i, marker: /paramétrage/i },
+    ];
+
+    for (const page of pages) {
+      await user.click(screen.getByRole('button', { name: page.button }));
+      await waitFor(() => {
+        const main = container.querySelector('main.child-main');
+        expect(main).toBeInTheDocument();
+        expect(within(main as HTMLElement).getAllByText(page.marker).length).toBeGreaterThan(0);
+      });
+      expect(container.querySelector('.child-side-nav')).toBeInTheDocument();
+      expect(container.querySelector('.child-app-shell')).toBeInTheDocument();
+      expect(container.querySelector('main.child-main')).toBeInTheDocument();
+      const activeUserSwitcher = screen.getByRole('region', { name: /sélecteur utilisateur actif/i });
+      const activeUserButton = within(activeUserSwitcher).getByRole('button', { name: /changer d’utilisateur actif : emma/i });
+      expect(within(activeUserButton).getByText('🧒')).toBeInTheDocument();
+      expect(within(activeUserButton).getByText('Emma')).toBeInTheDocument();
+      expect(within(activeUserButton).queryByText(/CM1|profil actif|élève|connecté|administrateur/i)).not.toBeInTheDocument();
+    }
+  });
+
   it('ajoute un nouveau profil sans erreur', async () => {
     const user = userEvent.setup();
     render(<App />);

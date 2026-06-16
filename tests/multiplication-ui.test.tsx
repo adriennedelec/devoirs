@@ -280,7 +280,7 @@ describe('Lot 3 multiplication module UI', () => {
 
     const history = screen.getByRole('region', { name: /historique détaillé des activités/i });
     const table = within(history).getByRole('table', { name: /activités famille/i });
-    const row = within(table).getByText('Table de 7').closest('tr');
+    const row = within(table).getAllByText('Table de 7').find((element) => element.closest('tbody'))?.closest('tr');
     expect(row).not.toBeNull();
     expect(within(row!).getByText('Enora')).toBeInTheDocument();
     expect(within(row!).queryByText('Louane')).not.toBeInTheDocument();
@@ -300,10 +300,10 @@ describe('Lot 3 multiplication module UI', () => {
   it('uses one continuous magical background and a denser multiplication layout', () => {
     const css = readFileSync(resolve(process.cwd(), 'src/styles/child-app.css'), 'utf8');
 
-    expect(css).toMatch(/\.multiplication-app-layout\s*{[\s\S]*?linear-gradient\(135deg, #f8f1ff 0%, #cdb8ff 38%, #dff2ff 100%\);[\s\S]*?}/);
+    expect(css).toMatch(/\.multiplication-app-layout\s*{[\s\S]*?background:\s*transparent;[\s\S]*?}/);
     expect(css).toMatch(/\.has-side-nav\.multiplication-app-layout \.child-app-shell\s*{[\s\S]*?padding: 0;[\s\S]*?}/);
     expect(css).toMatch(/\.multiplication-screen\s*{[\s\S]*?padding: 22px clamp\(16px, 3vw, 36px\) 32px;[\s\S]*?border-radius: 0;[\s\S]*?}/);
-    expect(css).toMatch(/\.math-magic-header h1\s*{[\s\S]*?font-size: clamp\(2\.4rem, 5vw, 4\.2rem\);[\s\S]*?}/);
+    expect(css).toMatch(/\.math-magic-header h1\s*{[\s\S]*?font-size: clamp\(2\.2rem, 4vw, 3\.4rem\);[\s\S]*?}/);
     expect(css).toMatch(/\.math-progress-card\s*{[\s\S]*?min-height: 104px;[\s\S]*?padding: 16px;[\s\S]*?}/);
     expect(css).toMatch(/\.magic-answer-grid button\s*{[\s\S]*?min-height: 58px;[\s\S]*?}/);
   });

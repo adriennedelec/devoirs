@@ -51,4 +51,24 @@ describe('full-width menu page layout', () => {
     expect(css).toMatch(/\.multiplication-screen::after\s*{[^}]*display:\s*none/s);
     expect(css).not.toMatch(/\.family-profile-screen\s*{[^}]*background:\s*var\(--color-page-profile\)/s);
   });
+
+  it('applies the site-wide Devoirs charter pass across page classes', () => {
+    expect(css).toMatch(/Site-wide Devoirs charter pass/s);
+    expect(css).toMatch(/\.child-main\s*{[^}]*width:\s*100%/s);
+    expect(css).toMatch(/\.child-main :where\(button, \.primary-action, \.audio-button, \.ghost-action, \.modal-close-button\)\s*{[^}]*font-weight:\s*760/s);
+    expect(css).toMatch(/\.child-main :where\(input, select, textarea\)\s*{[^}]*font-weight:\s*560/s);
+    expect(css).toMatch(/\.admin-data-page,[\s\S]*?\.multiplication-screen\s*{[^}]*max-width:\s*none/s);
+    expect(css).toMatch(/\.admin-panel\s*{[^}]*border-radius:\s*var\(--radius-xl\)/s);
+    expect(css).toMatch(/\.settings-grid\s*{[^}]*grid-template-columns:\s*repeat\(4, minmax\(0, 1fr\)\)/s);
+  });
+
+  it('keeps the Profile add button small and profile-card metadata unbolded', () => {
+    expect(css).toMatch(/\.family-add-profile-button\s*{[^}]*width:\s*34px/s);
+    expect(css).toMatch(/\.family-add-profile-button\s*{[^}]*height:\s*34px/s);
+    expect(css).toMatch(/\.family-add-profile-button\s*{[^}]*border:\s*1px solid/s);
+    expect(css).toMatch(/\.family-add-profile-button\s*{[^}]*border-radius:\s*999px/s);
+    expect(css).toMatch(/\.family-add-profile-button\s*{[^}]*background:\s*rgba\(255, 255, 255, 0\.18\)/s);
+    expect(css).toMatch(/\.profile-row-main p,[\s\S]*?\.family-profile-card\.compact \.ghost-action\s*{[^}]*font-weight:\s*400/s);
+    expect(css).toMatch(/\.profile-state-pill\s*{[^}]*font-weight:\s*400/s);
+  });
 });
