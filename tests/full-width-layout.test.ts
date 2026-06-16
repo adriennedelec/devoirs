@@ -31,4 +31,13 @@ describe('full-width menu page layout', () => {
     expect(css).toMatch(/\.math-rewards-card\s*{[^}]*max-width:\s*none/s);
     expect(css).toMatch(/\.math-rewards-card\s*{[^}]*margin:\s*0;/s);
   });
+
+  it('keeps Profile and Table pages on the same global background as the menu', () => {
+    expect(css).toMatch(/\.family-profile-screen\s*{[^}]*background:\s*transparent/s);
+    expect(css).toMatch(/\.multiplication-app-layout\s*{[^}]*background:\s*transparent/s);
+    expect(css).toMatch(/\.multiplication-screen\s*{[^}]*background:\s*transparent/s);
+    expect(css).toMatch(/\.multiplication-screen::before\s*{[^}]*display:\s*none/s);
+    expect(css).toMatch(/\.multiplication-screen::after\s*{[^}]*display:\s*none/s);
+    expect(css).not.toMatch(/\.family-profile-screen\s*{[^}]*background:\s*var\(--color-page-profile\)/s);
+  });
 });

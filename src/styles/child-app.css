@@ -125,11 +125,7 @@
 
 .multiplication-app-layout {
   min-height: 100vh;
-  background:
-    radial-gradient(circle at 12% 20%, rgba(255, 255, 255, 0.5) 0 7rem, transparent 13rem),
-    radial-gradient(circle at 78% 12%, rgba(255, 200, 61, 0.26) 0 4rem, transparent 10rem),
-    radial-gradient(circle at 25% 86%, rgba(205, 184, 255, 0.42) 0 9rem, transparent 16rem),
-    linear-gradient(135deg, #f8f1ff 0%, #cdb8ff 38%, #dff2ff 100%);
+  background: transparent;
 }
 
 .multiplication-app-layout .child-app-shell {
@@ -2038,11 +2034,7 @@
   overflow: hidden;
   padding: 22px clamp(16px, 3vw, 36px) 32px;
   border-radius: 0;
-  background:
-    radial-gradient(circle at 12% 20%, rgba(255, 255, 255, 0.5) 0 7rem, transparent 13rem),
-    radial-gradient(circle at 78% 12%, rgba(255, 200, 61, 0.26) 0 4rem, transparent 10rem),
-    radial-gradient(circle at 25% 86%, rgba(205, 184, 255, 0.42) 0 9rem, transparent 16rem),
-    linear-gradient(135deg, #f8f1ff 0%, #cdb8ff 38%, #dff2ff 100%);
+  background: transparent;
 }
 
 .multiplication-screen::before,
@@ -2055,22 +2047,11 @@
 }
 
 .multiplication-screen::before {
-  background:
-    radial-gradient(circle at 18% 28%, rgba(255, 255, 255, 0.65) 0 1px, transparent 2px),
-    radial-gradient(circle at 66% 22%, rgba(255, 255, 255, 0.74) 0 1px, transparent 2px),
-    radial-gradient(circle at 88% 42%, rgba(255, 200, 61, 0.8) 0 1px, transparent 2px),
-    radial-gradient(circle at 36% 58%, rgba(255, 255, 255, 0.72) 0 1px, transparent 2px),
-    radial-gradient(circle at 75% 80%, rgba(255, 255, 255, 0.62) 0 1px, transparent 2px);
-  background-size: 220px 220px;
-  animation: magicTwinkle 4s ease-in-out infinite alternate;
+  display: none;
 }
 
 .multiplication-screen::after {
-  opacity: 0.55;
-  background:
-    radial-gradient(ellipse at 20% 35%, rgba(250, 250, 255, 0.52), transparent 22rem),
-    radial-gradient(ellipse at 84% 64%, rgba(250, 250, 255, 0.44), transparent 20rem);
-  filter: blur(10px);
+  display: none;
 }
 
 .math-magic-header {
@@ -2879,7 +2860,7 @@
 /* ---- PROFIL : page famille premium ---- */
 .family-profile-screen {
   gap: 24px;
-  background: var(--color-page-profile);
+  background: transparent;
   color: var(--color-text);
 }
 
