@@ -272,11 +272,17 @@ function buildFamilyActivityStats(children: ChildProfileConfig[], periodDays: nu
   );
 }
 
-function getLastConnectionLabel(profileId: string, stats: FamilyActivityStat[]) {
-  const latest = [...stats]
+function getLastConnectionLabel(profileId: string, stats: FamilyActivityStat[], historyRows: FamilyActivityHistoryRow[]) {
+  const latestHistoryRow = [...historyRows]
+    .filter((row) => row.profileId === profileId)
+    .sort((a, b) => Date.parse(b.dateIso) - Date.parse(a.dateIso))[0];
+
+  if (latestHistoryRow) return formatHistoryDateTime(latestHistoryRow.dateIso);
+
+  const latestStat = [...stats]
     .filter((item) => item.profileId === profileId && item.minutes > 0)
     .sort((a, b) => b.day.localeCompare(a.day))[0];
-  return latest ? formatActivityDay(latest.day) : 'Aucune connexion récente';
+  return latestStat ? `${formatActivityDay(latestStat.day)} · heure non renseignée` : 'Aucune connexion récente';
 }
 
 function buildFamilyHistoryRows(profiles: ChildProfileConfig[]): FamilyActivityHistoryRow[] {
@@ -4955,6 +4961,12 @@ function ProfileView({
             {isActive ? 'Actif' : isSwitching ? 'Activation…' : 'Inactif'}
           </button>
         </div>
+        {profile.role === 'eleve' ? (
+          <div className="profile-card-stars" aria-label={`Étoiles obtenues par ${profile.name}`}>
+            <Star size={18} aria-hidden="true" />
+            <span>{profile.stars ?? 0} étoiles</span>
+          </div>
+        ) : null}
         <div className="family-card-actions compact-actions">
           <button
             type="button"
@@ -5071,7 +5083,13 @@ function ProfileView({
               <div className="kpi-card-title"><span className="kpi-card-icon">↗</span><h3>Dernières connexions</h3></div>
               <ul className="last-connection-list">
                 {students.map((profile) => (
-                  <li key={profile.id}><ProfileAvatar profile={profile} size="small" /> <span><ProfileColorDot profile={profile} /> {profile.name}</span><strong>{getLastConnectionLabel(profile.id, activityStats)}</strong></li>
+                  <li key={profile.id}>
+                    <ProfileAvatar profile={profile} size="small" />
+                    <span className="last-connection-details">
+                      <span className="last-connection-name"><ProfileColorDot profile={profile} /> {profile.name}</span>
+                      <span className="last-connection-date">{getLastConnectionLabel(profile.id, activityStats, historyRows)}</span>
+                    </span>
+                  </li>
                 ))}
               </ul>
             </article>
@@ -5278,7 +5296,7 @@ function ProfileView({
               <div className="detail-grid">
                 <article><strong>Classe</strong><span>{detailProfile.schoolLevel}</span></article>
                 <article><strong>Âge</strong><span>{detailProfile.age} ans</span></article>
-                <article><strong>Dernière connexion</strong><span>{getLastConnectionLabel(detailProfile.id, activityStats)}</span></article>
+                <article><strong>Dernière connexion</strong><span>{getLastConnectionLabel(detailProfile.id, activityStats, historyRows)}</span></article>
                 <article><strong>Statistiques principales</strong><span>{activeProfileHistory.length} activité(s) récentes</span></article>
                 <article className="wide"><strong>Progression</strong><span>{(detailProfile.progress ?? []).map((item) => `${item.subject} ${item.value}%`).join(' · ') || 'Résumé non disponible'}</span></article>
               </div>

@@ -57,8 +57,11 @@ describe('Page Profil famille', () => {
     const adrienCard = within(strip).getByRole('article', { name: /profil de adrien/i });
 
     expect(within(emmaCard).getByText(/^Actif$/i)).toBeInTheDocument();
+    expect(within(emmaCard).getByLabelText(/étoiles obtenues par emma/i)).toHaveTextContent(/125 étoiles/i);
     expect(within(louaneCard).getByText(/CE1 • 7 ans/i)).toBeInTheDocument();
+    expect(within(louaneCard).getByLabelText(/étoiles obtenues par louane/i)).toHaveTextContent(/135 étoiles/i);
     expect(within(adrienCard).getByText(/^Parent$/i)).toBeInTheDocument();
+    expect(within(adrienCard).queryByLabelText(/étoiles obtenues/i)).not.toBeInTheDocument();
     expect(within(louaneCard).getByRole('button', { name: /activer louane/i })).toBeInTheDocument();
     expect(within(adrienCard).getByRole('button', { name: /modifier adrien/i })).toBeInTheDocument();
 
@@ -192,6 +195,11 @@ describe('Page Profil famille', () => {
     expect(overview).toHaveClass('activity-overview-panel');
     expect(within(overview).getByRole('combobox', { name: /période/i })).toHaveValue('7');
     expect(within(overview).getByText(/Dernières connexions/i).closest('article')).toHaveClass('kpi-card-connections');
+    const lastConnections = within(overview).getByText(/Dernières connexions/i).closest('article')!;
+    const emmaConnection = within(lastConnections).getByText(/^Emma$/i).closest('li')!;
+    const emmaLastConnectionDate = within(emmaConnection).getByText(/12\/06\/2026 \d{2}:\d{2}/i);
+    expect(emmaLastConnectionDate).toHaveClass('last-connection-date');
+    expect(emmaConnection.querySelector('strong')).not.toBeInTheDocument();
     expect(within(overview).getByText(/^Temps d’activité$/i)).toBeInTheDocument();
     expect(within(overview).getByText(/en minutes par jour/i)).toBeInTheDocument();
     expect(within(overview).getByText(/^Exercices réalisés$/i)).toBeInTheDocument();
