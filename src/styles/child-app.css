@@ -1696,31 +1696,55 @@
   box-shadow: 0 4px 10px rgba(109, 93, 252, 0.16);
 }
 
-.poetry-timeline-slider {
+.poetry-timeline-handle {
   position: absolute;
-  top: 30px;
-  bottom: 30px;
-  display: flex;
-  justify-content: center;
+  left: 50%;
+  z-index: 4;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border: 4px solid #ffffff;
+  border-radius: 999px;
+  box-shadow: 0 10px 22px rgba(49, 35, 122, 0.22);
+  color: #ffffff;
+  font: inherit;
+  font-size: 0.58rem;
+  font-weight: 1000;
+  line-height: 1;
+  text-transform: uppercase;
+  cursor: grab;
+  touch-action: none;
+  transform: translate(-50%, -50%);
+}
+
+.poetry-timeline-handle:active {
+  cursor: grabbing;
+}
+
+.poetry-timeline-handle:focus-visible {
+  outline: 4px solid rgba(255, 191, 71, 0.75);
+  outline-offset: 3px;
+}
+
+.poetry-timeline-handle.top {
+  background: #6d5dfc;
+}
+
+.poetry-timeline-handle.bottom {
+  background: #ff8a4c;
+}
+
+.poetry-timeline-handle span {
   pointer-events: none;
 }
 
-.poetry-timeline-slider.top {
-  left: 0;
-  right: 50%;
-  z-index: 3;
-}
-
-.poetry-timeline-slider.bottom {
-  left: 50%;
-  right: 0;
-  z-index: 2;
-}
-
-.poetry-timeline-slider span {
+.poetry-timeline-caption {
   position: absolute;
-  width: 42px;
-  padding: 3px 5px;
+  left: 8px;
+  right: 8px;
+  margin: 0;
+  padding: 3px 6px;
   border-radius: 999px;
   background: rgba(109, 93, 252, 0.12);
   color: var(--color-primary-dark);
@@ -1731,32 +1755,12 @@
   pointer-events: none;
 }
 
-.poetry-timeline-slider.top span {
-  top: -22px;
-  right: -2px;
+.poetry-timeline-caption.top {
+  top: 6px;
 }
 
-.poetry-timeline-slider.bottom span {
-  bottom: -22px;
-  left: -2px;
-}
-
-.poetry-timeline-slider input[type="range"] {
-  width: 34px;
-  height: 100%;
-  writing-mode: vertical-lr;
-  appearance: slider-vertical;
-  accent-color: var(--color-primary);
-  pointer-events: auto;
-  cursor: grab;
-}
-
-.poetry-timeline-slider.top input[type="range"] {
-  direction: ltr;
-}
-
-.poetry-timeline-slider.bottom input[type="range"] {
-  direction: rtl;
+.poetry-timeline-caption.bottom {
+  bottom: 6px;
 }
 
 .poetry-mask-summary {

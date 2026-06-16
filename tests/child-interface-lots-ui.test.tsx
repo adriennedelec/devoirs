@@ -199,18 +199,27 @@ describe('Lots 5-11 complete child interface', () => {
     expect(lineOneButton).toHaveAttribute('aria-pressed', 'false');
 
     await user.click(screen.getByRole('button', { name: /tout afficher/i }));
-    const topMaskSlider = screen.getByLabelText(/masquer les lignes du haut/i) as HTMLInputElement;
-    const topMaskMax = Number(topMaskSlider.max);
-    expect(topMaskSlider.value).toBe(String(topMaskMax));
-    fireEvent.change(topMaskSlider, { target: { value: String(topMaskMax - 2) } });
+    const topMaskSlider = screen.getByRole('slider', { name: /masquer les lignes du haut/i });
+    const bottomMaskSlider = screen.getByRole('slider', { name: /masquer les lignes du bas/i });
+    expect(topMaskSlider).toHaveAttribute('aria-valuenow', '0');
+    expect(bottomMaskSlider).toHaveAttribute('aria-valuenow', '0');
+    fireEvent.keyDown(topMaskSlider, { key: 'ArrowDown' });
+    fireEvent.keyDown(topMaskSlider, { key: 'ArrowDown' });
     expect(screen.getByLabelText(/ligne 1 masquée/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/ligne 2 masquée/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/ligne 3 affichée/i)).toBeInTheDocument();
+    expect(topMaskSlider).toHaveAttribute('aria-valuenow', '2');
     await user.click(lineOneButton);
     expect(screen.getByLabelText(/ligne 1 affichée/i)).toHaveTextContent(/La Cigale/);
 
-    fireEvent.change(screen.getByLabelText(/masquer les lignes du bas/i), { target: { value: '1' } });
+    fireEvent.keyDown(bottomMaskSlider, { key: 'ArrowUp' });
     expect(screen.getByText(/1 ligne masquée en bas/i)).toBeInTheDocument();
+    expect(bottomMaskSlider).toHaveAttribute('aria-valuenow', '1');
+    fireEvent.keyDown(bottomMaskSlider, { key: 'Home' });
+    expect(screen.getByText(/20 lignes masquées en bas/i)).toBeInTheDocument();
+    fireEvent.keyDown(topMaskSlider, { key: 'ArrowDown' });
+    expect(topMaskSlider).toHaveAttribute('aria-valuenow', '2');
+    expect(screen.getByText(/2 lignes masquées en haut/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /cacher des mots/i })).toBeInTheDocument();
   });
 });

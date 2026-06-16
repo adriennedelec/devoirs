@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { ReactNode, FormEvent, CSSProperties } from 'react';
+import type { ReactNode, FormEvent, CSSProperties, KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent } from 'react';
 import { BookOpen, Database, Flame, Gift, GraduationCap, Home, MapIcon, Mic, PencilLine, Settings, Sparkles, Star, Trophy, User, UserRound, Users } from 'lucide-react';
 import type { ApiState, ChildDashboard } from './types/api';
 import type { ActivityRecord, StoredActivityModule } from './types/activity';
@@ -3913,6 +3913,7 @@ function PoetryView({
   const [bottomVisibleUntil, setBottomVisibleUntil] = useState(0);
   const [isPoetryListening, setIsPoetryListening] = useState(false);
   const poetrySpeechUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const poetryTimelineRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -3944,6 +3945,11 @@ function PoetryView({
     : selectedPoem?.text ?? (sessionState.status === 'success' ? sessionState.data.lines.join('\n') : '');
   const displayedPoetryLines = buildPoetryPracticeLinesFromText(displayedPoetryText);
   const effectiveBottomVisibleUntil = bottomVisibleUntil || displayedPoetryLines.length;
+  const poetryLineCount = displayedPoetryLines.length;
+  const constrainedTopMaskCount = Math.min(topMaskCount, effectiveBottomVisibleUntil);
+  const bottomHiddenCount = poetryLineCount - effectiveBottomVisibleUntil;
+  const topHandlePercent = poetryLineCount > 0 ? (constrainedTopMaskCount / poetryLineCount) * 100 : 0;
+  const bottomHandlePercent = poetryLineCount > 0 ? (effectiveBottomVisibleUntil / poetryLineCount) * 100 : 100;
 
   useEffect(() => {
     setBottomVisibleUntil(displayedPoetryLines.length);
@@ -3963,10 +3969,68 @@ function PoetryView({
     stopPoetryListening();
   }
 
+  function clampPoetryMaskValue(value: number) {
+    return Math.max(0, Math.min(poetryLineCount, value));
+  }
+
+  function setTopMaskFromTimeline(value: number) {
+    const nextTopMask = Math.min(clampPoetryMaskValue(value), effectiveBottomVisibleUntil);
+    setTopMaskCount(nextTopMask);
+  }
+
+  function setBottomMaskFromTimeline(value: number) {
+    const nextBottomVisibleUntil = Math.max(constrainedTopMaskCount, clampPoetryMaskValue(value));
+    setBottomVisibleUntil(nextBottomVisibleUntil);
+  }
+
+  function getTimelineValueFromPointer(clientY: number) {
+    const track = poetryTimelineRef.current?.querySelector<HTMLElement>('.poetry-timeline-track');
+    if (!track || poetryLineCount === 0) return 0;
+    const rect = track.getBoundingClientRect();
+    const ratio = Math.max(0, Math.min(1, (clientY - rect.top) / rect.height));
+    return Math.round(ratio * poetryLineCount);
+  }
+
+  function startPoetryTimelineDrag(handle: 'top' | 'bottom', event: ReactPointerEvent<HTMLButtonElement>) {
+    event.preventDefault();
+    event.currentTarget.focus();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    const update = (clientY: number) => {
+      const nextValue = getTimelineValueFromPointer(clientY);
+      if (handle === 'top') setTopMaskFromTimeline(nextValue);
+      else setBottomMaskFromTimeline(nextValue);
+    };
+    update(event.clientY);
+    const target = event.currentTarget;
+    const onPointerMove = (moveEvent: PointerEvent) => update(moveEvent.clientY);
+    const onPointerUp = () => {
+      target.removeEventListener('pointermove', onPointerMove);
+      target.removeEventListener('pointerup', onPointerUp);
+      target.removeEventListener('pointercancel', onPointerUp);
+    };
+    target.addEventListener('pointermove', onPointerMove);
+    target.addEventListener('pointerup', onPointerUp);
+    target.addEventListener('pointercancel', onPointerUp);
+  }
+
+  function handlePoetryTimelineKeyboard(handle: 'top' | 'bottom', event: ReactKeyboardEvent<HTMLButtonElement>) {
+    const currentValue = handle === 'top' ? constrainedTopMaskCount : effectiveBottomVisibleUntil;
+    const isTopHandle = handle === 'top';
+    let nextValue: number | null = null;
+    if (event.key === 'ArrowDown') nextValue = currentValue + 1;
+    if (event.key === 'ArrowUp') nextValue = currentValue - 1;
+    if (event.key === 'Home') nextValue = isTopHandle ? 0 : constrainedTopMaskCount;
+    if (event.key === 'End') nextValue = isTopHandle ? effectiveBottomVisibleUntil : poetryLineCount;
+    if (nextValue === null) return;
+    event.preventDefault();
+    if (isTopHandle) setTopMaskFromTimeline(nextValue);
+    else setBottomMaskFromTimeline(nextValue);
+  }
+
   function isPoetryLineHidden(lineId: string, index: number) {
     const manualValue = manualLineVisibility[lineId];
     if (manualValue !== undefined) return manualValue;
-    return hideWords || index < topMaskCount || index >= effectiveBottomVisibleUntil;
+    return hideWords || index < constrainedTopMaskCount || index >= effectiveBottomVisibleUntil;
   }
 
   function togglePoetryLine(lineId: string, index: number) {
@@ -4143,36 +4207,44 @@ function PoetryView({
                   <button className="audio-button" type="button" onClick={resetPoetryPracticeControls}>Tout afficher</button>
                 </div>
                 <div className="poetry-practice-layout">
-                  <div className="poetry-vertical-timeline" aria-label="Timeline verticale de masquage ligne par ligne">
+                  <div className="poetry-vertical-timeline" aria-label="Timeline verticale de masquage ligne par ligne" ref={poetryTimelineRef}>
                     <div className="poetry-timeline-track" aria-hidden="true">
                       {displayedPoetryLines.map((line) => <span key={line.id}>{line.label.replace('Ligne ', '')}</span>)}
                     </div>
-                    <label className="poetry-timeline-slider top">
-                      <span>Masquer depuis le haut</span>
-                      <input
-                        aria-label="Masquer les lignes du haut"
-                        type="range"
-                        min={0}
-                        max={displayedPoetryLines.length}
-                        value={displayedPoetryLines.length - topMaskCount}
-                        onChange={(event) => setTopMaskCount(displayedPoetryLines.length - Number(event.target.value))}
-                      />
-                    </label>
-                    <label className="poetry-timeline-slider bottom">
-                      <span>Masquer depuis le bas</span>
-                      <input
-                        aria-label="Masquer les lignes du bas"
-                        type="range"
-                        min={0}
-                        max={displayedPoetryLines.length}
-                        value={displayedPoetryLines.length - effectiveBottomVisibleUntil}
-                        onChange={(event) => setBottomVisibleUntil(displayedPoetryLines.length - Number(event.target.value))}
-                      />
-                    </label>
+                    <button
+                      aria-label="Masquer les lignes du haut"
+                      aria-valuemax={poetryLineCount}
+                      aria-valuemin={0}
+                      aria-valuenow={constrainedTopMaskCount}
+                      className="poetry-timeline-handle top"
+                      onKeyDown={(event) => handlePoetryTimelineKeyboard('top', event)}
+                      onPointerDown={(event) => startPoetryTimelineDrag('top', event)}
+                      role="slider"
+                      style={{ top: `${topHandlePercent}%` }}
+                      type="button"
+                    >
+                      <span>Haut</span>
+                    </button>
+                    <button
+                      aria-label="Masquer les lignes du bas"
+                      aria-valuemax={poetryLineCount}
+                      aria-valuemin={0}
+                      aria-valuenow={bottomHiddenCount}
+                      className="poetry-timeline-handle bottom"
+                      onKeyDown={(event) => handlePoetryTimelineKeyboard('bottom', event)}
+                      onPointerDown={(event) => startPoetryTimelineDrag('bottom', event)}
+                      role="slider"
+                      style={{ top: `${bottomHandlePercent}%` }}
+                      type="button"
+                    >
+                      <span>Bas</span>
+                    </button>
+                    <p className="poetry-timeline-caption top">Masquer depuis le haut</p>
+                    <p className="poetry-timeline-caption bottom">Masquer depuis le bas</p>
                   </div>
                   <div className="poetry-mask-summary" aria-live="polite">
-                    <span>{topMaskCount === 0 ? 'aucune ligne masquée en haut' : `${topMaskCount} ligne${topMaskCount > 1 ? 's' : ''} masquée${topMaskCount > 1 ? 's' : ''} en haut`}</span>
-                    <span>{displayedPoetryLines.length - effectiveBottomVisibleUntil === 0 ? 'aucune ligne masquée en bas' : `${displayedPoetryLines.length - effectiveBottomVisibleUntil} ligne${displayedPoetryLines.length - effectiveBottomVisibleUntil > 1 ? 's' : ''} masquée${displayedPoetryLines.length - effectiveBottomVisibleUntil > 1 ? 's' : ''} en bas`}</span>
+                    <span>{constrainedTopMaskCount === 0 ? 'aucune ligne masquée en haut' : `${constrainedTopMaskCount} ligne${constrainedTopMaskCount > 1 ? 's' : ''} masquée${constrainedTopMaskCount > 1 ? 's' : ''} en haut`}</span>
+                    <span>{bottomHiddenCount === 0 ? 'aucune ligne masquée en bas' : `${bottomHiddenCount} ligne${bottomHiddenCount > 1 ? 's' : ''} masquée${bottomHiddenCount > 1 ? 's' : ''} en bas`}</span>
                   </div>
                   <div className="poem-lines" aria-label="Lignes de mémorisation de la poésie">
                     {displayedPoetryLines.map((line, index) => {
