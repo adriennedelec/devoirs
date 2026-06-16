@@ -57,7 +57,10 @@ describe('Page Profil famille', () => {
     const adrienCard = within(strip).getByRole('article', { name: /profil de adrien/i });
 
     expect(within(emmaCard).getByText(/^Actif$/i)).toBeInTheDocument();
-    expect(within(emmaCard).getByLabelText(/étoiles obtenues par emma/i)).toHaveTextContent(/125 étoiles/i);
+    const emmaStars = within(emmaCard).getByLabelText(/étoiles obtenues par emma/i);
+    expect(emmaStars).toHaveTextContent(/125 étoiles/i);
+    expect(emmaStars.parentElement).toHaveClass('profile-card-meta-row');
+    expect(emmaStars.parentElement).toContainElement(within(emmaCard).getByRole('button', { name: /modifier emma/i }));
     expect(within(louaneCard).getByText(/CE1 • 7 ans/i)).toBeInTheDocument();
     expect(within(louaneCard).getByLabelText(/étoiles obtenues par louane/i)).toHaveTextContent(/135 étoiles/i);
     expect(within(adrienCard).getByText(/^Parent$/i)).toBeInTheDocument();

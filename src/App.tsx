@@ -4961,13 +4961,13 @@ function ProfileView({
             {isActive ? 'Actif' : isSwitching ? 'Activation…' : 'Inactif'}
           </button>
         </div>
-        {profile.role === 'eleve' ? (
-          <div className="profile-card-stars" aria-label={`Étoiles obtenues par ${profile.name}`}>
-            <Star size={18} aria-hidden="true" />
-            <span>{profile.stars ?? 0} étoiles</span>
-          </div>
-        ) : null}
-        <div className="family-card-actions compact-actions">
+        <div className="family-card-actions compact-actions profile-card-meta-row">
+          {profile.role === 'eleve' ? (
+            <div className="profile-card-stars" aria-label={`Étoiles obtenues par ${profile.name}`}>
+              <Star size={18} aria-hidden="true" />
+              <span>{profile.stars ?? 0} étoiles</span>
+            </div>
+          ) : <span />}
           <button
             type="button"
             className="ghost-action"

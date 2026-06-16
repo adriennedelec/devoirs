@@ -3775,6 +3775,13 @@
   background: #e6fbef;
 }
 
+.profile-card-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 .profile-card-stars {
   display: inline-flex;
   align-items: center;
@@ -3876,6 +3883,8 @@
 
 .last-connection-date {
   color: var(--color-primary-dark);
+  font-size: 0.78rem;
+  line-height: 1.15;
 }
 
 .activity-chart-with-axis {
@@ -4190,11 +4199,16 @@
 }
 
 .profile-row-main p,
-.last-connection-list li > span,
+.last-connection-list li > span:not(.last-connection-details),
 .active-profile-summary span {
   display: inline-flex;
   align-items: center;
   gap: 7px;
+}
+
+.last-connection-list li > .last-connection-details {
+  display: grid;
+  gap: 3px;
 }
 
 .active-profile-color-dot {
