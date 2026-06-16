@@ -199,8 +199,13 @@ describe('Lots 5-11 complete child interface', () => {
     expect(lineOneButton).toHaveAttribute('aria-pressed', 'false');
 
     await user.click(screen.getByRole('button', { name: /tout afficher/i }));
-    fireEvent.change(screen.getByLabelText(/masquer les lignes du haut/i), { target: { value: '2' } });
+    const topMaskSlider = screen.getByLabelText(/masquer les lignes du haut/i) as HTMLInputElement;
+    const topMaskMax = Number(topMaskSlider.max);
+    expect(topMaskSlider.value).toBe(String(topMaskMax));
+    fireEvent.change(topMaskSlider, { target: { value: String(topMaskMax - 2) } });
     expect(screen.getByLabelText(/ligne 1 masquée/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/ligne 2 masquée/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/ligne 3 affichée/i)).toBeInTheDocument();
     await user.click(lineOneButton);
     expect(screen.getByLabelText(/ligne 1 affichée/i)).toHaveTextContent(/La Cigale/);
 

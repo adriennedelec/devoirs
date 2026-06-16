@@ -4154,8 +4154,8 @@ function PoetryView({
                         type="range"
                         min={0}
                         max={displayedPoetryLines.length}
-                        value={topMaskCount}
-                        onChange={(event) => setTopMaskCount(Number(event.target.value))}
+                        value={displayedPoetryLines.length - topMaskCount}
+                        onChange={(event) => setTopMaskCount(displayedPoetryLines.length - Number(event.target.value))}
                       />
                     </label>
                     <label className="poetry-timeline-slider bottom">
