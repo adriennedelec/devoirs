@@ -3912,8 +3912,17 @@ function PoetryView({
   const [topMaskCount, setTopMaskCount] = useState(0);
   const [bottomVisibleUntil, setBottomVisibleUntil] = useState(0);
   const [isPoetryListening, setIsPoetryListening] = useState(false);
+  const [isRecitalRecording, setIsRecitalRecording] = useState(false);
+  const [recitalRecordingStartedAt, setRecitalRecordingStartedAt] = useState<number | null>(null);
+  const [recitalElapsedSeconds, setRecitalElapsedSeconds] = useState(0);
+  const [recitalTranscript, setRecitalTranscriptState] = useState('');
+  const [recitalAnalysis, setRecitalAnalysis] = useState<ReadingRecordingAnalysis | null>(null);
+  const [recitalStatusMessage, setRecitalStatusMessage] = useState('');
   const poetrySpeechUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const poetryTimelineRef = useRef<HTMLDivElement | null>(null);
+  const recitalIntervalRef = useRef<number | null>(null);
+  const recitalRecognitionRef = useRef<{ start: () => void; stop: () => void; abort?: () => void; onresult?: ((event: unknown) => void) | null; onerror?: ((event: unknown) => void) | null; onend?: (() => void) | null } | null>(null);
+  const recitalTranscriptRef = useRef(recitalTranscript);
 
   useEffect(() => {
     let cancelled = false;
@@ -3959,7 +3968,14 @@ function PoetryView({
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       window.speechSynthesis.cancel();
     }
+    if (recitalIntervalRef.current !== null) window.clearInterval(recitalIntervalRef.current);
+    recitalRecognitionRef.current?.abort?.();
+    recitalRecognitionRef.current = null;
   }, []);
+
+  useEffect(() => {
+    recitalTranscriptRef.current = recitalTranscript;
+  }, [recitalTranscript]);
 
   function resetPoetryPracticeControls() {
     setHideWords(false);
@@ -3967,6 +3983,18 @@ function PoetryView({
     setTopMaskCount(0);
     setBottomVisibleUntil(0);
     stopPoetryListening();
+  }
+
+  function maskAllPoetryText() {
+    setHideWords(true);
+    setManualLineVisibility({});
+    setTopMaskCount(0);
+    setBottomVisibleUntil(displayedPoetryLines.length);
+  }
+
+  function setRecitalTranscript(value: string) {
+    recitalTranscriptRef.current = value;
+    setRecitalTranscriptState(value);
   }
 
   function clampPoetryMaskValue(value: number) {
@@ -4098,6 +4126,162 @@ function PoetryView({
     }
   }
 
+  function getPoetrySpeechRecognitionConstructor() {
+    if (typeof window === 'undefined') return null;
+    const speechWindow = window as unknown as {
+      SpeechRecognition?: new () => {
+        lang: string;
+        continuous: boolean;
+        interimResults: boolean;
+        start: () => void;
+        stop: () => void;
+        abort?: () => void;
+        onresult?: ((event: unknown) => void) | null;
+        onerror?: ((event: unknown) => void) | null;
+        onend?: (() => void) | null;
+      };
+      webkitSpeechRecognition?: new () => {
+        lang: string;
+        continuous: boolean;
+        interimResults: boolean;
+        start: () => void;
+        stop: () => void;
+        abort?: () => void;
+        onresult?: ((event: unknown) => void) | null;
+        onerror?: ((event: unknown) => void) | null;
+        onend?: (() => void) | null;
+      };
+    };
+    return speechWindow.SpeechRecognition ?? speechWindow.webkitSpeechRecognition ?? null;
+  }
+
+  function readPoetrySpeechRecognitionTranscript(event: unknown) {
+    const results = (event as { results?: ArrayLike<ArrayLike<{ transcript?: string }>> }).results;
+    if (!results) return '';
+    return Array.from(results)
+      .map((result) => Array.from(result).map((item) => item.transcript ?? '').join(' '))
+      .join(' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function stopRecitalTimer() {
+    const elapsed = recitalRecordingStartedAt ? Math.max(1, Math.floor((Date.now() - recitalRecordingStartedAt) / 1000)) : Math.max(1, recitalElapsedSeconds || 1);
+    if (recitalIntervalRef.current !== null) {
+      window.clearInterval(recitalIntervalRef.current);
+      recitalIntervalRef.current = null;
+    }
+    setRecitalElapsedSeconds(elapsed);
+    setIsRecitalRecording(false);
+    setRecitalRecordingStartedAt(null);
+    return elapsed;
+  }
+
+  function stopRecitalSpeechRecognition() {
+    const recognition = recitalRecognitionRef.current;
+    if (!recognition) return;
+    recognition.onend = null;
+    recognition.onerror = null;
+    recognition.onresult = null;
+    try {
+      recognition.stop();
+    } catch {
+      recognition.abort?.();
+    }
+    recitalRecognitionRef.current = null;
+  }
+
+  function startRecitalRecording() {
+    if (!displayedPoetryText.trim()) return;
+    const startedAt = Date.now();
+    maskAllPoetryText();
+    setRecitalRecordingStartedAt(startedAt);
+    setRecitalElapsedSeconds(0);
+    setRecitalTranscript('');
+    setIsRecitalRecording(true);
+    setRecitalAnalysis(null);
+    setRecitalState(null);
+    setRecitalStatusMessage('Écoute en cours… Autorise le micro puis récite ta poésie à voix haute.');
+    if (recitalIntervalRef.current !== null) window.clearInterval(recitalIntervalRef.current);
+    recitalIntervalRef.current = window.setInterval(() => {
+      setRecitalElapsedSeconds(Math.max(1, Math.floor((Date.now() - startedAt) / 1000)));
+    }, 1000);
+
+    const SpeechRecognitionConstructor = getPoetrySpeechRecognitionConstructor();
+    if (!SpeechRecognitionConstructor) {
+      setRecitalStatusMessage('Reconnaissance vocale indisponible dans ce navigateur. Tu peux coller la transcription puis cliquer sur Analyser.');
+      return;
+    }
+
+    const recognition = new SpeechRecognitionConstructor();
+    recognition.lang = 'fr-FR';
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.onresult = (event: unknown) => {
+      const transcript = readPoetrySpeechRecognitionTranscript(event);
+      if (transcript) {
+        setRecitalTranscript(transcript);
+        setRecitalStatusMessage('Transcription reçue. Tu peux arrêter pour lancer l’analyse.');
+      }
+    };
+    recognition.onerror = () => {
+      setRecitalStatusMessage('Micro non disponible ou autorisation refusée. Colle la transcription puis lance l’analyse.');
+    };
+    recognition.onend = () => {
+      if (isRecitalRecording) setRecitalStatusMessage('Écoute interrompue. Relance ou analyse la transcription déjà reçue.');
+    };
+    recitalRecognitionRef.current = recognition;
+    try {
+      recognition.start();
+    } catch {
+      setRecitalStatusMessage('Impossible de démarrer le micro. Colle la transcription puis lance l’analyse.');
+    }
+  }
+
+  function analyzeRecitalTranscript(transcriptOverride?: string, durationOverride?: number) {
+    if (!displayedPoetryText.trim()) return;
+    const transcriptToAnalyze = transcriptOverride ?? recitalTranscriptRef.current;
+    const durationToAnalyze = durationOverride ?? (recitalElapsedSeconds || 1);
+    const analysis = analyzeReadingRecording(displayedPoetryText, transcriptToAnalyze, durationToAnalyze);
+    setRecitalAnalysis(analysis);
+    const starsEarned = calculateRewardStars('poetry', Math.max(0, analysis.totalWords - analysis.errorCount), analysis.errorCount);
+    appendActivityRecordToStorage(buildLearningActivityRecord({
+      profileId: dashboard.child.id,
+      profileName: dashboard.child.firstName,
+      module: 'poetry',
+      moduleLabel: 'Poésie',
+      exerciseLabel: displayedPoetryTitle,
+      score: Math.max(0, analysis.totalWords - analysis.errorCount),
+      totalQuestions: Math.max(1, analysis.totalWords),
+      correctCount: Math.max(0, analysis.totalWords - analysis.errorCount),
+      wrongCount: analysis.errorCount,
+      durationSeconds: analysis.durationSeconds,
+      starsEarned,
+      status: analysis.errorCount === 0 ? 'completed' : 'partial',
+      details: { wordsPerMinute: analysis.wordsPerMinute, transcript: transcriptToAnalyze },
+    }));
+    onRecordExercise({
+      module: 'poetry',
+      moduleLabel: 'Poésie',
+      exercise: displayedPoetryTitle,
+      resultLabel: `${analysis.wordsPerMinute} mots/min`,
+      details: `${analysis.errorCount} erreur${analysis.errorCount > 1 ? 's' : ''} • ${formatDuration(analysis.durationSeconds)}`,
+      status: analysis.errorCount === 0 ? 'success' : 'partial',
+    });
+  }
+
+  function stopRecitalRecording() {
+    const elapsed = stopRecitalTimer();
+    stopRecitalSpeechRecognition();
+    const transcript = recitalTranscriptRef.current;
+    if (transcript.trim()) {
+      analyzeRecitalTranscript(transcript, elapsed);
+      setRecitalStatusMessage('Analyse terminée à partir de la transcription automatique.');
+      return;
+    }
+    setRecitalStatusMessage('Aucune parole transcrite. Vérifie l’autorisation micro ou colle la transcription avant analyse.');
+  }
+
   async function validateRecital() {
     if (sessionState.status !== 'success') return;
     setRecitalState({ status: 'loading' });
@@ -4195,7 +4379,7 @@ function PoetryView({
               <div className="poetry-mode-row">
                 <button className="audio-button" type="button" onClick={listenToPoetry}>{isPoetryListening ? 'Arrêter l’écoute' : 'Écouter'}</button>
                 <button className="audio-button" type="button" onClick={() => setHideWords((value) => !value)}>{hideWords ? 'Afficher tout' : 'Cacher des mots'}</button>
-                <button className="audio-button" type="button">Réciter</button>
+                <button className="audio-button" type="button" onClick={maskAllPoetryText}>Masquer tout le texte</button>
               </div>
               <section className="poetry-workbench" aria-labelledby="poetry-workbench-title">
                 <div className="poetry-workbench-header">
@@ -4276,8 +4460,80 @@ function PoetryView({
               </article>
             ))}
           </section>
+          <section className="language-card reading-card reading-recording-card poetry-recital-recording-card" aria-labelledby="poetry-recital-title">
+            <div className="language-mascot" aria-hidden="true">🎤</div>
+            <div>
+              <p className="eyebrow">Bloc récitation · Même analyse que Lecture</p>
+              <h2 id="poetry-recital-title">Réciter la poésie</h2>
+              <p>Masque le texte, démarre l’enregistrement, puis l’app compare ta récitation à la poésie originale avec la même analyse phonétique que le module Lecture.</p>
+              <div className="reading-recorder-controls" role="group" aria-label="Enregistrement de récitation">
+                <button className="audio-button" disabled={isRecitalRecording || !displayedPoetryText.trim()} type="button" onClick={startRecitalRecording}>🎙️ Démarrer l’enregistrement</button>
+                <button className="audio-button" disabled={!isRecitalRecording} type="button" onClick={stopRecitalRecording}>⏹️ Arrêter et analyser</button>
+                <div className="timer-card inline" aria-label="Chronomètre de récitation">
+                  <span aria-hidden="true">⏱️</span>
+                  <div>
+                    <strong>Chronomètre</strong>
+                    <p className="timer-value">{formatDuration(recitalElapsedSeconds)}</p>
+                    <small>{isRecitalRecording ? 'Chrono lancé' : 'Prêt pour la récitation'}</small>
+                  </div>
+                </div>
+              </div>
+              {recitalStatusMessage ? <p className="feedback-card reading-recording-status" aria-live="polite">{recitalStatusMessage}</p> : null}
+              <label className="transcript-editor">
+                Transcription de la récitation
+                <textarea
+                  rows={5}
+                  value={recitalTranscript}
+                  onChange={(event) => setRecitalTranscript(event.target.value)}
+                  placeholder="La transcription automatique apparaîtra ici. Tu peux la corriger avant d’analyser."
+                />
+              </label>
+              <button className="primary-action" disabled={!displayedPoetryText.trim() || recitalTranscript.trim().length === 0} type="button" onClick={() => analyzeRecitalTranscript()}>
+                Analyser la récitation
+              </button>
+            </div>
+          </section>
+
+          {recitalAnalysis ? (
+            <section className="page-card reading-analysis-card" aria-labelledby="poetry-recital-analysis-title">
+              <p className="eyebrow">Résultat récitation</p>
+              <h2 id="poetry-recital-analysis-title">Analyse de la récitation</h2>
+              <div className="reading-stat-grid">
+                <article><strong>{recitalAnalysis.wordsPerMinute}</strong><span>Mots par minute</span></article>
+                <article><strong>{formatDuration(recitalAnalysis.durationSeconds)}</strong><span>Temps total</span></article>
+                <article><strong>{recitalAnalysis.errorCount}</strong><span>Erreurs</span></article>
+                <article><strong>{recitalAnalysis.accuracyPercent}%</strong><span>Précision</span></article>
+              </div>
+              <div className="reading-transcript-correction" aria-label="Transcription corrigée avec erreurs en couleur">
+                {recitalAnalysis.tokens.map((token, index) => (
+                  <span
+                    key={`${token.actual}-${token.expected}-${index}`}
+                    className={
+                      token.status === 'correct'
+                        ? 'reading-word-correct'
+                        : token.status === 'missing'
+                          ? 'reading-word-missing'
+                          : 'reading-word-error'
+                    }
+                    title={token.status === 'correct' ? 'Mot correct' : `Attendu : ${token.expected || '—'}`}
+                  >
+                    {token.status === 'correct' ? token.actual : token.actual || token.expected}
+                  </span>
+                ))}
+              </div>
+              <table className="reading-stats-table" aria-label="Tableau de statistiques de récitation">
+                <tbody>
+                  <tr><th scope="row">Mots du texte</th><td>{recitalAnalysis.totalWords}</td></tr>
+                  <tr><th scope="row">Mots récités</th><td>{recitalAnalysis.spokenWords}</td></tr>
+                  <tr><th scope="row">Mots par minute</th><td>{recitalAnalysis.wordsPerMinute}</td></tr>
+                  <tr><th scope="row">Erreurs détectées</th><td>{recitalAnalysis.errorCount}</td></tr>
+                </tbody>
+              </table>
+            </section>
+          ) : null}
+
           <section className="page-card recital-card">
-            <p className="eyebrow">Récitation simulée</p>
+            <p className="eyebrow">Validation simple</p>
             <h2>Quand tu es prête, valide ta récitation.</h2>
             <button className="primary-action" type="button" onClick={validateRecital} disabled={recitalState?.status === 'loading' || displayedPoetryLines.length === 0}>J’ai récité ma poésie</button>
             {recitalState?.status === 'loading' ? <p className="feedback-card">La mascotte écoute ton effort…</p> : null}

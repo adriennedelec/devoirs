@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import App from '../src/App';
@@ -221,5 +221,51 @@ describe('Lots 5-11 complete child interface', () => {
     expect(topMaskSlider).toHaveAttribute('aria-valuenow', '2');
     expect(screen.getByText(/2 lignes masquées en haut/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /cacher des mots/i })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /masquer tout le texte/i }));
+    expect(screen.getAllByLabelText(/ligne \d+ masquée/i).length).toBeGreaterThan(5);
+
+    const recognitionInstances: Array<{
+      start: ReturnType<typeof vi.fn>;
+      stop: ReturnType<typeof vi.fn>;
+      abort: ReturnType<typeof vi.fn>;
+      onresult: ((event: unknown) => void) | null;
+      onerror: ((event: unknown) => void) | null;
+      onend: (() => void) | null;
+      lang: string;
+      continuous: boolean;
+      interimResults: boolean;
+    }> = [];
+    class MockSpeechRecognition {
+      start = vi.fn();
+      stop = vi.fn();
+      abort = vi.fn();
+      onresult: ((event: unknown) => void) | null = null;
+      onerror: ((event: unknown) => void) | null = null;
+      onend: (() => void) | null = null;
+      lang = '';
+      continuous = false;
+      interimResults = false;
+      constructor() {
+        recognitionInstances.push(this);
+      }
+    }
+    Object.defineProperty(window, 'webkitSpeechRecognition', {
+      configurable: true,
+      value: MockSpeechRecognition,
+    });
+
+    await user.click(screen.getByRole('button', { name: /démarrer l’enregistrement/i }));
+    expect(recognitionInstances[0].start).toHaveBeenCalledTimes(1);
+    expect(recognitionInstances[0].lang).toBe('fr-FR');
+    act(() => {
+      recognitionInstances[0].onresult?.({ results: [[{ transcript: 'La Cigale ayant chanté tout l été' }]] });
+    });
+    expect(screen.getByLabelText(/transcription de la récitation/i)).toHaveValue('La Cigale ayant chanté tout l été');
+
+    await user.click(screen.getByRole('button', { name: /arrêter et analyser/i }));
+    expect(await screen.findByRole('heading', { name: /analyse de la récitation/i })).toBeInTheDocument();
+    expect(screen.getAllByText(/mots par minute/i).length).toBeGreaterThan(0);
+    expect(screen.getByLabelText(/transcription corrigée avec erreurs en couleur/i)).toBeInTheDocument();
   });
 });
