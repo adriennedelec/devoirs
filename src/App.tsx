@@ -176,6 +176,7 @@ type ActivityFilters = {
   activity: string;
   subject: string;
   periodDays: string;
+  resultBand: string;
 };
 
 const FAMILY_NAME = 'Famille Nedelec';
@@ -4687,7 +4688,7 @@ function ProfileView({
   const [activationError, setActivationError] = useState('');
   const [switchingProfileId, setSwitchingProfileId] = useState<string | null>(null);
   const [activityPeriodDays, setActivityPeriodDays] = useState('7');
-  const [historyFilters, setHistoryFilters] = useState<ActivityFilters>({ profileId: 'all', activity: 'all', subject: 'all', periodDays: '30' });
+  const [historyFilters, setHistoryFilters] = useState<ActivityFilters>({ profileId: 'all', activity: 'all', subject: 'all', periodDays: '30', resultBand: 'all' });
   const [historySort, setHistorySort] = useState<{ key: HistorySortKey; direction: SortDirection }>({ key: 'date', direction: 'desc' });
   const [historyPage, setHistoryPage] = useState(1);
   const [historyPageSize, setHistoryPageSize] = useState(DEFAULT_HISTORY_PAGE_SIZE);
@@ -4717,6 +4718,12 @@ function ProfileView({
       .filter((row) => historyFilters.profileId === 'all' || row.profileId === historyFilters.profileId)
       .filter((row) => historyFilters.activity === 'all' || row.activity === historyFilters.activity)
       .filter((row) => historyFilters.subject === 'all' || row.subject === historyFilters.subject)
+      .filter((row) => {
+        if (historyFilters.resultBand === 'strong') return row.resultPercent >= 85;
+        if (historyFilters.resultBand === 'medium') return row.resultPercent >= 70 && row.resultPercent < 85;
+        if (historyFilters.resultBand === 'low') return row.resultPercent < 70;
+        return true;
+      })
       .filter((row) => Date.parse(row.dateIso) >= minTime)
       .sort((a, b) => {
         const result = compareHistoryRows(a, b, historySort.key);
@@ -4849,8 +4856,13 @@ function ProfileView({
     }));
   }
 
+  function getHistorySortArrow(key: HistorySortKey) {
+    if (historySort.key !== key) return '↕';
+    return historySort.direction === 'asc' ? '↑' : '↓';
+  }
+
   function resetHistoryFilters() {
-    setHistoryFilters({ profileId: 'all', activity: 'all', subject: 'all', periodDays: '30' });
+    setHistoryFilters({ profileId: 'all', activity: 'all', subject: 'all', periodDays: '30', resultBand: 'all' });
     setHistorySort({ key: 'date', direction: 'desc' });
   }
 
@@ -5125,50 +5137,69 @@ function ProfileView({
 
       <section className="profile-section activity-history" aria-label="Historique détaillé des activités">
         <div className="section-heading compact-heading history-heading">
-          <div>
-            <h2>Historique détaillé des activités</h2>
-            <p className="history-results-summary">
-              Total des résultats : {historyRows.length} · Résultats filtrés : {filteredHistoryRows.length} {historyFilters.profileId !== 'all' ? profiles.find((profile) => profile.id === historyFilters.profileId)?.name : ''}
-            </p>
-          </div>
-          <p className="history-sort-summary">Tri : {historySort.key === 'result' ? 'résultat' : historySort.key} {historySort.direction === 'asc' ? 'ascendant' : 'descendant'}</p>
-        </div>
-        <div className="history-filters">
-          <label>Profil
-            <select aria-label="Filtrer par profil" value={historyFilters.profileId} onChange={(event) => setHistoryFilters((current) => ({ ...current, profileId: event.target.value }))}>
-              <option value="all">Tous</option>
-              {profiles.map((profile) => <option value={profile.id} key={profile.id}>{profile.name}</option>)}
-            </select>
-          </label>
-          <label>Activité
-            <select aria-label="Filtrer par activité" value={historyFilters.activity} onChange={(event) => setHistoryFilters((current) => ({ ...current, activity: event.target.value }))}>
-              <option value="all">Toutes</option>
-              {activityOptions.map((activity) => <option value={activity} key={activity}>{activity}</option>)}
-            </select>
-          </label>
-          <label>Matière
-            <select aria-label="Filtrer par matière" value={historyFilters.subject} onChange={(event) => setHistoryFilters((current) => ({ ...current, subject: event.target.value }))}>
-              <option value="all">Toutes</option>
-              {subjectOptions.map((subject) => <option value={subject} key={subject}>{subject}</option>)}
-            </select>
-          </label>
-          <label>Période/date
-            <select aria-label="Filtrer par période" value={historyFilters.periodDays} onChange={(event) => setHistoryFilters((current) => ({ ...current, periodDays: event.target.value }))}>
-              <option value="7">7 derniers jours</option>
-              <option value="30">30 derniers jours</option>
-            </select>
-          </label>
-          <button type="button" className="ghost-action" onClick={resetHistoryFilters}>Réinitialiser</button>
+          <h2>Historique détaillé des activités</h2>
         </div>
         <div className="multiplication-history-table-wrap">
           <table className="multiplication-history-table activity-history-table" aria-label="Activités famille">
             <thead>
               <tr>
-                <th scope="col"><button type="button" onClick={() => sortHistory('profile')}>Trier par profil</button></th>
-                <th scope="col"><button type="button" onClick={() => sortHistory('activity')}>Trier par activité</button></th>
-                <th scope="col"><button type="button" onClick={() => sortHistory('subject')}>Trier par matière</button></th>
-                <th scope="col"><button type="button" onClick={() => sortHistory('date')}>Trier par date et heure</button></th>
-                <th scope="col"><button type="button" onClick={() => sortHistory('result')}>Trier par résultat</button></th>
+                <th scope="col">
+                  <div className="history-column-header">
+                    <button type="button" className="history-sort-button" onClick={() => sortHistory('profile')} aria-label="Trier par profil">
+                      Profil <span aria-hidden="true">{getHistorySortArrow('profile')}</span>
+                    </button>
+                    <select className="history-column-filter" aria-label="Filtrer par profil" value={historyFilters.profileId} onChange={(event) => setHistoryFilters((current) => ({ ...current, profileId: event.target.value }))}>
+                      <option value="all">Tous les profils</option>
+                      {profiles.map((profile) => <option value={profile.id} key={profile.id}>{profile.name}</option>)}
+                    </select>
+                  </div>
+                </th>
+                <th scope="col">
+                  <div className="history-column-header">
+                    <button type="button" className="history-sort-button" onClick={() => sortHistory('activity')} aria-label="Trier par activité">
+                      Activité <span aria-hidden="true">{getHistorySortArrow('activity')}</span>
+                    </button>
+                    <select className="history-column-filter" aria-label="Filtrer par activité" value={historyFilters.activity} onChange={(event) => setHistoryFilters((current) => ({ ...current, activity: event.target.value }))}>
+                      <option value="all">Toutes les activités</option>
+                      {activityOptions.map((activity) => <option value={activity} key={activity}>{activity}</option>)}
+                    </select>
+                  </div>
+                </th>
+                <th scope="col">
+                  <div className="history-column-header">
+                    <button type="button" className="history-sort-button" onClick={() => sortHistory('subject')} aria-label="Trier par matière">
+                      Matière <span aria-hidden="true">{getHistorySortArrow('subject')}</span>
+                    </button>
+                    <select className="history-column-filter" aria-label="Filtrer par matière" value={historyFilters.subject} onChange={(event) => setHistoryFilters((current) => ({ ...current, subject: event.target.value }))}>
+                      <option value="all">Toutes les matières</option>
+                      {subjectOptions.map((subject) => <option value={subject} key={subject}>{subject}</option>)}
+                    </select>
+                  </div>
+                </th>
+                <th scope="col">
+                  <div className="history-column-header">
+                    <button type="button" className="history-sort-button" onClick={() => sortHistory('date')} aria-label="Trier par date et heure">
+                      Date et heure <span aria-hidden="true">{getHistorySortArrow('date')}</span>
+                    </button>
+                    <select className="history-column-filter" aria-label="Filtrer par période" value={historyFilters.periodDays} onChange={(event) => setHistoryFilters((current) => ({ ...current, periodDays: event.target.value }))}>
+                      <option value="7">7 derniers jours</option>
+                      <option value="30">30 derniers jours</option>
+                    </select>
+                  </div>
+                </th>
+                <th scope="col">
+                  <div className="history-column-header">
+                    <button type="button" className="history-sort-button" onClick={() => sortHistory('result')} aria-label="Trier par résultat">
+                      Résultat <span aria-hidden="true">{getHistorySortArrow('result')}</span>
+                    </button>
+                    <select className="history-column-filter" aria-label="Filtrer par résultat" value={historyFilters.resultBand} onChange={(event) => setHistoryFilters((current) => ({ ...current, resultBand: event.target.value }))}>
+                      <option value="all">Tous les résultats</option>
+                      <option value="strong">85% et plus</option>
+                      <option value="medium">70 à 84%</option>
+                      <option value="low">Moins de 70%</option>
+                    </select>
+                  </div>
+                </th>
               </tr>
             </thead>
             <tbody>

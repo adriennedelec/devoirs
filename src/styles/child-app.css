@@ -4045,7 +4045,6 @@
   background: transparent;
   color: inherit;
   font: inherit;
-  text-transform: inherit;
   cursor: pointer;
 }
 
@@ -4560,6 +4559,49 @@
   background: #f2efff;
   color: #4d3fb4;
   font-weight: 500;
+  text-transform: none;
+}
+
+.history-column-header {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.history-sort-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0;
+  color: inherit;
+  font-size: 0.78rem;
+  line-height: 1.15;
+  text-transform: none;
+}
+
+.history-sort-button span {
+  color: var(--color-primary-dark);
+  font-size: 0.78rem;
+  font-weight: 400;
+}
+
+.history-column-filter {
+  width: 30px;
+  height: 28px;
+  flex: 0 0 auto;
+  border: 1px solid rgba(109, 93, 252, 0.18);
+  border-radius: 999px;
+  padding: 0;
+  background: #ffffff;
+  color: transparent;
+  font-size: 0.75rem;
+  font-weight: 400;
+}
+
+.history-column-filter:focus-visible {
+  outline: 2px solid rgba(109, 93, 252, 0.34);
+  outline-offset: 2px;
 }
 
 .activity-history-table,
@@ -4601,11 +4643,19 @@
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
+  font-weight: 400;
+}
+
+.history-pagination .ghost-action,
+.history-pagination label,
+.history-pagination select,
+.history-page-controls span {
+  font-weight: 400;
 }
 
 .history-page-count {
   color: var(--color-text-muted);
-  font-weight: 900;
+  font-weight: 400;
 }
 
 .history-page-controls {

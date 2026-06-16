@@ -238,20 +238,28 @@ describe('Page Profil famille', () => {
     expect(within(table).queryByRole('columnheader', { name: /étoile/i })).not.toBeInTheDocument();
     expect(within(table).queryByRole('columnheader', { name: /appréciation/i })).not.toBeInTheDocument();
     expect(within(history).queryByRole('searchbox')).not.toBeInTheDocument();
+    expect(within(history).queryByText(/total des résultats/i)).not.toBeInTheDocument();
+    expect(within(history).queryByText(/résultats filtrés/i)).not.toBeInTheDocument();
+    expect(within(history).queryByText(/^tri :/i)).not.toBeInTheDocument();
+    expect(within(history).queryByText(/trier par/i)).not.toBeInTheDocument();
+    expect(within(history).queryByRole('button', { name: /réinitialiser/i })).not.toBeInTheDocument();
     expect(within(history).getByText(/1–7 sur 7 activités/i)).toBeInTheDocument();
     expect(within(history).getByRole('combobox', { name: /éléments par page/i })).toHaveValue('10');
-    expect(within(table).getAllByText(/%/)[0]).toHaveClass('result-pill');
+    expect(table.querySelector('.result-pill')).toBeInTheDocument();
 
     await user.selectOptions(within(history).getByRole('combobox', { name: /filtrer par profil/i }), 'louane-demo');
-    expect(within(history).getByText(/résultats filtrés/i)).toHaveTextContent(/Louane/i);
-    expect(within(table).queryByText(/Emma/)).not.toBeInTheDocument();
+    expect(within(history).queryByText(/résultats filtrés/i)).not.toBeInTheDocument();
+    const tableBody = table.querySelector('tbody')!;
+    expect(within(tableBody).queryByText(/Emma/)).not.toBeInTheDocument();
 
-    await user.click(within(history).getByRole('button', { name: /trier par résultat/i }));
-    expect(within(history).getByText(/tri : résultat ascendant/i)).toBeInTheDocument();
+    const resultSortButton = within(history).getByRole('button', { name: /trier par résultat/i });
+    expect(resultSortButton).toHaveTextContent(/Résultat/);
+    expect(resultSortButton).not.toHaveTextContent(/Trier par/i);
+    await user.click(resultSortButton);
+    expect(within(history).queryByText(/tri : résultat ascendant/i)).not.toBeInTheDocument();
 
-    await user.click(within(history).getByRole('button', { name: /réinitialiser/i }));
-    expect(within(history).getByRole('combobox', { name: /filtrer par profil/i })).toHaveValue('all');
-    expect(within(history).getByText(/total des résultats/i)).toBeInTheDocument();
+    await user.selectOptions(within(history).getByRole('combobox', { name: /filtrer par résultat/i }), 'strong');
+    expect(Array.from(tableBody.querySelectorAll('.result-pill')).every((cell) => Number(cell.textContent?.replace('%', '')) >= 85)).toBe(true);
   });
 
   it('utilise un seul bouton + pour ouvrir l’ajout et crée un profil enfant', async () => {
