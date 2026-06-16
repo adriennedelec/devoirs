@@ -164,6 +164,7 @@ type FamilyActivityHistoryRow = {
 type ProfileActivityData = {
   stats: FamilyActivityStat[];
   historyRows: FamilyActivityHistoryRow[];
+  earnedStarsByProfile: Record<string, number>;
   hasStoredActivities: boolean;
 };
 
@@ -321,10 +322,16 @@ function getActivitySubjectLabel(module: StoredActivityModule) {
 
 function buildProfileActivityData(profiles: ChildProfileConfig[], students: ChildProfileConfig[], periodDays: number): ProfileActivityData {
   const records = readActivityRecordsFromStorage();
+  const earnedStarsByProfile = records.reduce<Record<string, number>>((totals, record) => {
+    totals[record.profileId] = (totals[record.profileId] ?? 0) + record.starsEarned;
+    return totals;
+  }, {});
+
   if (records.length === 0) {
     return {
       stats: buildFamilyActivityStats(students, periodDays),
       historyRows: buildFamilyHistoryRows(profiles),
+      earnedStarsByProfile,
       hasStoredActivities: false,
     };
   }
@@ -377,6 +384,7 @@ function buildProfileActivityData(profiles: ChildProfileConfig[], students: Chil
   return {
     stats: Array.from(statsByKey.values()),
     historyRows,
+    earnedStarsByProfile,
     hasStoredActivities: true,
   };
 }
@@ -4963,9 +4971,9 @@ function ProfileView({
         </div>
         <div className="family-card-actions compact-actions profile-card-meta-row">
           {profile.role === 'eleve' ? (
-            <div className="profile-card-stars" aria-label={`Étoiles obtenues par ${profile.name}`}>
+            <div className="profile-card-stars" aria-label={`Étoiles collectées par ${profile.name}`}>
               <Star size={18} aria-hidden="true" />
-              <span>{profile.stars ?? 0} étoiles</span>
+              <span>{profileActivityData.earnedStarsByProfile[profile.id] ?? 0} étoiles collectées</span>
             </div>
           ) : <span />}
           <button

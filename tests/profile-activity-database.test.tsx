@@ -54,6 +54,10 @@ describe('Profil et modules branchés sur la base activité', () => {
     render(<App />);
     await user.click(await screen.findByRole('button', { name: /profil/i }));
 
+    const profileList = screen.getByRole('region', { name: /profils famille/i });
+    expect(within(within(profileList).getByRole('article', { name: /profil de emma/i })).getByLabelText(/étoiles collectées par emma/i)).toHaveTextContent(/16 étoiles collectées/i);
+    expect(within(within(profileList).getByRole('article', { name: /profil de louane/i })).getByLabelText(/étoiles collectées par louane/i)).toHaveTextContent(/6 étoiles collectées/i);
+
     const overview = screen.getByRole('region', { name: /aperçu des activités/i });
     expect(within(overview).getByLabelText(/Emma .*2 minutes/i)).toBeInTheDocument();
     expect(within(overview).getByLabelText(/Louane .*5 minutes/i)).toBeInTheDocument();

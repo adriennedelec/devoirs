@@ -57,14 +57,14 @@ describe('Page Profil famille', () => {
     const adrienCard = within(strip).getByRole('article', { name: /profil de adrien/i });
 
     expect(within(emmaCard).getByText(/^Actif$/i)).toBeInTheDocument();
-    const emmaStars = within(emmaCard).getByLabelText(/étoiles obtenues par emma/i);
-    expect(emmaStars).toHaveTextContent(/125 étoiles/i);
+    const emmaStars = within(emmaCard).getByLabelText(/étoiles collectées par emma/i);
+    expect(emmaStars).toHaveTextContent(/0 étoiles collectées/i);
     expect(emmaStars.parentElement).toHaveClass('profile-card-meta-row');
     expect(emmaStars.parentElement).toContainElement(within(emmaCard).getByRole('button', { name: /modifier emma/i }));
     expect(within(louaneCard).getByText(/CE1 • 7 ans/i)).toBeInTheDocument();
-    expect(within(louaneCard).getByLabelText(/étoiles obtenues par louane/i)).toHaveTextContent(/135 étoiles/i);
+    expect(within(louaneCard).getByLabelText(/étoiles collectées par louane/i)).toHaveTextContent(/0 étoiles collectées/i);
     expect(within(adrienCard).getByText(/^Parent$/i)).toBeInTheDocument();
-    expect(within(adrienCard).queryByLabelText(/étoiles obtenues/i)).not.toBeInTheDocument();
+    expect(within(adrienCard).queryByLabelText(/étoiles collectées/i)).not.toBeInTheDocument();
     expect(within(louaneCard).getByRole('button', { name: /activer louane/i })).toBeInTheDocument();
     expect(within(adrienCard).getByRole('button', { name: /modifier adrien/i })).toBeInTheDocument();
 
