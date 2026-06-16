@@ -58,11 +58,14 @@ describe('Page Profil famille', () => {
 
     expect(within(emmaCard).getByText(/^Actif$/i)).toBeInTheDocument();
     const emmaStars = within(emmaCard).getByLabelText(/étoiles collectées par emma/i);
-    expect(emmaStars).toHaveTextContent(/0 étoiles collectées/i);
+    expect(emmaStars).toHaveTextContent(/^0$/);
+    expect(emmaStars).not.toHaveTextContent(/étoiles collectées/i);
     expect(emmaStars.parentElement).toHaveClass('profile-card-meta-row');
     expect(emmaStars.parentElement).toContainElement(within(emmaCard).getByRole('button', { name: /modifier emma/i }));
     expect(within(louaneCard).getByText(/CE1 • 7 ans/i)).toBeInTheDocument();
-    expect(within(louaneCard).getByLabelText(/étoiles collectées par louane/i)).toHaveTextContent(/0 étoiles collectées/i);
+    const louaneStars = within(louaneCard).getByLabelText(/étoiles collectées par louane/i);
+    expect(louaneStars).toHaveTextContent(/^0$/);
+    expect(louaneStars).not.toHaveTextContent(/étoiles collectées/i);
     expect(within(adrienCard).getByText(/^Parent$/i)).toBeInTheDocument();
     expect(within(adrienCard).queryByLabelText(/étoiles collectées/i)).not.toBeInTheDocument();
     expect(within(louaneCard).getByRole('button', { name: /activer louane/i })).toBeInTheDocument();
@@ -328,20 +331,32 @@ describe('Page Profil famille', () => {
       'Profil de Adrien',
     ]);
 
-    const orderRegion = screen.getByRole('region', { name: /ordre d’affichage/i });
-    expect(within(orderRegion).getByRole('spinbutton', { name: /ordre de louane/i })).toHaveValue(1);
-    expect(within(orderRegion).getByRole('spinbutton', { name: /ordre de emma/i })).toHaveValue(2);
+    expect(screen.queryByRole('region', { name: /ordre d’affichage/i })).not.toBeInTheDocument();
 
-    await user.clear(within(orderRegion).getByRole('spinbutton', { name: /ordre de emma/i }));
-    await user.type(within(orderRegion).getByRole('spinbutton', { name: /ordre de emma/i }), '1');
-    await user.click(within(orderRegion).getByRole('button', { name: /enregistrer l'ordre des profils/i }));
+    const parentCard = within(strip).getByRole('article', { name: /profil de adrien/i });
+    await user.click(within(parentCard).getByRole('button', { name: /activer adrien/i }));
+    const codeDialog = screen.getByRole('dialog', { name: /code parent requis/i });
+    await user.type(within(codeDialog).getByRole('textbox', { name: /code parent/i }), '0000');
+    await user.click(within(codeDialog).getByRole('button', { name: /valider/i }));
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: /code parent requis/i })).not.toBeInTheDocument());
+    await user.click(within(parentCard).getByRole('button', { name: /modifier adrien/i }));
+    const dialog = screen.getByRole('dialog', { name: /modifier le profil/i });
+    const orderRegion = within(dialog).getByRole('group', { name: /ordre d’affichage/i });
+    expect(orderRegion).toHaveClass('profile-order-editor');
+    expect(within(orderRegion).getAllByLabelText(/ordre .*?/i)).toHaveLength(3);
+    expect(within(orderRegion).getByRole('spinbutton', { name: /ordre louane/i })).toHaveValue(1);
+    expect(within(orderRegion).getByRole('spinbutton', { name: /ordre emma/i })).toHaveValue(2);
+
+    await user.clear(within(orderRegion).getByRole('spinbutton', { name: /ordre emma/i }));
+    await user.type(within(orderRegion).getByRole('spinbutton', { name: /ordre emma/i }), '1');
+    await user.click(within(dialog).getByRole('button', { name: /enregistrer/i }));
     expect(within(orderRegion).getByRole('alert')).toHaveTextContent(/le même ordre ne peut pas être utilisé/i);
 
-    await user.clear(within(orderRegion).getByRole('spinbutton', { name: /ordre de emma/i }));
-    await user.type(within(orderRegion).getByRole('spinbutton', { name: /ordre de emma/i }), '4');
-    await user.click(within(orderRegion).getByRole('button', { name: /enregistrer l'ordre des profils/i }));
+    await user.clear(within(orderRegion).getByRole('spinbutton', { name: /ordre emma/i }));
+    await user.type(within(orderRegion).getByRole('spinbutton', { name: /ordre emma/i }), '4');
+    await user.click(within(dialog).getByRole('button', { name: /enregistrer/i }));
 
-    await waitFor(() => expect(within(orderRegion).getByText(/ordre enregistré/i)).toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     const storedProfiles = JSON.parse(window.localStorage.getItem('devoirs.childProfiles.v1') ?? '[]');
     expect(storedProfiles.find((profile: { id: string; displayOrder?: number }) => profile.id === 'emma-demo')?.displayOrder).toBe(4);
   });

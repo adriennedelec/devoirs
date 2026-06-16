@@ -4821,6 +4821,10 @@ function ProfileView({
       return;
     }
 
+    if (formState.role === 'parent' && !saveProfileOrders()) {
+      return;
+    }
+
     onCreateProfile(buildProfilePayloadFromForm(formState), editingProfileId ?? undefined);
     closeModal();
   }
@@ -4927,15 +4931,48 @@ function ProfileView({
     const orders = profiles.map((profile) => ({ profile, order: Number(profileOrderDraft[profile.id]) }));
     if (orders.some(({ order }) => !Number.isFinite(order) || order <= 0)) {
       setProfileOrderStatus({ kind: 'error', message: 'Chaque ordre doit être un nombre positif.' });
-      return;
+      return false;
     }
     const uniqueOrders = new Set(orders.map(({ order }) => Math.floor(order)));
     if (uniqueOrders.size !== orders.length) {
       setProfileOrderStatus({ kind: 'error', message: 'Le même ordre ne peut pas être utilisé sur plusieurs fiches.' });
-      return;
+      return false;
     }
     onUpdateProfileOrders(Object.fromEntries(orders.map(({ profile, order }) => [profile.id, Math.floor(order)])));
     setProfileOrderStatus({ kind: 'success', message: 'Ordre enregistré.' });
+    return true;
+  }
+
+  function renderProfileOrderEditor() {
+    const orderedProfiles = [...profiles].sort((left, right) => {
+      const leftOrder = Number(profileOrderDraft[left.id] ?? left.displayOrder ?? Number.MAX_SAFE_INTEGER);
+      const rightOrder = Number(profileOrderDraft[right.id] ?? right.displayOrder ?? Number.MAX_SAFE_INTEGER);
+      return leftOrder - rightOrder || left.name.localeCompare(right.name, 'fr');
+    });
+
+    return (
+      <fieldset className="profile-order-editor answer-field" aria-label="Ordre d’affichage">
+        <legend>Ordre d’affichage</legend>
+        <div className="profile-order-editor-grid">
+          {orderedProfiles.map((profile) => (
+            <label className="profile-order-editor-row" key={profile.id}>
+              <span>{profile.name}</span>
+              <input
+                aria-label={`Ordre ${profile.name}`}
+                min={1}
+                type="number"
+                value={profileOrderDraft[profile.id] ?? ''}
+                onChange={(event) => {
+                  setProfileOrderDraft((current) => ({ ...current, [profile.id]: event.target.value }));
+                  setProfileOrderStatus(null);
+                }}
+              />
+            </label>
+          ))}
+        </div>
+        {profileOrderStatus ? <p className={`form-feedback ${profileOrderStatus.kind}`} role={profileOrderStatus.kind === 'error' ? 'alert' : undefined}>{profileOrderStatus.message}</p> : null}
+      </fieldset>
+    );
   }
 
   function renderProfileCard(profile: ChildProfileConfig) {
@@ -4973,7 +5010,7 @@ function ProfileView({
           {profile.role === 'eleve' ? (
             <div className="profile-card-stars" aria-label={`Étoiles collectées par ${profile.name}`}>
               <Star size={18} aria-hidden="true" />
-              <span>{profileActivityData.earnedStarsByProfile[profile.id] ?? 0} étoiles collectées</span>
+              <span>{profileActivityData.earnedStarsByProfile[profile.id] ?? 0}</span>
             </div>
           ) : <span />}
           <button
@@ -5038,37 +5075,6 @@ function ProfileView({
         </div>
         <div className="family-profiles-strip">
           {profiles.map((profile) => renderProfileCard(profile))}
-        </div>
-      </section>
-
-      <section className="profile-section profile-order-section" aria-label="Ordre d’affichage des fiches">
-        <div className="section-heading compact-heading">
-          <div>
-            <p className="eyebrow">Ordre d’affichage</p>
-            <h2>Classer les fiches profil</h2>
-            <p>Indique un ordre différent pour chaque personne de la famille afin d’avoir la même liste en local et sur Vercel.</p>
-          </div>
-        </div>
-        <div className="settings-grid profile-order-grid">
-          {profiles.map((profile) => (
-            <label className="field-label compact-field" key={profile.id}>
-              Ordre de {profile.name}
-              <input
-                aria-label={`Ordre de ${profile.name}`}
-                min={1}
-                type="number"
-                value={profileOrderDraft[profile.id] ?? ''}
-                onChange={(event) => {
-                  setProfileOrderDraft((current) => ({ ...current, [profile.id]: event.target.value }));
-                  setProfileOrderStatus(null);
-                }}
-              />
-            </label>
-          ))}
-        </div>
-        <div className="form-actions">
-          <button type="button" className="primary-action" onClick={saveProfileOrders}>Enregistrer l'ordre des profils</button>
-          {profileOrderStatus ? <p className={`form-feedback ${profileOrderStatus.kind}`} role={profileOrderStatus.kind === 'error' ? 'alert' : undefined}>{profileOrderStatus.message}</p> : null}
         </div>
       </section>
 
@@ -5491,6 +5497,7 @@ function ProfileView({
                       placeholder="0000"
                     />
                   </label>
+                  {renderProfileOrderEditor()}
                 </>
               )}
 
