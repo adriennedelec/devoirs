@@ -1879,6 +1879,11 @@
 
 .poetry-redesign-page {
   gap: 0;
+  background: transparent;
+}
+
+.child-app-layout:has(.poetry-redesign-page),
+.child-app-layout:has(.poetry-redesign-page) .child-app-shell {
   background: #ffffff;
 }
 
@@ -1890,7 +1895,7 @@
 
 .poetry-page-hero img {
   position: absolute;
-  top: 2px;
+  top: -18px;
   left: 12px;
   z-index: 2;
   display: block;
@@ -1902,7 +1907,7 @@
 
 .poetry-page-hero h1 {
   position: absolute;
-  top: 76px;
+  top: 46px;
   left: 281px;
   margin: 0;
   color: #2f276f;
@@ -1934,6 +1939,29 @@
 .poetry-picker-card {
   min-height: 458px;
   padding: 24px 24px 26px;
+}
+
+.poetry-profile-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  border: 1px solid rgba(109, 93, 252, 0.18);
+  border-radius: 999px;
+  background: rgba(109, 93, 252, 0.08);
+  color: var(--color-primary-dark);
+  padding: 10px 14px;
+  font: inherit;
+  font-weight: 400;
+  line-height: 1.15;
+  cursor: pointer;
+}
+
+.poetry-profile-button:hover,
+.poetry-profile-button:focus-visible {
+  outline: none;
+  border-color: rgba(109, 93, 252, 0.28);
+  background: rgba(109, 93, 252, 0.12);
 }
 
 .poetry-picker-card h2,
@@ -1994,6 +2022,20 @@
   font-size: 1.05rem;
   font-weight: 560;
   line-height: 1.85;
+}
+
+.poetry-two-column-text {
+  max-height: 442px;
+  overflow: auto;
+  white-space: pre-wrap;
+  column-count: 2;
+  column-gap: 32px;
+  column-rule: 1px solid rgba(109, 93, 252, 0.10);
+  outline: none;
+}
+
+.poetry-two-column-text:focus-visible {
+  box-shadow: 0 0 0 4px rgba(109, 93, 252, 0.12);
 }
 
 .poetry-workbench-full {
@@ -5160,6 +5202,13 @@
 
 .child-main :where(.result-pill, .score-pill, .active-card-label) {
   font-weight: 650;
+}
+
+.poetry-redesign-page .poetry-profile-button {
+  border: 1px solid rgba(109, 93, 252, 0.18);
+  background: rgba(109, 93, 252, 0.08);
+  color: var(--color-primary-dark);
+  font-weight: 400;
 }
 
 .admin-data-page,

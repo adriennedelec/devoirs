@@ -4345,7 +4345,6 @@ function PoetryView({
         <>
           <section className="poetry-main-grid" aria-label="Choix et texte de la poésie">
             <aside className="poetry-picker-card" aria-label="Choisir ou importer une poésie">
-              <h2>Choisir une poésie</h2>
               <label htmlFor="poetry-library-select">Choisir une poésie</label>
               <select
                 id="poetry-library-select"
@@ -4355,14 +4354,14 @@ function PoetryView({
                 {poetryLibrary.map((poem) => <option key={poem.id} value={poem.id}>{poem.title}</option>)}
               </select>
               <div className="poetry-import-actions">
-                <label className="audio-button" htmlFor="poetry-file-import">Importer un fichier</label>
+                <label className="ghost-action poetry-profile-button" htmlFor="poetry-file-import">Importer un fichier</label>
                 <input
                   id="poetry-file-import"
                   type="file"
                   accept=".txt,.md,text/*,image/*"
                   onChange={(event) => void handlePoetryFileImport(event.target.files?.[0] ?? null, 'file')}
                 />
-                <label className="audio-button" htmlFor="poetry-photo-import">Prendre une photo</label>
+                <label className="ghost-action poetry-profile-button" htmlFor="poetry-photo-import">Prendre une photo</label>
                 <input
                   id="poetry-photo-import"
                   type="file"
@@ -4380,21 +4379,24 @@ function PoetryView({
                   <h2 id="poetry-title">Texte de la poésie</h2>
                   <p>{displayedPoetryTitle} · {displayedPoetryAuthor} · {displayedPoetryLines.length} ligne{displayedPoetryLines.length > 1 ? 's' : ''}</p>
                 </div>
-                <button className="audio-button" type="button" onClick={listenToPoetry}>{isPoetryListening ? 'Arrêter l’écoute' : 'Écouter'}</button>
+                <button className="ghost-action poetry-profile-button" type="button" onClick={listenToPoetry}>{isPoetryListening ? 'Arrêter l’écoute' : 'Écouter'}</button>
               </div>
               <label className="poetry-text-label" htmlFor="poetry-text-display">Texte de la poésie</label>
-              <textarea
+              <div
                 id="poetry-text-display"
-                className="poetry-textarea poetry-redesign-textarea"
-                value={displayedPoetryText}
-                onChange={(event) => {
-                  setImportedPoetryText(event.target.value);
+                className="poetry-textarea poetry-redesign-textarea poetry-two-column-text"
+                contentEditable
+                role="textbox"
+                aria-multiline="true"
+                aria-label="Texte de la poésie"
+                suppressContentEditableWarning
+                onInput={(event) => {
+                  setImportedPoetryText(event.currentTarget.textContent ?? '');
                   setImportStatus('Texte modifié manuellement.');
                   resetPoetryPracticeControls();
                   setRecitalState(null);
                 }}
-                rows={12}
-              />
+              >{displayedPoetryText}</div>
             </section>
           </section>
 

@@ -730,18 +730,18 @@ describe('Lot 4 dictation and poetry UI', () => {
       expect(container.querySelector('.poetry-main-grid')).toBeInTheDocument();
     });
     expect(screen.getByLabelText(/choisir une poésie/i)).toHaveValue('la-cigale-et-la-fourmi');
-    expect((screen.getByRole('textbox', { name: /texte de la poésie/i }) as HTMLTextAreaElement).value).toContain('La Cigale, ayant chanté');
+    expect(screen.getByRole('textbox', { name: /texte de la poésie/i })).toHaveTextContent('La Cigale, ayant chanté');
 
     await user.selectOptions(screen.getByLabelText(/choisir une poésie/i), 'le-corbeau-et-le-renard');
     expect(screen.getAllByText(/le corbeau et le renard/i).length).toBeGreaterThan(0);
-    expect((screen.getByRole('textbox', { name: /texte de la poésie/i }) as HTMLTextAreaElement).value).toContain('Maître Corbeau');
+    expect(screen.getByRole('textbox', { name: /texte de la poésie/i })).toHaveTextContent('Maître Corbeau');
 
     const importFile = new File(['Mon cartable dort\nSous la lune douce'], 'ma-poesie.txt', { type: 'text/plain' });
     await user.upload(screen.getByLabelText(/importer un fichier/i), importFile);
     await waitFor(() => {
       expect(screen.getByText(/poésie importée/i)).toBeInTheDocument();
     });
-    expect(screen.getByRole('textbox', { name: /texte de la poésie/i })).toHaveValue('Mon cartable dort\nSous la lune douce');
+    expect(screen.getByRole('textbox', { name: /texte de la poésie/i })).toHaveTextContent('Mon cartable dort Sous la lune douce');
     expect(screen.getByText(/fichier importé/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /j’ai récité ma poésie/i })).toBeInTheDocument();
 
