@@ -60,6 +60,7 @@ import type { RewardExerciseKey, RewardSettings } from './services/rewardSetting
 import './styles/tokens.css';
 import './styles/base.css';
 import './styles/child-app.css';
+import poetryPageIllustrationUrl from './assets/page-illustrations/poesie-corbeau-renard.png';
 
 type ChildPage = 'home' | 'path' | 'rewards' | 'reading' | 'multiplication' | 'dictation' | 'poetry' | 'profile' | 'database' | 'settings';
 
@@ -1767,12 +1768,13 @@ function ProgressBar({ value }: { value: number }) {
   );
 }
 
-function ChildTopBar({ dashboard, title }: { dashboard: ChildDashboard; title?: string }) {
+function ChildTopBar({ dashboard, title, iconSrc, iconAlt }: { dashboard: ChildDashboard; title?: string; iconSrc?: string; iconAlt?: string }) {
   return (
     <header className="child-topbar">
-      <div className="avatar-bubble" aria-hidden="true">{dashboard.child.avatarEmoji}</div>
+      <div className="avatar-bubble" aria-hidden={iconSrc ? undefined : true}>
+        {iconSrc ? <img src={iconSrc} alt={iconAlt ?? ''} /> : dashboard.child.avatarEmoji}
+      </div>
       <div>
-        <p className="eyebrow">Niveau {dashboard.child.level} · {dashboard.child.title}</p>
         <h1>{title ?? `Bonjour ${dashboard.child.firstName} ! 👋`}</h1>
       </div>
     </header>
@@ -2828,18 +2830,7 @@ function MultiplicationView({
       {sessionState.status === 'error' ? <div className="state-card error">{sessionState.message}</div> : null}
       {sessionState.status === 'success' && currentQuestion ? (
         <>
-          <header className="math-magic-header">
-            <div>
-              <p className="eyebrow">Mission calcul magique</p>
-              <h1>Tables de multiplication</h1>
-              <p>Entraîne-toi et deviens un champion !</p>
-            </div>
-            <div className="math-star-card" aria-label={`${dashboard.child.stars} étoiles`}>
-              <span aria-hidden="true">⭐</span>
-              <strong>{dashboard.child.stars}</strong>
-              <span>Étoiles</span>
-            </div>
-          </header>
+          <ChildTopBar dashboard={dashboard} title="Tables de multiplication" />
 
           <section className="magic-table-selector" aria-label="Choisis une table">
             {sessionState.data.availableTables.map((table) => (
@@ -4342,50 +4333,59 @@ function PoetryView({
   }
 
   return (
-    <main className="child-main">
-      <ChildTopBar dashboard={dashboard} title="Poésie" />
+    <main className="child-main poetry-redesign-page">
+      <header className="poetry-page-hero" aria-labelledby="poetry-page-title">
+        <img src={poetryPageIllustrationUrl} alt="Illustration poésie" />
+        <h1 id="poetry-page-title">Poésie</h1>
+      </header>
+
       {sessionState.status === 'loading' ? <div className="state-card">Préparation de la poésie…</div> : null}
       {sessionState.status === 'error' ? <div className="state-card error">{sessionState.message}</div> : null}
       {sessionState.status === 'success' ? (
         <>
-          <section className="language-card poetry-card" aria-labelledby="poetry-title">
-            <div className="language-mascot" aria-hidden="true">🎙️</div>
-            <div>
-              <p className="eyebrow">Mission mémoire</p>
-              <h2 id="poetry-title">{displayedPoetryTitle}</h2>
-              <p>{sessionState.data.instruction}</p>
-              <div className="poetry-source-panel" aria-label="Choisir ou importer une poésie">
-                <label htmlFor="poetry-library-select">Choisir une fable de La Fontaine</label>
-                <select
-                  id="poetry-library-select"
-                  value={selectedPoemId}
-                  onChange={(event) => handlePoetrySelection(event.target.value)}
-                >
-                  {poetryLibrary.map((poem) => <option key={poem.id} value={poem.id}>{poem.title}</option>)}
-                </select>
-                <div className="poetry-import-actions">
-                  <label className="audio-button" htmlFor="poetry-file-import">Importer un fichier</label>
-                  <input
-                    id="poetry-file-import"
-                    type="file"
-                    accept=".txt,.md,text/*,image/*"
-                    onChange={(event) => void handlePoetryFileImport(event.target.files?.[0] ?? null, 'file')}
-                  />
-                  <label className="audio-button" htmlFor="poetry-photo-import">Prendre une photo</label>
-                  <input
-                    id="poetry-photo-import"
-                    type="file"
-                    accept="image/*"
-                    capture="environment"
-                    onChange={(event) => void handlePoetryFileImport(event.target.files?.[0] ?? null, 'photo')}
-                  />
+          <section className="poetry-main-grid" aria-label="Choix et texte de la poésie">
+            <aside className="poetry-picker-card" aria-label="Choisir ou importer une poésie">
+              <h2>Choisir une poésie</h2>
+              <label htmlFor="poetry-library-select">Choisir une poésie</label>
+              <select
+                id="poetry-library-select"
+                value={selectedPoemId}
+                onChange={(event) => handlePoetrySelection(event.target.value)}
+              >
+                {poetryLibrary.map((poem) => <option key={poem.id} value={poem.id}>{poem.title}</option>)}
+              </select>
+              <div className="poetry-import-actions">
+                <label className="audio-button" htmlFor="poetry-file-import">Importer un fichier</label>
+                <input
+                  id="poetry-file-import"
+                  type="file"
+                  accept=".txt,.md,text/*,image/*"
+                  onChange={(event) => void handlePoetryFileImport(event.target.files?.[0] ?? null, 'file')}
+                />
+                <label className="audio-button" htmlFor="poetry-photo-import">Prendre une photo</label>
+                <input
+                  id="poetry-photo-import"
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  onChange={(event) => void handlePoetryFileImport(event.target.files?.[0] ?? null, 'photo')}
+                />
+              </div>
+              {importStatus ? <p className="poetry-import-status">{importStatus}</p> : null}
+            </aside>
+
+            <section className="poetry-text-card" aria-labelledby="poetry-title">
+              <div className="poetry-text-card-header">
+                <div>
+                  <h2 id="poetry-title">Texte de la poésie</h2>
+                  <p>{displayedPoetryTitle} · {displayedPoetryAuthor} · {displayedPoetryLines.length} ligne{displayedPoetryLines.length > 1 ? 's' : ''}</p>
                 </div>
-                {importStatus ? <p className="poetry-import-status">{importStatus}</p> : null}
+                <button className="audio-button" type="button" onClick={listenToPoetry}>{isPoetryListening ? 'Arrêter l’écoute' : 'Écouter'}</button>
               </div>
               <label className="poetry-text-label" htmlFor="poetry-text-display">Texte de la poésie</label>
               <textarea
                 id="poetry-text-display"
-                className="poetry-textarea"
+                className="poetry-textarea poetry-redesign-textarea"
                 value={displayedPoetryText}
                 onChange={(event) => {
                   setImportedPoetryText(event.target.value);
@@ -4395,92 +4395,80 @@ function PoetryView({
                 }}
                 rows={12}
               />
-              <p className="poetry-import-status">{displayedPoetryAuthor} · {displayedPoetryLines.length} ligne{displayedPoetryLines.length > 1 ? 's' : ''}</p>
-              <div className="poetry-mode-row">
-                <button className="audio-button" type="button" onClick={listenToPoetry}>{isPoetryListening ? 'Arrêter l’écoute' : 'Écouter'}</button>
-                <button className="audio-button" type="button" onClick={() => setHideWords((value) => !value)}>{hideWords ? 'Afficher tout' : 'Cacher des mots'}</button>
-                <button className="audio-button" type="button" onClick={maskAllPoetryText}>Masquer tout le texte</button>
+            </section>
+          </section>
+
+          <section className="poetry-workbench poetry-workbench-full" aria-labelledby="poetry-workbench-title">
+            <div className="poetry-workbench-header">
+              <div>
+                <p className="eyebrow">Zone de travail de l’enfant</p>
+                <h3 id="poetry-workbench-title">Mémoriser ligne par ligne</h3>
+                <p>Clique sur “Ligne 1”, “Ligne 2”… pour masquer ou afficher une ligne précise.</p>
               </div>
-              <section className="poetry-workbench" aria-labelledby="poetry-workbench-title">
-                <div className="poetry-workbench-header">
-                  <div>
-                    <p className="eyebrow">Zone de travail de l’enfant</p>
-                    <h3 id="poetry-workbench-title">Mémoriser ligne par ligne</h3>
-                    <p>Clique sur “Ligne 1”, “Ligne 2”… pour masquer ou afficher une ligne précise.</p>
-                  </div>
-                  <button className="audio-button" type="button" onClick={resetPoetryPracticeControls}>Tout afficher</button>
+              <button className="audio-button" type="button" onClick={resetPoetryPracticeControls}>Tout afficher</button>
+            </div>
+            <div className="poetry-practice-layout">
+              <div className="poetry-vertical-timeline" aria-label="Timeline verticale de masquage ligne par ligne" ref={poetryTimelineRef}>
+                <div className="poetry-timeline-track" aria-hidden="true">
+                  {displayedPoetryLines.map((line) => <span key={line.id}>{line.label.replace('Ligne ', '')}</span>)}
                 </div>
-                <div className="poetry-practice-layout">
-                  <div className="poetry-vertical-timeline" aria-label="Timeline verticale de masquage ligne par ligne" ref={poetryTimelineRef}>
-                    <div className="poetry-timeline-track" aria-hidden="true">
-                      {displayedPoetryLines.map((line) => <span key={line.id}>{line.label.replace('Ligne ', '')}</span>)}
-                    </div>
-                    <button
-                      aria-label="Masquer les lignes du haut"
-                      aria-valuemax={poetryLineCount}
-                      aria-valuemin={0}
-                      aria-valuenow={constrainedTopMaskCount}
-                      className="poetry-timeline-handle top"
-                      onKeyDown={(event) => handlePoetryTimelineKeyboard('top', event)}
-                      onPointerDown={(event) => startPoetryTimelineDrag('top', event)}
-                      role="slider"
-                      style={{ top: `${topHandlePercent}%` }}
-                      type="button"
-                    >
-                      <span>Haut</span>
-                    </button>
-                    <button
-                      aria-label="Masquer les lignes du bas"
-                      aria-valuemax={poetryLineCount}
-                      aria-valuemin={0}
-                      aria-valuenow={bottomHiddenCount}
-                      className="poetry-timeline-handle bottom"
-                      onKeyDown={(event) => handlePoetryTimelineKeyboard('bottom', event)}
-                      onPointerDown={(event) => startPoetryTimelineDrag('bottom', event)}
-                      role="slider"
-                      style={{ top: `${bottomHandlePercent}%` }}
-                      type="button"
-                    >
-                      <span>Bas</span>
-                    </button>
-                    <p className="poetry-timeline-caption top">Masquer depuis le haut</p>
-                    <p className="poetry-timeline-caption bottom">Masquer depuis le bas</p>
-                  </div>
-                  <div className="poetry-mask-summary" aria-live="polite">
-                    <span>{constrainedTopMaskCount === 0 ? 'aucune ligne masquée en haut' : `${constrainedTopMaskCount} ligne${constrainedTopMaskCount > 1 ? 's' : ''} masquée${constrainedTopMaskCount > 1 ? 's' : ''} en haut`}</span>
-                    <span>{bottomHiddenCount === 0 ? 'aucune ligne masquée en bas' : `${bottomHiddenCount} ligne${bottomHiddenCount > 1 ? 's' : ''} masquée${bottomHiddenCount > 1 ? 's' : ''} en bas`}</span>
-                  </div>
-                  <div className="poem-lines" aria-label="Lignes de mémorisation de la poésie">
-                    {displayedPoetryLines.map((line, index) => {
-                      const lineHidden = isPoetryLineHidden(line.id, index);
-                      return (
-                        <p className={lineHidden ? 'poem-line is-hidden' : 'poem-line'} key={line.id}>
-                          <button
-                            className="poem-line-toggle"
-                            type="button"
-                            aria-pressed={lineHidden}
-                            onClick={() => togglePoetryLine(line.id, index)}
-                          >
-                            {line.label}
-                          </button>
-                          <span aria-label={lineHidden ? `${line.label} masquée` : `${line.label} affichée`}>{lineHidden ? line.hiddenText : line.text}</span>
-                        </p>
-                      );
-                    })}
-                  </div>
-                </div>
-              </section>
+                <button
+                  aria-label="Masquer les lignes du haut"
+                  aria-valuemax={poetryLineCount}
+                  aria-valuemin={0}
+                  aria-valuenow={constrainedTopMaskCount}
+                  className="poetry-timeline-handle top"
+                  onKeyDown={(event) => handlePoetryTimelineKeyboard('top', event)}
+                  onPointerDown={(event) => startPoetryTimelineDrag('top', event)}
+                  role="slider"
+                  style={{ top: `${topHandlePercent}%` }}
+                  type="button"
+                >
+                  <span>Haut</span>
+                </button>
+                <button
+                  aria-label="Masquer les lignes du bas"
+                  aria-valuemax={poetryLineCount}
+                  aria-valuemin={0}
+                  aria-valuenow={bottomHiddenCount}
+                  className="poetry-timeline-handle bottom"
+                  onKeyDown={(event) => handlePoetryTimelineKeyboard('bottom', event)}
+                  onPointerDown={(event) => startPoetryTimelineDrag('bottom', event)}
+                  role="slider"
+                  style={{ top: `${bottomHandlePercent}%` }}
+                  type="button"
+                >
+                  <span>Bas</span>
+                </button>
+                <p className="poetry-timeline-caption top">Masquer depuis le haut</p>
+                <p className="poetry-timeline-caption bottom">Masquer depuis le bas</p>
+              </div>
+              <div className="poetry-mask-summary" aria-live="polite">
+                <span>{constrainedTopMaskCount === 0 ? 'aucune ligne masquée en haut' : `${constrainedTopMaskCount} ligne${constrainedTopMaskCount > 1 ? 's' : ''} masquée${constrainedTopMaskCount > 1 ? 's' : ''} en haut`}</span>
+                <span>{bottomHiddenCount === 0 ? 'aucune ligne masquée en bas' : `${bottomHiddenCount} ligne${bottomHiddenCount > 1 ? 's' : ''} masquée${bottomHiddenCount > 1 ? 's' : ''} en bas`}</span>
+              </div>
+              <div className="poem-lines" aria-label="Lignes de mémorisation de la poésie">
+                {displayedPoetryLines.map((line, index) => {
+                  const lineHidden = isPoetryLineHidden(line.id, index);
+                  return (
+                    <p className={lineHidden ? 'poem-line is-hidden' : 'poem-line'} key={line.id}>
+                      <button
+                        className="poem-line-toggle"
+                        type="button"
+                        aria-pressed={lineHidden}
+                        onClick={() => togglePoetryLine(line.id, index)}
+                      >
+                        {line.label}
+                      </button>
+                      <span aria-label={lineHidden ? `${line.label} masquée` : `${line.label} affichée`}>{lineHidden ? line.hiddenText : line.text}</span>
+                    </p>
+                  );
+                })}
+              </div>
             </div>
           </section>
-          <section className="poetry-steps" aria-label="Étapes de poésie">
-            {sessionState.data.steps.map((step) => (
-              <article className={`poetry-step ${step.status}`} key={step.id}>
-                <strong>{step.label}</strong>
-                <p>{step.description}</p>
-              </article>
-            ))}
-          </section>
-          <section className="language-card reading-card reading-recording-card poetry-recital-recording-card" aria-labelledby="poetry-recital-title">
+
+          <section className="language-card reading-card reading-recording-card poetry-recital-recording-card poetry-recital-redesign" aria-labelledby="poetry-recital-title">
             <div className="language-mascot" aria-hidden="true">🎤</div>
             <div>
               <p className="eyebrow">Bloc récitation · Même analyse que Lecture</p>
@@ -4508,9 +4496,20 @@ function PoetryView({
                   placeholder="La transcription automatique apparaîtra ici. Tu peux la corriger avant d’analyser."
                 />
               </label>
-              <button className="primary-action" disabled={!displayedPoetryText.trim() || recitalTranscript.trim().length === 0} type="button" onClick={() => analyzeRecitalTranscript()}>
-                Analyser la récitation
-              </button>
+              <div className="poetry-recital-actions">
+                <button className="primary-action" disabled={!displayedPoetryText.trim() || recitalTranscript.trim().length === 0} type="button" onClick={() => analyzeRecitalTranscript()}>
+                  Analyser la récitation
+                </button>
+                <button className="primary-action secondary" type="button" onClick={validateRecital} disabled={recitalState?.status === 'loading' || displayedPoetryLines.length === 0}>J’ai récité ma poésie</button>
+              </div>
+              {recitalState?.status === 'loading' ? <p className="feedback-card">La mascotte écoute ton effort…</p> : null}
+              {recitalState?.status === 'error' ? <p className="feedback-card error">{recitalState.message}</p> : null}
+              {recitalState?.status === 'success' ? (
+                <div className={recitalState.data.status === 'completed' ? 'feedback-card success' : 'feedback-card retry'}>
+                  <h3>{recitalState.data.feedbackTitle}</h3>
+                  <p>{recitalState.data.feedbackMessage}</p>
+                </div>
+              ) : null}
             </div>
           </section>
 
@@ -4551,20 +4550,6 @@ function PoetryView({
               </table>
             </section>
           ) : null}
-
-          <section className="page-card recital-card">
-            <p className="eyebrow">Validation simple</p>
-            <h2>Quand tu es prête, valide ta récitation.</h2>
-            <button className="primary-action" type="button" onClick={validateRecital} disabled={recitalState?.status === 'loading' || displayedPoetryLines.length === 0}>J’ai récité ma poésie</button>
-            {recitalState?.status === 'loading' ? <p className="feedback-card">La mascotte écoute ton effort…</p> : null}
-            {recitalState?.status === 'error' ? <p className="feedback-card error">{recitalState.message}</p> : null}
-            {recitalState?.status === 'success' ? (
-              <div className={recitalState.data.status === 'completed' ? 'feedback-card success' : 'feedback-card retry'}>
-                <h3>{recitalState.data.feedbackTitle}</h3>
-                <p>{recitalState.data.feedbackMessage}</p>
-              </div>
-            ) : null}
-          </section>
         </>
       ) : null}
     </main>

@@ -678,9 +678,44 @@ describe('Lot 4 dictation and poetry UI', () => {
     expect(within(analysisRegion).getByText('∅ dorée')).toHaveClass('reading-word-missing');
   });
 
+  it('keeps the redesigned poetry page focused on the validated title and main work blocks', async () => {
+    const user = userEvent.setup();
+    const { container } = render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /bonjour emma/i })).toBeInTheDocument();
+    });
+
+    const userSwitcher = screen.getByRole('region', { name: /sélecteur utilisateur actif/i });
+    expect(within(userSwitcher).getByRole('button', { name: /changer d’utilisateur actif : emma/i })).toBeInTheDocument();
+
+    const poetryNavButton = screen.getByRole('button', { name: /^poésie$/i });
+    await user.click(poetryNavButton);
+
+    await waitFor(() => {
+      expect(container.querySelector('.poetry-main-grid')).toBeInTheDocument();
+    });
+
+    expect(container.querySelector('.child-side-nav')).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: /sélecteur utilisateur actif/i })).toBeInTheDocument();
+    expect(container.querySelector('.poetry-redesign-page')).toBeInTheDocument();
+    expect(container.querySelector('.poetry-main-grid')).toBeInTheDocument();
+    expect(container.querySelector('.poetry-workbench-full')).toBeInTheDocument();
+    expect(container.querySelector('.poetry-recital-redesign')).toBeInTheDocument();
+    expect(screen.getByLabelText(/choisir une poésie/i)).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: /texte de la poésie/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /mémoriser ligne par ligne/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /réciter la poésie/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /j’ai récité ma poésie/i })).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: /étapes de poésie/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: /quand tu es prête/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /cacher des mots/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /masquer tout le texte/i })).not.toBeInTheDocument();
+  });
+
   it('opens the poetry module from Accueil and validates a simulated recital', async () => {
     const user = userEvent.setup();
-    render(<App />);
+    const { container } = render(<App />);
 
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: /bonjour emma/i })).toBeInTheDocument();
@@ -692,21 +727,21 @@ describe('Lot 4 dictation and poetry UI', () => {
     await user.click(within(poetryCard!).getByRole('button', { name: /continuer/i }));
 
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: /la cigale et la fourmi/i })).toBeInTheDocument();
+      expect(container.querySelector('.poetry-main-grid')).toBeInTheDocument();
     });
-    expect(screen.getByLabelText(/choisir une fable/i)).toHaveValue('la-cigale-et-la-fourmi');
-    expect((screen.getByLabelText(/texte de la poésie/i) as HTMLTextAreaElement).value).toContain('La Cigale, ayant chanté');
+    expect(screen.getByLabelText(/choisir une poésie/i)).toHaveValue('la-cigale-et-la-fourmi');
+    expect((screen.getByRole('textbox', { name: /texte de la poésie/i }) as HTMLTextAreaElement).value).toContain('La Cigale, ayant chanté');
 
-    await user.selectOptions(screen.getByLabelText(/choisir une fable/i), 'le-corbeau-et-le-renard');
-    expect(screen.getByRole('heading', { name: /le corbeau et le renard/i })).toBeInTheDocument();
-    expect((screen.getByLabelText(/texte de la poésie/i) as HTMLTextAreaElement).value).toContain('Maître Corbeau');
+    await user.selectOptions(screen.getByLabelText(/choisir une poésie/i), 'le-corbeau-et-le-renard');
+    expect(screen.getAllByText(/le corbeau et le renard/i).length).toBeGreaterThan(0);
+    expect((screen.getByRole('textbox', { name: /texte de la poésie/i }) as HTMLTextAreaElement).value).toContain('Maître Corbeau');
 
     const importFile = new File(['Mon cartable dort\nSous la lune douce'], 'ma-poesie.txt', { type: 'text/plain' });
     await user.upload(screen.getByLabelText(/importer un fichier/i), importFile);
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: /poésie importée/i })).toBeInTheDocument();
+      expect(screen.getByText(/poésie importée/i)).toBeInTheDocument();
     });
-    expect(screen.getByLabelText(/texte de la poésie/i)).toHaveValue('Mon cartable dort\nSous la lune douce');
+    expect(screen.getByRole('textbox', { name: /texte de la poésie/i })).toHaveValue('Mon cartable dort\nSous la lune douce');
     expect(screen.getByText(/fichier importé/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /j’ai récité ma poésie/i })).toBeInTheDocument();
 

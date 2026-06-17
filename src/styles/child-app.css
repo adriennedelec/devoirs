@@ -177,6 +177,14 @@
   width: 64px;
   height: 64px;
   font-size: 2rem;
+  overflow: hidden;
+}
+
+.avatar-bubble img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .child-topbar h1,
@@ -1867,6 +1875,175 @@
 
 .poetry-step.locked {
   opacity: 0.7;
+}
+
+.poetry-redesign-page {
+  gap: 0;
+  background: #ffffff;
+}
+
+.poetry-page-hero {
+  position: relative;
+  min-height: 232px;
+  margin: 0;
+}
+
+.poetry-page-hero img {
+  position: absolute;
+  top: 2px;
+  left: 12px;
+  z-index: 2;
+  display: block;
+  width: 247px;
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 15px 22px rgba(105, 80, 180, 0.13));
+}
+
+.poetry-page-hero h1 {
+  position: absolute;
+  top: 76px;
+  left: 281px;
+  margin: 0;
+  color: #2f276f;
+  font-size: clamp(3rem, 6vw, 4rem);
+  font-weight: 400;
+  line-height: 0.95;
+  letter-spacing: -0.065em;
+}
+
+.poetry-main-grid {
+  position: relative;
+  display: grid;
+  grid-template-columns: 340px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  transform: translateY(-51px);
+}
+
+.poetry-picker-card,
+.poetry-text-card,
+.poetry-recital-redesign,
+.poetry-workbench-full {
+  border: 1px solid #e8e3f3;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 14px 34px rgba(76, 54, 150, 0.07);
+}
+
+.poetry-picker-card {
+  min-height: 458px;
+  padding: 24px 24px 26px;
+}
+
+.poetry-picker-card h2,
+.poetry-text-card h2 {
+  margin: 0 0 14px;
+  color: #332a7c;
+  font-size: 1.02rem;
+  line-height: 1.15;
+  font-weight: 780;
+  letter-spacing: -0.025em;
+}
+
+.poetry-picker-card label,
+.poetry-text-label {
+  color: var(--color-primary-dark);
+  font-weight: 900;
+}
+
+.poetry-picker-card select {
+  width: 100%;
+  min-height: 48px;
+  margin-top: 8px;
+  padding: 0 14px;
+  border: 1px solid rgba(109, 93, 252, 0.24);
+  border-radius: 18px;
+  background: #ffffff;
+  color: var(--color-primary-dark);
+  font: inherit;
+  font-weight: 800;
+}
+
+.poetry-text-card {
+  min-height: 626px;
+  padding: 24px 26px 26px;
+}
+
+.poetry-text-card-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: start;
+  margin-bottom: 14px;
+}
+
+.poetry-text-card-header p {
+  margin: 0;
+  color: #6d7280;
+  font-size: 0.88rem;
+  font-weight: 650;
+}
+
+.poetry-redesign-textarea {
+  min-height: 442px;
+  border-color: #ede8f1;
+  border-radius: 22px;
+  background: #fffdf8;
+  color: #30384d;
+  font-size: 1.05rem;
+  font-weight: 560;
+  line-height: 1.85;
+}
+
+.poetry-workbench-full {
+  margin-top: -36px;
+  padding: 24px 28px;
+  border-radius: 26px;
+  background: linear-gradient(135deg, #fff8e8 0%, #f5f0ff 100%);
+}
+
+.poetry-workbench-full .poetry-workbench-header h3 {
+  color: #332a7c;
+  font-size: 1.32rem;
+  line-height: 1.2;
+  font-weight: 820;
+  letter-spacing: -0.03em;
+}
+
+.poetry-workbench-full .poetry-practice-layout {
+  gap: 12px 16px;
+}
+
+.poetry-recital-redesign {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 18px;
+  margin-top: 16px;
+  padding: 24px 28px;
+  border-radius: 26px;
+}
+
+.poetry-recital-redesign .language-mascot {
+  width: 76px;
+  height: 76px;
+  border-radius: 24px;
+  background: #f3efff;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.8);
+}
+
+.poetry-recital-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.primary-action.secondary {
+  background: #fffdf2;
+  color: #7b5600;
+  border: 1px solid #faecc5;
+  box-shadow: 0 8px 18px rgba(189, 144, 0, 0.07);
 }
 
 
@@ -4629,13 +4806,20 @@
   width: 30px;
   height: 28px;
   flex: 0 0 auto;
-  border: 1px solid rgba(109, 93, 252, 0.18);
-  border-radius: 999px;
+  border: 0;
+  border-radius: 0;
   padding: 0;
-  background: #ffffff;
+  appearance: none;
+  -webkit-appearance: none;
+  background-color: transparent;
+  background-image: url("data:image/svg+xml,%3Csvg width='30' height='28' viewBox='0 0 30 28' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%23A89BFF' stroke-width='2.3' stroke-linecap='round'%3E%3Cpath d='M4 7h8M18 7h8'/%3E%3Ccircle cx='15' cy='7' r='4.2' fill='white'/%3E%3Cpath d='M4 14h15M25 14h1'/%3E%3Ccircle cx='22' cy='14' r='4.2' fill='white'/%3E%3Cpath d='M4 21h11M21 21h5'/%3E%3Ccircle cx='18' cy='21' r='4.2' fill='white'/%3E%3C/g%3E%3C/svg%3E");
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 24px 22px;
   color: transparent;
   font-size: 0.75rem;
   font-weight: 400;
+  cursor: pointer;
 }
 
 .history-column-filter:focus-visible {
