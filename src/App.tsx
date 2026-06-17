@@ -4403,11 +4403,9 @@ function PoetryView({
           <section className="poetry-workbench poetry-workbench-full" aria-labelledby="poetry-workbench-title">
             <div className="poetry-workbench-header">
               <div>
-                <p className="eyebrow">Zone de travail de l’enfant</p>
                 <h3 id="poetry-workbench-title">Mémoriser ligne par ligne</h3>
-                <p>Clique sur “Ligne 1”, “Ligne 2”… pour masquer ou afficher une ligne précise.</p>
               </div>
-              <button className="audio-button" type="button" onClick={resetPoetryPracticeControls}>Tout afficher</button>
+              <button className="poetry-profile-button" type="button" onClick={resetPoetryPracticeControls}>Tout afficher</button>
             </div>
             <div className="poetry-practice-layout">
               <div className="poetry-vertical-timeline" aria-label="Timeline verticale de masquage ligne par ligne" ref={poetryTimelineRef}>
@@ -4444,10 +4442,6 @@ function PoetryView({
                 </button>
                 <p className="poetry-timeline-caption top">Masquer depuis le haut</p>
                 <p className="poetry-timeline-caption bottom">Masquer depuis le bas</p>
-              </div>
-              <div className="poetry-mask-summary" aria-live="polite">
-                <span>{constrainedTopMaskCount === 0 ? 'aucune ligne masquée en haut' : `${constrainedTopMaskCount} ligne${constrainedTopMaskCount > 1 ? 's' : ''} masquée${constrainedTopMaskCount > 1 ? 's' : ''} en haut`}</span>
-                <span>{bottomHiddenCount === 0 ? 'aucune ligne masquée en bas' : `${bottomHiddenCount} ligne${bottomHiddenCount > 1 ? 's' : ''} masquée${bottomHiddenCount > 1 ? 's' : ''} en bas`}</span>
               </div>
               <div className="poem-lines" aria-label="Lignes de mémorisation de la poésie">
                 {displayedPoetryLines.map((line, index) => {

@@ -1682,9 +1682,7 @@
 .poetry-practice-layout {
   display: grid;
   grid-template-columns: 96px minmax(0, 1fr);
-  grid-template-areas:
-    "timeline summary"
-    "timeline lines";
+  grid-template-areas: "timeline lines";
   gap: 10px 14px;
   align-items: stretch;
 }
@@ -2042,7 +2040,7 @@
   margin-top: -36px;
   padding: 24px 28px;
   border-radius: 26px;
-  background: linear-gradient(135deg, #fff8e8 0%, #f5f0ff 100%);
+  background: rgba(255, 255, 255, 0.96);
 }
 
 .poetry-workbench-full .poetry-workbench-header h3 {
