@@ -4421,11 +4421,9 @@ function PoetryView({
                   onKeyDown={(event) => handlePoetryTimelineKeyboard('top', event)}
                   onPointerDown={(event) => startPoetryTimelineDrag('top', event)}
                   role="slider"
-                  style={{ top: `${topHandlePercent}%` }}
+                  style={{ top: `calc(${topHandlePercent}% + 22px)` }}
                   type="button"
-                >
-                  <span>Haut</span>
-                </button>
+                />
                 <button
                   aria-label="Masquer les lignes du bas"
                   aria-valuemax={poetryLineCount}
@@ -4435,11 +4433,9 @@ function PoetryView({
                   onKeyDown={(event) => handlePoetryTimelineKeyboard('bottom', event)}
                   onPointerDown={(event) => startPoetryTimelineDrag('bottom', event)}
                   role="slider"
-                  style={{ top: `${bottomHandlePercent}%` }}
+                  style={{ top: `calc(${bottomHandlePercent}% - 22px)` }}
                   type="button"
-                >
-                  <span>Bas</span>
-                </button>
+                />
                 <p className="poetry-timeline-caption top">Masquer depuis le haut</p>
                 <p className="poetry-timeline-caption bottom">Masquer depuis le bas</p>
               </div>
@@ -4454,9 +4450,10 @@ function PoetryView({
                         aria-pressed={lineHidden}
                         onClick={() => togglePoetryLine(line.id, index)}
                       >
-                        {line.label}
+                        <span className="poem-line-toggle-icon" aria-hidden="true">{lineHidden ? '🙈' : '👁️'}</span>
+                        <span>{line.label}</span>
                       </button>
-                      <span aria-label={lineHidden ? `${line.label} masquée` : `${line.label} affichée`}>{lineHidden ? line.hiddenText : line.text}</span>
+                      <span className="poem-line-text" aria-label={lineHidden ? `${line.label} masquée` : `${line.label} affichée`}>{lineHidden ? line.hiddenText : line.text}</span>
                     </p>
                   );
                 })}

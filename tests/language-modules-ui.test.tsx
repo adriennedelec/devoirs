@@ -710,6 +710,12 @@ describe('Lot 4 dictation and poetry UI', () => {
     expect(screen.queryByText(/aucune ligne masquée en haut/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/aucune ligne masquée en bas/i)).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /tout afficher/i })).toHaveClass('poetry-profile-button');
+    expect(screen.getByRole('slider', { name: /masquer les lignes du haut/i })).toHaveTextContent('');
+    expect(screen.getByRole('slider', { name: /masquer les lignes du bas/i })).toHaveTextContent('');
+    const firstPoetryLineToggle = screen.getByRole('button', { name: /^ligne 1$/i });
+    expect(within(firstPoetryLineToggle).getByText('👁️')).toBeInTheDocument();
+    await user.click(firstPoetryLineToggle);
+    expect(within(firstPoetryLineToggle).getByText('🙈')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /réciter la poésie/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /j’ai récité ma poésie/i })).toBeInTheDocument();
     expect(screen.queryByRole('region', { name: /étapes de poésie/i })).not.toBeInTheDocument();
