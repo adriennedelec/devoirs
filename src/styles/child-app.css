@@ -1680,46 +1680,73 @@
 }
 
 .poetry-practice-layout {
-  display: grid;
-  grid-template-columns: 96px minmax(0, 1fr);
-  grid-template-areas: "timeline lines";
-  gap: 10px 14px;
-  align-items: stretch;
+  display: block;
+  --poetry-line-row-height: 38px;
+  --poetry-line-row-gap: 8px;
 }
 
 .poetry-vertical-timeline {
   position: relative;
-  grid-area: timeline;
   min-height: 100%;
-  padding: 26px 0;
-  border-radius: 24px;
-  background: rgba(255, 255, 255, 0.78);
-  box-shadow: inset 0 0 0 1px rgba(109, 93, 252, 0.14);
+  padding: 0;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.36);
+  box-shadow: inset 0 0 0 1px rgba(109, 93, 252, 0.08);
 }
 
 .poetry-timeline-track {
   position: absolute;
-  inset: 42px 42px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
+  inset: 0;
+  display: grid;
+  grid-auto-rows: var(--poetry-line-row-height);
+  gap: var(--poetry-line-row-gap);
   align-items: center;
-  width: 0;
-  border-left: 3px solid rgba(109, 93, 252, 0.32);
+  justify-items: center;
+  width: 100%;
+}
+
+.poetry-timeline-track::before {
+  content: "";
+  position: absolute;
+  top: calc(var(--poetry-line-row-height) / 2);
+  bottom: calc(var(--poetry-line-row-height) / 2);
+  left: 50%;
+  width: 3px;
+  border-radius: 999px;
+  background: rgba(109, 93, 252, 0.34);
+  transform: translateX(-50%);
 }
 
 .poetry-timeline-track span {
+  position: relative;
+  z-index: 1;
   display: grid;
   place-items: center;
   width: 24px;
   height: 24px;
-  margin-left: -13px;
   border-radius: 999px;
   background: #ffffff;
   color: var(--color-primary-dark);
   font-size: 0.72rem;
   font-weight: 900;
   box-shadow: 0 4px 10px rgba(109, 93, 252, 0.16);
+}
+
+.poetry-timeline-track .poetry-timeline-spacer {
+  width: 10px;
+  height: 10px;
+  background: rgba(109, 93, 252, 0.14);
+  box-shadow: none;
+}
+
+.poetry-timeline-track .poetry-timeline-finish {
+  width: auto;
+  min-width: 24px;
+  height: 20px;
+  padding: 0 6px;
+  color: #6f6a86;
+  font-size: 0.64rem;
+  font-weight: 700;
 }
 
 .poetry-timeline-handle {
@@ -1803,13 +1830,46 @@
 }
 
 .poem-lines {
-  grid-area: lines;
   display: grid;
-  gap: 8px;
+  gap: 12px;
   margin: 0;
   padding: 18px;
   border-radius: 24px;
   background: #f4f0ff;
+}
+
+.poem-lines-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.poem-lines-header h3 {
+  margin: 0;
+  color: #332a7c;
+  font-size: 1.32rem;
+  line-height: 1.2;
+  font-weight: 820;
+  letter-spacing: -0.03em;
+}
+
+.poetry-line-stack {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+  gap: 14px;
+  align-items: stretch;
+}
+
+.poetry-line-list {
+  display: grid;
+  grid-auto-rows: var(--poetry-line-row-height);
+  gap: var(--poetry-line-row-gap);
+  min-width: 0;
+}
+
+.poetry-line-spacer {
+  min-height: var(--poetry-line-row-height);
 }
 
 .poem-line {
@@ -1818,6 +1878,7 @@
   align-items: center;
   gap: 10px;
   margin: 0;
+  min-height: var(--poetry-line-row-height);
   color: var(--color-primary-dark);
   font-size: 1.08rem;
   font-weight: 900;
@@ -1854,6 +1915,16 @@
 .poem-line.is-hidden .poem-line-text {
   color: #8b86a3;
   letter-spacing: 0.05em;
+}
+
+.poem-line-finish {
+  display: flex;
+  align-items: center;
+  min-height: var(--poetry-line-row-height);
+  margin: 0;
+  color: #7c7890;
+  font-size: 0.78rem;
+  font-weight: 650;
 }
 
 .poetry-steps {

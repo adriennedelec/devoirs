@@ -3968,8 +3968,9 @@ function PoetryView({
   const poetryLineCount = displayedPoetryLines.length;
   const constrainedTopMaskCount = Math.min(topMaskCount, effectiveBottomVisibleUntil);
   const bottomHiddenCount = poetryLineCount - effectiveBottomVisibleUntil;
-  const topHandlePercent = poetryLineCount > 0 ? (constrainedTopMaskCount / poetryLineCount) * 100 : 0;
-  const bottomHandlePercent = poetryLineCount > 0 ? (effectiveBottomVisibleUntil / poetryLineCount) * 100 : 100;
+  const poetryTimelineStopCount = poetryLineCount + 1;
+  const topHandlePercent = poetryTimelineStopCount > 0 ? ((constrainedTopMaskCount + 0.5) / poetryTimelineStopCount) * 100 : 0;
+  const bottomHandlePercent = poetryTimelineStopCount > 0 ? ((effectiveBottomVisibleUntil + 0.5) / poetryTimelineStopCount) * 100 : 100;
 
   useEffect(() => {
     setBottomVisibleUntil(displayedPoetryLines.length);
@@ -4027,7 +4028,7 @@ function PoetryView({
     if (!track || poetryLineCount === 0) return 0;
     const rect = track.getBoundingClientRect();
     const ratio = Math.max(0, Math.min(1, (clientY - rect.top) / rect.height));
-    return Math.round(ratio * poetryLineCount);
+    return Math.round(ratio * poetryTimelineStopCount - 0.5);
   }
 
   function startPoetryTimelineDrag(handle: 'top' | 'bottom', event: ReactPointerEvent<HTMLButtonElement>) {
@@ -4401,62 +4402,66 @@ function PoetryView({
           </section>
 
           <section className="poetry-workbench poetry-workbench-full" aria-labelledby="poetry-workbench-title">
-            <div className="poetry-workbench-header">
-              <div>
-                <h3 id="poetry-workbench-title">Mémoriser ligne par ligne</h3>
-              </div>
-              <button className="poetry-profile-button" type="button" onClick={resetPoetryPracticeControls}>Tout afficher</button>
-            </div>
             <div className="poetry-practice-layout">
-              <div className="poetry-vertical-timeline" aria-label="Timeline verticale de masquage ligne par ligne" ref={poetryTimelineRef}>
-                <div className="poetry-timeline-track" aria-hidden="true">
-                  {displayedPoetryLines.map((line) => <span key={line.id}>{line.label.replace('Ligne ', '')}</span>)}
-                </div>
-                <button
-                  aria-label="Masquer les lignes du haut"
-                  aria-valuemax={poetryLineCount}
-                  aria-valuemin={0}
-                  aria-valuenow={constrainedTopMaskCount}
-                  className="poetry-timeline-handle top"
-                  onKeyDown={(event) => handlePoetryTimelineKeyboard('top', event)}
-                  onPointerDown={(event) => startPoetryTimelineDrag('top', event)}
-                  role="slider"
-                  style={{ top: `calc(${topHandlePercent}% + 22px)` }}
-                  type="button"
-                />
-                <button
-                  aria-label="Masquer les lignes du bas"
-                  aria-valuemax={poetryLineCount}
-                  aria-valuemin={0}
-                  aria-valuenow={bottomHiddenCount}
-                  className="poetry-timeline-handle bottom"
-                  onKeyDown={(event) => handlePoetryTimelineKeyboard('bottom', event)}
-                  onPointerDown={(event) => startPoetryTimelineDrag('bottom', event)}
-                  role="slider"
-                  style={{ top: `calc(${bottomHandlePercent}% - 22px)` }}
-                  type="button"
-                />
-                <p className="poetry-timeline-caption top">Masquer depuis le haut</p>
-                <p className="poetry-timeline-caption bottom">Masquer depuis le bas</p>
-              </div>
               <div className="poem-lines" aria-label="Lignes de mémorisation de la poésie">
-                {displayedPoetryLines.map((line, index) => {
-                  const lineHidden = isPoetryLineHidden(line.id, index);
-                  return (
-                    <p className={lineHidden ? 'poem-line is-hidden' : 'poem-line'} key={line.id}>
-                      <button
-                        className="poem-line-toggle"
-                        type="button"
-                        aria-pressed={lineHidden}
-                        onClick={() => togglePoetryLine(line.id, index)}
-                      >
-                        <span className="poem-line-toggle-icon" aria-hidden="true">{lineHidden ? '🙈' : '👁️'}</span>
-                        <span>{line.label}</span>
-                      </button>
-                      <span className="poem-line-text" aria-label={lineHidden ? `${line.label} masquée` : `${line.label} affichée`}>{lineHidden ? line.hiddenText : line.text}</span>
-                    </p>
-                  );
-                })}
+                <div className="poem-lines-header">
+                  <h3 id="poetry-workbench-title">Mémoriser ligne par ligne</h3>
+                  <button className="poetry-profile-button" type="button" onClick={resetPoetryPracticeControls}>Tout afficher</button>
+                </div>
+                <div className="poetry-line-stack">
+                  <div className="poetry-vertical-timeline" aria-label="Timeline verticale de masquage ligne par ligne" ref={poetryTimelineRef}>
+                    <div className="poetry-timeline-track" aria-hidden="true">
+                      <span className="poetry-timeline-spacer" />
+                      {displayedPoetryLines.map((line) => <span className="poetry-timeline-line-number" key={line.id}>{line.label.replace('Ligne ', '')}</span>)}
+                      <span className="poetry-timeline-finish">Fin</span>
+                    </div>
+                    <button
+                      aria-label="Masquer les lignes du haut"
+                      aria-valuemax={poetryLineCount}
+                      aria-valuemin={0}
+                      aria-valuenow={constrainedTopMaskCount}
+                      className="poetry-timeline-handle top"
+                      onKeyDown={(event) => handlePoetryTimelineKeyboard('top', event)}
+                      onPointerDown={(event) => startPoetryTimelineDrag('top', event)}
+                      role="slider"
+                      style={{ top: `${topHandlePercent}%` }}
+                      type="button"
+                    />
+                    <button
+                      aria-label="Masquer les lignes du bas"
+                      aria-valuemax={poetryLineCount}
+                      aria-valuemin={0}
+                      aria-valuenow={bottomHiddenCount}
+                      className="poetry-timeline-handle bottom"
+                      onKeyDown={(event) => handlePoetryTimelineKeyboard('bottom', event)}
+                      onPointerDown={(event) => startPoetryTimelineDrag('bottom', event)}
+                      role="slider"
+                      style={{ top: `${bottomHandlePercent}%` }}
+                      type="button"
+                    />
+                  </div>
+                  <div className="poetry-line-list">
+                    <div className="poetry-line-spacer" aria-hidden="true" />
+                    {displayedPoetryLines.map((line, index) => {
+                      const lineHidden = isPoetryLineHidden(line.id, index);
+                      return (
+                        <p className={lineHidden ? 'poem-line is-hidden' : 'poem-line'} key={line.id}>
+                          <button
+                            className="poem-line-toggle"
+                            type="button"
+                            aria-pressed={lineHidden}
+                            onClick={() => togglePoetryLine(line.id, index)}
+                          >
+                            <span className="poem-line-toggle-icon" aria-hidden="true">{lineHidden ? '🙈' : '👁️'}</span>
+                            <span>{line.label}</span>
+                          </button>
+                          <span className="poem-line-text" aria-label={lineHidden ? `${line.label} masquée` : `${line.label} affichée`}>{lineHidden ? line.hiddenText : line.text}</span>
+                        </p>
+                      );
+                    })}
+                    <p className="poem-line-finish">Fin</p>
+                  </div>
+                </div>
               </div>
             </div>
           </section>

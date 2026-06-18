@@ -710,6 +710,8 @@ describe('Lot 4 dictation and poetry UI', () => {
     expect(screen.queryByText(/aucune ligne masquée en haut/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/aucune ligne masquée en bas/i)).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /tout afficher/i })).toHaveClass('poetry-profile-button');
+    expect(container.querySelector('.poem-lines-header')).toContainElement(screen.getByRole('heading', { name: /mémoriser ligne par ligne/i }));
+    expect(container.querySelector('.poem-line-finish')).toHaveTextContent('Fin');
     expect(screen.getByRole('slider', { name: /masquer les lignes du haut/i })).toHaveTextContent('');
     expect(screen.getByRole('slider', { name: /masquer les lignes du bas/i })).toHaveTextContent('');
     const firstPoetryLineToggle = screen.getByRole('button', { name: /^ligne 1$/i });
