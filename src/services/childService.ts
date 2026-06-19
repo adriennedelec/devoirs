@@ -676,7 +676,7 @@ function stripLlmEnvelope(text: string) {
     .trim();
 }
 
-async function callOllamaDictation(words: string[], verbs: string[], verbTenses: VerbTense[], previousErrors: string[] = [], customPrompt?: string) {
+async function callOpenAiDictation(words: string[], verbs: string[], verbTenses: VerbTense[], previousErrors: string[] = [], customPrompt?: string) {
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), 90_000);
   const generatedPrompt = customPrompt
@@ -689,11 +689,11 @@ async function callOllamaDictation(words: string[], verbs: string[], verbTenses:
     ? `${generatedPrompt}${correctionBlock}`
     : generatedPrompt;
   try {
-    const response = await fetch('/api/ollama/generate', {
+    const response = await fetch('/api/openai/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'llama3.1:8b',
+        model: 'gpt-4.1-mini',
         prompt: finalPrompt,
         stream: false,
         options: {
@@ -705,7 +705,7 @@ async function callOllamaDictation(words: string[], verbs: string[], verbTenses:
     });
 
     if (!response.ok) {
-      throw new Error(`Ollama a répondu ${response.status}. Vérifie que le modèle local est disponible.`);
+      throw new Error(`OpenAI a répondu ${response.status}. Vérifie que la clé API est disponible côté serveur.`);
     }
 
     const payload = await response.json() as { response?: string; error?: string };
@@ -713,7 +713,7 @@ async function callOllamaDictation(words: string[], verbs: string[], verbTenses:
     return stripLlmEnvelope(payload.response ?? '');
   } catch (error: unknown) {
     if (error instanceof DOMException && error.name === 'AbortError') {
-      throw new Error('Ollama met trop de temps à répondre. Réessaie quand le modèle local est disponible.');
+      throw new Error('OpenAI met trop de temps à répondre. Réessaie dans quelques instants.');
     }
     throw error;
   } finally {
@@ -721,7 +721,7 @@ async function callOllamaDictation(words: string[], verbs: string[], verbTenses:
   }
 }
 
-async function generateOllamaWordDictationText(
+async function generateOpenAiWordDictationText(
   words: string[],
   verbs: string[],
   verbTenses: VerbTense[],
@@ -730,7 +730,7 @@ async function generateOllamaWordDictationText(
   let previousErrors: string[] = [];
   let lastText = '';
   for (let attempt = 0; attempt < 3; attempt += 1) {
-    const candidate = await callOllamaDictation(words, verbs, verbTenses, previousErrors, customPrompt);
+    const candidate = await callOpenAiDictation(words, verbs, verbTenses, previousErrors, customPrompt);
     lastText = candidate;
     const errors = getDictationGenerationErrors(candidate, words, customPrompt ?? DEFAULT_OLLAMA_DICTATION_PROMPT, verbTenses);
     if (errors.length === 0) {
@@ -769,17 +769,17 @@ export async function generateWordDictationText(
     throw new Error(`Confirme ces mots avant de générer : ${unknownWords.join(', ')}`);
   }
 
-  const generationResult = await generateOllamaWordDictationText(words, selectedVerbs, selectedVerbTenses, request.prompt);
+  const generationResult = await generateOpenAiWordDictationText(words, selectedVerbs, selectedVerbTenses, request.prompt);
 
   return {
     mode: 'word_dictation',
-    title: 'Dictée IA locale préparée',
+    title: 'Dictée IA OpenAI préparée',
     text: generationResult.text,
     isHiddenByDefault: false,
     wordChecklist: words,
     selectedVerbTenses,
-    generationProvider: 'ollama',
-    readingInstruction: 'Contrôles parent sous le texte : vérifie les mots inclus, lance la lecture pour l\u2019élève ou relance Ollama si tu veux une nouvelle proposition.',
+    generationProvider: 'openai',
+    readingInstruction: 'Contrôles parent sous le texte : vérifie les mots inclus, lance la lecture pour l\u2019élève ou relance OpenAI si tu veux une nouvelle proposition.',
     controlResult: {
       isValid: generationResult.isValid,
       checks: generationResult.checks,

@@ -55,7 +55,7 @@ describe('Lot 4 dictation and poetry services', () => {
     });
   });
 
-  it('keeps the default Ollama prompt as a placeholder template without output labels', () => {
+  it('keeps the default LLM prompt as a placeholder template without output labels', () => {
     const prompt = getDefaultOllamaDictationPromptTemplate();
 
     expect(prompt).toContain('{{mots}}');
@@ -80,8 +80,8 @@ describe('Lot 4 dictation and poetry services', () => {
     });
 
     expect(result.mode).toBe('word_dictation');
-    expect(result.title).toBe('Dictée IA locale préparée');
-    expect(result.generationProvider).toBe('ollama');
+    expect(result.title).toBe('Dictée IA OpenAI préparée');
+    expect(result.generationProvider).toBe('openai');
     expect(result.isHiddenByDefault).toBe(false);
     expect(result.readingInstruction).toMatch(/contrôles parent sous le texte/i);
     expect(result.wordChecklist).toEqual(['dragon', 'cartable', 'rivière']);
@@ -155,7 +155,7 @@ describe('Lot 4 dictation and poetry services', () => {
     }
   });
 
-  it('passes a custom Llama prompt and interpolates MOTS/VERBES/TEMPS placeholders', async () => {
+  it('passes a custom LLM prompt and interpolates MOTS/VERBES/TEMPS placeholders', async () => {
     const customPrompt = `Tu es un enseignant de français spécialisé dans la création de dictées pour les élèves de CM1 (9-10 ans).\n\nMOTS:\n{{mots}}\n\nVERBES:\n{{verbes}}\n\nTEMPS:\n{{temps}}`;
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response(JSON.stringify({
       response: 'Aujourd’hui, Emma range un petit mot dragon dans son cartable.',
@@ -165,14 +165,15 @@ describe('Lot 4 dictation and poetry services', () => {
       words: ['dragon', 'cartable'],
       verbTenses: ['present'],
       verbs: ['courir', 'manger'],
-      generationProvider: 'ollama',
+      generationProvider: 'openai',
       prompt: customPrompt,
     });
 
     const request = fetchMock.mock.calls[0]?.[1];
     const body = request?.body ? JSON.parse(request.body as string) : {};
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(fetchMock).toHaveBeenCalledWith('/api/ollama/generate', expect.any(Object));
+    expect(fetchMock).toHaveBeenCalledWith('/api/openai/generate', expect.any(Object));
+    expect(body.model).toBe('gpt-4.1-mini');
     expect(body.prompt).toContain('- dragon');
     expect(body.prompt).toContain('- cartable');
     expect(body.prompt).toContain('- courir');
@@ -233,7 +234,7 @@ describe('Lot 4 dictation and poetry services', () => {
     const result = await generateWordDictationText('emma-demo', {
       words: ['dragon petit cartable'],
       verbTenses: ['present'],
-      generationProvider: 'ollama',
+      generationProvider: 'openai',
     });
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -241,7 +242,7 @@ describe('Lot 4 dictation and poetry services', () => {
     expect(result.controlResult.checks).toEqual([]);
   });
 
-  it('retries Ollama when a generated text misses a requested word', async () => {
+  it('retries OpenAI when a generated text misses a requested word', async () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch')
       .mockResolvedValueOnce(new Response(JSON.stringify({
         response: 'Emma range un dragon dans son cartable.',
@@ -253,14 +254,14 @@ describe('Lot 4 dictation and poetry services', () => {
     const result = await generateWordDictationText('emma-demo', {
       words: ['dragon cartable rivière'],
       verbTenses: ['present'],
-      generationProvider: 'ollama',
+      generationProvider: 'openai',
     });
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(result.text).toContain('rivière');
   });
 
-  it('retries Ollama when present tense generation contains obvious future or past markers', async () => {
+  it('retries OpenAI when present tense generation contains obvious future or past markers', async () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch')
       .mockResolvedValueOnce(new Response(JSON.stringify({
         response: 'Demain, Emma mettra dans son cartable une image de dragon et elle a lavé ses mains.',
@@ -273,7 +274,7 @@ describe('Lot 4 dictation and poetry services', () => {
       words: ['cartable dragon'],
       verbs: ['laver'],
       verbTenses: ['present'],
-      generationProvider: 'ollama',
+      generationProvider: 'openai',
     });
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
@@ -296,7 +297,7 @@ describe('Lot 4 dictation and poetry services', () => {
     const result = await generateWordDictationText('emma-demo', {
       words: ['cartable dragon autruche citrouille banane escargot se coucher laver'],
       verbTenses: ['present'],
-      generationProvider: 'ollama',
+      generationProvider: 'openai',
     });
 
     expect(result.controlResult.isValid).toBe(false);

@@ -2298,17 +2298,17 @@ function ReadingView({
     setRecordingAnalysis(null);
     setRecordedTranscript('');
     try {
-      const response = await fetch('/api/ollama/generate', {
+      const response = await fetch('/api/openai/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: 'llama3.1:8b',
+          model: 'gpt-4.1-mini',
           prompt: readingPromptPreview,
           stream: false,
           options: { temperature: 0.35, num_predict: 420 },
         }),
       });
-      if (!response.ok) throw new Error(`Ollama a répondu ${response.status}.`);
+      if (!response.ok) throw new Error(`OpenAI a répondu ${response.status}.`);
       const payload = await response.json() as { response?: string; error?: string };
       if (payload.error) throw new Error(payload.error);
       const text = stripReadingLlmEnvelope(payload.response ?? '');
@@ -3567,9 +3567,9 @@ function DictationView({
                     <button type="button" onClick={() => void confirmUnknownWordsAndGenerate()}>Confirmer et générer</button>
                   </div>
                 ) : null}
-                <div className="ollama-generation-note" aria-label="Moteur de génération Ollama">
-                  <strong>IA locale Ollama</strong>
-                  <span>llama3.1:8b sur http://127.0.0.1:11434. L’app vérifie ensuite que tous les mots sont présents une seule fois.</span>
+                <div className="ollama-generation-note" aria-label="Moteur de génération OpenAI">
+                  <strong>IA OpenAI</strong>
+                  <span>gpt-4.1-mini via la route serveur sécurisée. L’app vérifie ensuite que tous les mots sont présents une seule fois.</span>
                 </div>
                 <label className="answer-field llama-prompt-editor">
                   <span>Template du prompt Llama (éditable)</span>
@@ -3584,11 +3584,11 @@ function DictationView({
                     }}
                     rows={8}
                   />
-                  <small>Garde les balises {`{{mots}}`}, {`{{verbes}}`} et {`{{temps}}`} : elles sont remplacées juste avant l’appel Ollama.</small>
+                  <small>Garde les balises {`{{mots}}`}, {`{{verbes}}`} et {`{{temps}}`} : elles sont remplacées juste avant l’appel OpenAI.</small>
                   {isLlamaPromptSaved ? <small className="prompt-saved-confirmation">Nouveau prompt enregistré</small> : null}
                 </label>
                 <details className="llama-prompt-preview">
-                  <summary>Aperçu réel envoyé à Ollama</summary>
+                  <summary>Aperçu réel envoyé à OpenAI</summary>
                   <pre>{llamaPromptPreview}</pre>
                 </details>
                 <button

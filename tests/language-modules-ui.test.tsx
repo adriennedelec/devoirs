@@ -30,7 +30,7 @@ describe('Lot 4 dictation and poetry UI', () => {
     expect(sizeSelect).toHaveTextContent('XXL · 1200 à 1800 mots');
   });
 
-  it('saves the edited Llama dictation prompt as the new default and confirms it below the editor', async () => {
+  it('saves the edited LLM dictation prompt as the new default and confirms it below the editor', async () => {
     const user = userEvent.setup();
     const customPrompt = 'PROMPT PARENT SAUVEGARDE {{mots}} {{verbes}} {{temps}}';
     const { unmount } = render(<App />);
@@ -62,7 +62,7 @@ describe('Lot 4 dictation and poetry UI', () => {
     expect(await screen.findByLabelText(/template du prompt llama/i)).toHaveValue(customPrompt);
   });
 
-  it('keeps generic placeholders visible in the default Llama prompt editor while words change', async () => {
+  it('keeps generic placeholders visible in the default LLM prompt editor while words change', async () => {
     const user = userEvent.setup();
     render(<App />);
 
@@ -88,7 +88,7 @@ describe('Lot 4 dictation and poetry UI', () => {
     expect((promptEditor as HTMLTextAreaElement).value).toContain('{{temps}}');
     expect((promptEditor as HTMLTextAreaElement).value).not.toContain('- dragon');
 
-    await user.click(screen.getByText(/aperçu réel envoyé à ollama/i));
+    await user.click(screen.getByText(/aperçu réel envoyé à openai/i));
     expect(screen.getByText(/- dragon/)).toBeInTheDocument();
     expect(screen.getByText(/- cartable/)).toBeInTheDocument();
     expect(screen.getByText(/- courir/)).toBeInTheDocument();
@@ -127,7 +127,7 @@ describe('Lot 4 dictation and poetry UI', () => {
     expect(screen.getAllByText(/le petit renard traverse la forêt/i).length).toBeGreaterThan(0);
   });
 
-  it('opens the dictation module from Accueil and shows the Ollama text before parent controls without regenerating automatically', async () => {
+  it('opens the dictation module from Accueil and shows the OpenAI text before parent controls without regenerating automatically', async () => {
     const user = userEvent.setup();
     render(<App />);
 
@@ -227,7 +227,7 @@ describe('Lot 4 dictation and poetry UI', () => {
     expect(screen.getByText('rivière')).toBeInTheDocument();
   });
 
-  it('shows an animated waiting label while the default Ollama generation is running', async () => {
+  it('shows an animated waiting label while the default OpenAI generation is running', async () => {
     const user = userEvent.setup();
     vi.spyOn(globalThis, 'fetch').mockReturnValue(new Promise<Response>(() => undefined));
     render(<App />);
@@ -657,7 +657,7 @@ describe('Lot 4 dictation and poetry UI', () => {
     await user.click(within(generationRegion).getByRole('button', { name: /^générer$/i }));
 
     expect(await screen.findByText(/Lina rencontre un renard dans la forêt/i)).toBeInTheDocument();
-    expect(globalThis.fetch).toHaveBeenCalledWith('/api/ollama/generate', expect.objectContaining({ method: 'POST' }));
+    expect(globalThis.fetch).toHaveBeenCalledWith('/api/openai/generate', expect.objectContaining({ method: 'POST' }));
 
     await user.click(screen.getByRole('button', { name: /démarrer l’enregistrement/i }));
     expect(screen.getByText(/chrono lancé/i)).toBeInTheDocument();
