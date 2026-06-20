@@ -6,9 +6,10 @@ describe('menus Base de données et Paramétrage', () => {
   beforeEach(() => {
     vi.unstubAllGlobals();
     window.localStorage.clear();
+    delete (window as unknown as { __DEVOIRS_TEST_AUTO_REMOTE_DATABASE__?: boolean }).__DEVOIRS_TEST_AUTO_REMOTE_DATABASE__;
   });
 
-  it('charge les profils depuis la base distante au démarrage puis sauvegarde les modifications locales', async () => {
+  it('charge la base distante au démarrage et sauvegarde automatiquement les modifications locales', async () => {
     const remoteSnapshot = {
       schemaVersion: 1,
       app: 'devoirs',
@@ -44,11 +45,9 @@ describe('menus Base de données et Paramétrage', () => {
       return new Response(JSON.stringify({ error: 'Not found' }), { status: 404 });
     });
     vi.stubGlobal('fetch', fetchMock);
+    (window as unknown as { __DEVOIRS_TEST_AUTO_REMOTE_DATABASE__?: boolean }).__DEVOIRS_TEST_AUTO_REMOTE_DATABASE__ = true;
 
     render(<App />);
-
-    await userEvent.click(await screen.findByRole('button', { name: /base de données/i }));
-    await userEvent.click(screen.getByRole('button', { name: /charger depuis la base distante/i }));
 
     await waitFor(() => {
       expect(JSON.parse(window.localStorage.getItem('devoirs.childProfiles.v1') ?? '[]')).toEqual(expect.arrayContaining([
@@ -57,8 +56,11 @@ describe('menus Base de données et Paramétrage', () => {
     });
     expect(window.localStorage.getItem('devoirs.activeProfileId.v1')).toBe('enora-remote');
     expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining('/api/family-database?familyId=famille-nedelec'));
+
+    await userEvent.click(await screen.findByRole('button', { name: /base de données/i }));
     expect(await screen.findByText(/base distante synchronisée/i)).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: /sauvegarder en ligne/i }));
+    expect(screen.queryByRole('button', { name: /sauvegarder en ligne/i })).not.toBeInTheDocument();
+    expect(screen.getByText(/les modifications sont enregistrées automatiquement en ligne/i)).toBeInTheDocument();
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/family-database', expect.objectContaining({ method: 'PUT' })));
   });
 

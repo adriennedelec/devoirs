@@ -464,7 +464,11 @@ const FAMILY_SETTINGS_STORAGE_KEY = 'devoirs.familySettings.v1';
 const ACTIVITY_DATABASE_STORAGE_KEY = 'devoirs.activityRecords.v1';
 const MULTIPLICATION_TABLE_HISTORY_STORAGE_KEY = 'devoirs.multiplicationTableHistory.v1';
 const REWARD_SETTINGS_STORAGE_KEY = 'devoirs.rewardSettings.v1';
-const SHOULD_AUTO_SYNC_REMOTE_DATABASE = import.meta.env.MODE !== 'test';
+function shouldAutoSyncRemoteDatabase() {
+  if (import.meta.env.MODE !== 'test') return true;
+  if (typeof window === 'undefined') return false;
+  return (window as unknown as { __DEVOIRS_TEST_AUTO_REMOTE_DATABASE__?: boolean }).__DEVOIRS_TEST_AUTO_REMOTE_DATABASE__ === true;
+}
 
 type LocalDatabaseTableMode = 'upsert-delete' | 'singleton' | 'profile-history' | 'object-records';
 
@@ -5568,12 +5572,10 @@ function ActivityDatabaseView({
   dashboard,
   remoteDatabaseSync,
   onLoadRemoteDatabase,
-  onSaveRemoteDatabase,
 }: {
   dashboard: ChildDashboard;
   remoteDatabaseSync: RemoteDatabaseSyncState;
   onLoadRemoteDatabase: () => Promise<void>;
-  onSaveRemoteDatabase: () => Promise<void>;
 }) {
   const [moduleFilter, setModuleFilter] = useState<StoredActivityModule | 'all'>('all');
   const [records] = useState<ActivityRecord[]>(() => readActivityRecordsFromStorage());
@@ -5630,13 +5632,13 @@ function ActivityDatabaseView({
           <p className="eyebrow">Synchronisation locale</p>
           <h2 id="database-sync-title">Export / import des données Devoirs</h2>
           <p>Chaque table déclare sa clé primaire. À l’import, une ligne avec la même clé est mise à jour, une nouvelle clé est ajoutée, et <code>_deleted: true</code> supprime la ligne.</p>
+          <p>Les modifications sont enregistrées automatiquement en ligne dès qu’une donnée change. Le bouton de chargement sert seulement à forcer une relecture de la base distante.</p>
           <p className={`form-feedback ${remoteDatabaseSync.status === 'offline' ? 'error' : 'success'}`}>
             {remoteDatabaseSync.message}
           </p>
           {remoteDatabaseSync.updatedAtIso ? <p className="muted-text">Dernière synchro : {formatHistoryDateTime(remoteDatabaseSync.updatedAtIso)}</p> : null}
           <div className="form-actions">
-            <button type="button" className="secondary-action" disabled={remoteDatabaseSync.status === 'loading'} onClick={() => void onLoadRemoteDatabase()}>Charger depuis la base distante</button>
-            <button type="button" className="primary-action" disabled={remoteDatabaseSync.status === 'loading'} onClick={() => void onSaveRemoteDatabase()}>Sauvegarder en ligne</button>
+            <button type="button" className="secondary-action" disabled={remoteDatabaseSync.status === 'loading'} onClick={() => void onLoadRemoteDatabase()}>Recharger depuis la base distante</button>
           </div>
         </div>
         <div className="settings-grid">
@@ -5942,7 +5944,6 @@ function ActivePage({
   onRecordExercise,
   remoteDatabaseSync,
   onLoadRemoteDatabase,
-  onSaveRemoteDatabase,
 }: {
   page: ChildPage;
   dashboard: ChildDashboard;
@@ -5956,7 +5957,6 @@ function ActivePage({
   exerciseHistory: ProfileExerciseHistoryRecord[];
   remoteDatabaseSync: RemoteDatabaseSyncState;
   onLoadRemoteDatabase: () => Promise<void>;
-  onSaveRemoteDatabase: () => Promise<void>;
   onRecordExercise: (payload: {
     module: ExerciseHistoryModule;
     moduleLabel: string;
@@ -5995,7 +5995,6 @@ function ActivePage({
         dashboard={dashboard}
         remoteDatabaseSync={remoteDatabaseSync}
         onLoadRemoteDatabase={onLoadRemoteDatabase}
-        onSaveRemoteDatabase={onSaveRemoteDatabase}
       />;
     case 'settings':
       return <RewardSettingsView dashboard={dashboard} />;
@@ -6078,7 +6077,7 @@ export default function App() {
   const activeProfileHistory = profileExerciseHistory[activeProfile.id] ?? [];
 
   useEffect(() => {
-    if (!SHOULD_AUTO_SYNC_REMOTE_DATABASE) return;
+    if (!shouldAutoSyncRemoteDatabase()) return;
     void loadRemoteDatabaseSnapshot();
   }, []);
 
@@ -6115,7 +6114,7 @@ export default function App() {
   }, [profileExerciseHistory]);
 
   useEffect(() => {
-    if (!SHOULD_AUTO_SYNC_REMOTE_DATABASE || !isRemoteDatabaseHydrated || remoteDatabaseSync.status === 'loading') return;
+    if (!shouldAutoSyncRemoteDatabase() || !isRemoteDatabaseHydrated || remoteDatabaseSync.status === 'loading') return;
     void saveCurrentDatabaseOnline();
   }, [profiles, activeProfileId, profileExerciseHistory, isRemoteDatabaseHydrated]);
 
@@ -6216,7 +6215,6 @@ export default function App() {
           exerciseHistory={activeProfileHistory}
           remoteDatabaseSync={remoteDatabaseSync}
           onLoadRemoteDatabase={loadRemoteDatabaseSnapshot}
-          onSaveRemoteDatabase={saveCurrentDatabaseOnline}
           onRecordExercise={logExerciseForActiveProfile}
         />
       );
