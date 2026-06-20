@@ -64,6 +64,54 @@ describe('menus Base de données et Paramétrage', () => {
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/family-database', expect.objectContaining({ method: 'PUT' })));
   });
 
+  it('charge les profils depuis la base distante au démarrage', async () => {
+    const remoteSnapshot = {
+      schemaVersion: 1,
+      app: 'devoirs',
+      exportedAtIso: '2026-06-19T12:00:00.000Z',
+      mergePolicy: 'primary-key-upsert-delete',
+      tables: [
+        {
+          storageKey: 'devoirs.childProfiles.v1',
+          label: 'Profils famille',
+          primaryKey: 'id',
+          mode: 'upsert-delete',
+          records: [
+            { id: 'enora-remote', name: 'Enora distante', avatarEmoji: '👧', avatarPhotoUrl: '', role: 'eleve', schoolLevel: 'CE2', age: 8, profileColor: '#F25CA2' },
+          ],
+        },
+        {
+          storageKey: 'devoirs.activeProfileId.v1',
+          label: 'Profil actif',
+          primaryKey: 'key',
+          mode: 'singleton',
+          records: [{ key: 'activeProfileId', value: 'enora-remote' }],
+        },
+      ],
+    };
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.startsWith('/api/family-database') && (!init || init.method === undefined || init.method === 'GET')) {
+        return new Response(JSON.stringify({ found: true, snapshot: remoteSnapshot, updatedAtIso: '2026-06-19T12:00:00.000Z' }), { status: 200 });
+      }
+      if (url === '/api/family-database' && init?.method === 'PUT') {
+        return new Response(JSON.stringify({ ok: true, updatedAtIso: '2026-06-19T12:01:00.000Z' }), { status: 200 });
+      }
+      return new Response(JSON.stringify({ error: 'Not found' }), { status: 404 });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(JSON.parse(window.localStorage.getItem('devoirs.childProfiles.v1') ?? '[]')).toEqual(expect.arrayContaining([
+        expect.objectContaining({ id: 'enora-remote', name: 'Enora distante' }),
+      ]));
+    });
+    expect(window.localStorage.getItem('devoirs.activeProfileId.v1')).toBe('enora-remote');
+    expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining('/api/family-database?familyId=famille-nedelec'));
+  });
+
   it('affiche le menu Base de données avec un tableau des activités stockées', async () => {
     window.localStorage.setItem('devoirs.activityRecords.v1', JSON.stringify([
       {

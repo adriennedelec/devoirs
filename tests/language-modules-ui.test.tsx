@@ -30,10 +30,9 @@ describe('Lot 4 dictation and poetry UI', () => {
     expect(sizeSelect).toHaveTextContent('XXL · 1200 à 1800 mots');
   });
 
-  it('saves the edited LLM dictation prompt as the new default and confirms it below the editor', async () => {
+  it('keeps Dictée magique focused on direct word entry without mode cards or prompt blocks', async () => {
     const user = userEvent.setup();
-    const customPrompt = 'PROMPT PARENT SAUVEGARDE {{mots}} {{verbes}} {{temps}}';
-    const { unmount } = render(<App />);
+    render(<App />);
 
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: /bonjour emma/i })).toBeInTheDocument();
@@ -43,26 +42,57 @@ describe('Lot 4 dictation and poetry UI', () => {
     expect(dictationCard).not.toBeNull();
     await user.click(within(dictationCard!).getByRole('button', { name: /continuer/i }));
 
-    const promptEditor = await screen.findByLabelText(/template du prompt llama/i);
-    fireEvent.change(promptEditor, { target: { value: customPrompt } });
+    expect(screen.getByRole('heading', { name: /dictée magique/i })).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: /choix du type de dictée/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /dictée de mots/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /dictée normale/i })).not.toBeInTheDocument();
+    expect(screen.queryByText(/préparation parent/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^dictée de mots$/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/tape les mots à travailler/i)).not.toBeInTheDocument();
+    const wordEntry = await screen.findByLabelText(/saisis tes mots \(séparateurs virgule\)/i);
+    const preparationRegion = screen.getByRole('region', { name: /préparation de la dictée magique/i });
+    const entryHeading = preparationRegion.querySelector('.dictation-entry-heading');
+    const fieldCards = [...preparationRegion.querySelectorAll('.dictation-entry-card')];
+    const actionButtons = [...preparationRegion.querySelectorAll('.word-source-actions .poetry-icon-button')];
+    const tenseHeader = preparationRegion.querySelector('.verb-tense-header');
+    expect(wordEntry).toBeInTheDocument();
+    expect(fieldCards).toHaveLength(2);
+    expect(fieldCards[0]).toHaveTextContent(/nom, adjectifs/i);
+    expect(fieldCards[1]).toHaveTextContent(/verbes/i);
+    expect(entryHeading).toHaveTextContent(/saisis tes mots \(séparateurs virgule\)/i);
+    expect(entryHeading!.compareDocumentPosition(fieldCards[0])).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(actionButtons).toHaveLength(2);
+    expect(actionButtons[0]).toHaveAttribute('title', 'Importer un fichier');
+    expect(actionButtons[1]).toHaveAttribute('title', 'Prendre une photo');
+    expect(tenseHeader).toHaveTextContent(/temps des verbes/i);
+    expect(tenseHeader).toHaveTextContent(/sélection multiple possible/i);
+    expect(screen.queryByLabelText(/série de mots/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/moteur de génération openai/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/template du prompt llama/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/aperçu réel envoyé à/i)).not.toBeInTheDocument();
+  });
+
+  it('keeps the dictation prompt editable from Paramétrage instead of the dictation page', async () => {
+    const user = userEvent.setup();
+    const customPrompt = 'PROMPT PARAMETRAGE {{mots}} {{verbes}} {{temps}}';
+    render(<App />);
+
+    await user.click(await screen.findByRole('button', { name: /paramétrage/i }));
+
+    const settingsPromptEditor = await screen.findByLabelText(/template du prompt de dictée magique/i);
+    expect((settingsPromptEditor as HTMLTextAreaElement).value).toContain('{{mots}}');
+    fireEvent.change(settingsPromptEditor, { target: { value: customPrompt } });
 
     expect(screen.getByText(/nouveau prompt enregistré/i)).toBeInTheDocument();
     expect(window.localStorage.getItem('devoirs.wordDictation.llamaPrompt')).toBe(customPrompt);
 
-    unmount();
-    render(<App />);
-
-    await waitFor(() => {
-      expect(screen.getByRole('heading', { name: /bonjour emma/i })).toBeInTheDocument();
-    });
-    const reopenedDictationCard = screen.getByRole('heading', { name: /dictée/i }).closest('article');
-    expect(reopenedDictationCard).not.toBeNull();
-    await user.click(within(reopenedDictationCard!).getByRole('button', { name: /continuer/i }));
-
-    expect(await screen.findByLabelText(/template du prompt llama/i)).toHaveValue(customPrompt);
+    await user.click(screen.getByRole('button', { name: /^dictée$/i }));
+    expect(await screen.findByLabelText(/saisis tes mots \(séparateurs virgule\)/i)).toBeInTheDocument();
+    expect(screen.queryByLabelText(/template du prompt de dictée magique/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/aperçu réel envoyé à/i)).not.toBeInTheDocument();
   });
 
-  it('keeps generic placeholders visible in the default LLM prompt editor while words change', async () => {
+  it('removes the classic dictation preparation flow from Dictée magique', async () => {
     const user = userEvent.setup();
     render(<App />);
 
@@ -74,57 +104,11 @@ describe('Lot 4 dictation and poetry UI', () => {
     expect(dictationCard).not.toBeNull();
     await user.click(within(dictationCard!).getByRole('button', { name: /continuer/i }));
 
-    const promptEditor = await screen.findByLabelText(/template du prompt llama/i);
-    expect((promptEditor as HTMLTextAreaElement).value).toContain('{{mots}}');
-    expect((promptEditor as HTMLTextAreaElement).value).toContain('{{verbes}}');
-    expect((promptEditor as HTMLTextAreaElement).value).toContain('{{temps}}');
-
-    await user.type(screen.getByLabelText(/série de mots/i), 'dragon, cartable');
-    await user.type(screen.getByLabelText(/^verbes \(séparateur virgule\)$/i), 'courir');
-    await user.click(screen.getByRole('checkbox', { name: /présent/i }));
-
-    expect((promptEditor as HTMLTextAreaElement).value).toContain('{{mots}}');
-    expect((promptEditor as HTMLTextAreaElement).value).toContain('{{verbes}}');
-    expect((promptEditor as HTMLTextAreaElement).value).toContain('{{temps}}');
-    expect((promptEditor as HTMLTextAreaElement).value).not.toContain('- dragon');
-
-    await user.click(screen.getByText(/aperçu réel envoyé à openai/i));
-    expect(screen.getByText(/- dragon/)).toBeInTheDocument();
-    expect(screen.getByText(/- cartable/)).toBeInTheDocument();
-    expect(screen.getByText(/- courir/)).toBeInTheDocument();
-  });
-
-  it('opens the dictation module from Accueil and gives corrective feedback', async () => {
-    const user = userEvent.setup();
-    render(<App />);
-
-    await waitFor(() => {
-      expect(screen.getByRole('heading', { name: /bonjour emma/i })).toBeInTheDocument();
-    });
-
-    const dictationCard = screen.getByRole('heading', { name: /dictée/i }).closest('article');
-    expect(dictationCard).not.toBeNull();
-
-    await user.click(within(dictationCard!).getByRole('button', { name: /continuer/i }));
-
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: /dictée normale/i })).toBeInTheDocument();
-    });
-    await user.click(screen.getByRole('button', { name: /dictée normale/i }));
-
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: /écouter la phrase/i })).toBeInTheDocument();
-    });
-    expect(screen.getByRole('heading', { name: /dictée de la forêt magique/i })).toBeInTheDocument();
-    expect(screen.getByLabelText(/ta phrase/i)).toBeInTheDocument();
-
-    await user.type(screen.getByLabelText(/ta phrase/i), 'Le petit renard traverse la foret');
-    await user.click(screen.getByRole('button', { name: /corriger ma dictée/i }));
-
-    await waitFor(() => {
-      expect(screen.getByText(/très proche/i)).toBeInTheDocument();
-    });
-    expect(screen.getAllByText(/le petit renard traverse la forêt/i).length).toBeGreaterThan(0);
+    expect(await screen.findByLabelText(/saisis tes mots \(séparateurs virgule\)/i)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /dictée normale/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /écouter la phrase/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: /dictée de la forêt magique/i })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/ta phrase/i)).not.toBeInTheDocument();
   });
 
   it('opens the dictation module from Accueil and shows the OpenAI text before parent controls without regenerating automatically', async () => {
@@ -141,11 +125,11 @@ describe('Lot 4 dictation and poetry UI', () => {
     await user.click(within(dictationCard!).getByRole('button', { name: /continuer/i }));
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /dictée de mots/i })).toBeInTheDocument();
+      expect(screen.getByLabelText(/saisis tes mots/i)).toBeInTheDocument();
     });
     expect(screen.getByRole('heading', { name: /dictée magique/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /dictée de mots/i })).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByRole('button', { name: /dictée normale/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /dictée de mots/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /dictée normale/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('group', { name: /moteur de génération/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('radio', { name: /ia locale ollama/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('radio', { name: /local secours/i })).not.toBeInTheDocument();
@@ -158,7 +142,7 @@ describe('Lot 4 dictation and poetry UI', () => {
         response: 'Demain, Emma mettra dans son cartable un dragon près de la rivière.',
       }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
 
-    await user.type(screen.getByLabelText(/série de mots/i), 'dragon, cartable, rivière');
+    await user.type(screen.getByLabelText(/saisis tes mots/i), 'dragon, cartable, rivière');
     await user.click(screen.getByRole('checkbox', { name: /présent/i }));
     await user.click(screen.getByRole('button', { name: /générer le texte/i }));
 
@@ -200,10 +184,10 @@ describe('Lot 4 dictation and poetry UI', () => {
     await user.click(within(dictationCard!).getByRole('button', { name: /continuer/i }));
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /dictée de mots/i })).toBeInTheDocument();
+      expect(screen.getByLabelText(/saisis tes mots/i)).toBeInTheDocument();
     });
 
-    await user.type(screen.getByLabelText(/série de mots/i), 'dragon cartable/rivière. dragonnn');
+    await user.type(screen.getByLabelText(/saisis tes mots/i), 'dragon cartable/rivière. dragonnn');
     await user.click(screen.getByRole('button', { name: /générer le texte/i }));
 
     await waitFor(() => {
@@ -241,12 +225,12 @@ describe('Lot 4 dictation and poetry UI', () => {
     await user.click(within(dictationCard!).getByRole('button', { name: /continuer/i }));
 
     await waitFor(() => {
-      expect(screen.getByLabelText(/série de mots/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/saisis tes mots/i)).toBeInTheDocument();
     });
     expect(screen.queryByRole('radio', { name: /local secours/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('radio', { name: /ia locale ollama/i })).not.toBeInTheDocument();
 
-    await user.type(screen.getByLabelText(/série de mots/i), 'dragon cartable rivière');
+    await user.type(screen.getByLabelText(/saisis tes mots/i), 'dragon cartable rivière');
     await user.click(screen.getByRole('button', { name: /générer le texte/i }));
 
     await waitFor(() => {
@@ -269,7 +253,7 @@ describe('Lot 4 dictation and poetry UI', () => {
     await user.click(within(dictationCard!).getByRole('button', { name: /continuer/i }));
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /dictée de mots/i })).toBeInTheDocument();
+      expect(screen.getByLabelText(/saisis tes mots/i)).toBeInTheDocument();
     });
     expect(document.querySelector('.dictation-app-layout .child-app-shell')).toBeInTheDocument();
     expect(screen.getByLabelText(/importer un fichier/i)).toBeInTheDocument();
@@ -281,7 +265,7 @@ describe('Lot 4 dictation and poetry UI', () => {
     await waitFor(() => {
       expect(screen.getByText(/3 mots détectés par OCR/i)).toBeInTheDocument();
     });
-    expect(screen.getByLabelText(/série de mots/i)).toHaveValue('dragon, cartable, rivière');
+    expect(screen.getByLabelText(/saisis tes mots/i)).toHaveValue('dragon, cartable, rivière');
   });
 
   it('shows confirmation when OCR detects an unknown word', async () => {
@@ -297,7 +281,7 @@ describe('Lot 4 dictation and poetry UI', () => {
     await user.click(within(dictationCard!).getByRole('button', { name: /continuer/i }));
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /dictée de mots/i })).toBeInTheDocument();
+      expect(screen.getByLabelText(/saisis tes mots/i)).toBeInTheDocument();
     });
 
     const file = new File(['Dragon\ndragonnn\ncartable'], 'liste-mots.txt', { type: 'text/plain' });
@@ -358,7 +342,7 @@ describe('Lot 4 dictation and poetry UI', () => {
     const dictationCard = screen.getByRole('heading', { name: /dictée/i }).closest('article');
     expect(dictationCard).not.toBeNull();
     await user.click(within(dictationCard!).getByRole('button', { name: /continuer/i }));
-    await user.type(await screen.findByLabelText(/série de mots/i), 'dragon, cartable, rivière');
+    await user.type(await screen.findByLabelText(/saisis tes mots/i), 'dragon, cartable, rivière');
     await user.click(screen.getByRole('button', { name: /générer le texte/i }));
 
     expect(await screen.findByText(/Emma range dragon, cartable rivière/i)).toBeInTheDocument();
@@ -430,7 +414,7 @@ describe('Lot 4 dictation and poetry UI', () => {
     const dictationCard = screen.getByRole('heading', { name: /dictée/i }).closest('article');
     expect(dictationCard).not.toBeNull();
     await user.click(within(dictationCard!).getByRole('button', { name: /continuer/i }));
-    await user.type(await screen.findByLabelText(/série de mots/i), 'dragon, cartable, rivière');
+    await user.type(await screen.findByLabelText(/saisis tes mots/i), 'dragon, cartable, rivière');
     await user.click(screen.getByRole('button', { name: /générer le texte/i }));
 
     expect(await screen.findByText(/Emma range dragon cartable rivière/i)).toBeInTheDocument();
@@ -476,7 +460,7 @@ describe('Lot 4 dictation and poetry UI', () => {
     const dictationCard = screen.getByRole('heading', { name: /dictée/i }).closest('article');
     expect(dictationCard).not.toBeNull();
     await user.click(within(dictationCard!).getByRole('button', { name: /continuer/i }));
-    await user.type(await screen.findByLabelText(/série de mots/i), 'dragon, cartable, rivière');
+    await user.type(await screen.findByLabelText(/saisis tes mots/i), 'dragon, cartable, rivière');
     await user.click(screen.getByRole('button', { name: /générer le texte/i }));
 
     expect(await screen.findByText(/Emma range dragon cartable rivière/i)).toBeInTheDocument();
@@ -516,7 +500,7 @@ describe('Lot 4 dictation and poetry UI', () => {
     const dictationCard = screen.getByRole('heading', { name: /dictée/i }).closest('article');
     expect(dictationCard).not.toBeNull();
     await user.click(within(dictationCard!).getByRole('button', { name: /continuer/i }));
-    await user.type(await screen.findByLabelText(/série de mots/i), 'dragon, cartable, rivière');
+    await user.type(await screen.findByLabelText(/saisis tes mots/i), 'dragon, cartable, rivière');
     await user.click(screen.getByRole('button', { name: /générer le texte/i }));
 
     expect(await screen.findByText(/Emma range dragon cartable rivière/i)).toBeInTheDocument();
@@ -680,6 +664,10 @@ describe('Lot 4 dictation and poetry UI', () => {
 
   it('keeps the redesigned poetry page focused on the validated title and main work blocks', async () => {
     const user = userEvent.setup();
+    window.localStorage.setItem('devoirs.activityRecords.v1', JSON.stringify([
+      { id: 'poetry-history-1', profileId: 'emma-demo', profileName: 'Emma', module: 'poetry', moduleLabel: 'Poésie', exerciseLabel: 'Le Corbeau et le Renard', startedAtIso: '2026-06-18T10:00:00.000Z', completedAtIso: '2026-06-18T10:05:00.000Z', durationSeconds: 300, status: 'completed', score: 1, totalQuestions: 1, correctCount: 1, wrongCount: 0, starsEarned: 6, details: {} },
+      { id: 'poetry-history-2', profileId: 'emma-demo', profileName: 'Emma', module: 'poetry', moduleLabel: 'Poésie', exerciseLabel: 'La Cigale et la Fourmi', startedAtIso: '2026-06-17T10:00:00.000Z', completedAtIso: '2026-06-17T10:05:00.000Z', durationSeconds: 300, status: 'completed', score: 1, totalQuestions: 1, correctCount: 1, wrongCount: 0, starsEarned: 6, details: {} },
+    ]));
     const { container } = render(<App />);
 
     await waitFor(() => {
@@ -702,7 +690,42 @@ describe('Lot 4 dictation and poetry UI', () => {
     expect(container.querySelector('.poetry-main-grid')).toBeInTheDocument();
     expect(container.querySelector('.poetry-workbench-full')).toBeInTheDocument();
     expect(container.querySelector('.poetry-recital-redesign')).toBeInTheDocument();
-    expect(screen.getByLabelText(/choisir une poésie/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /choisir une poésie/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /le corbeau et le renard/i })).toBeInTheDocument();
+    expect(screen.queryByLabelText(/choisir une poésie/i)).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/importer un fichier/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/prendre une photo/i)).toBeInTheDocument();
+    expect(container.querySelector('label[for="poetry-file-import"]')).toHaveAttribute('title', 'Importer un fichier');
+    expect(container.querySelector('label[for="poetry-photo-import"]')).toHaveAttribute('title', 'Prendre une photo');
+    expect(screen.getByRole('button', { name: /ouvrir le menu de toutes les poésies/i })).toHaveAttribute('title', 'Ouvrir le menu de toutes les poésies');
+    expect([...container.querySelectorAll('.poetry-recent-poem span')].map((node) => node.textContent)).toEqual([
+      'La Cigale et la Fourmi',
+      'Le Corbeau et le Renard',
+      'Le Loup et l’Agneau',
+      'Le Lièvre et la Tortue',
+      'La Grenouille qui veut se faire aussi grosse que le Bœuf',
+    ]);
+    await user.click(screen.getByRole('button', { name: /ouvrir le menu de toutes les poésies/i }));
+    const poetryLibraryDialog = screen.getByRole('dialog', { name: /aperçu de la poésie/i });
+    const dialogListBlock = poetryLibraryDialog.querySelector('.poetry-library-dialog-list');
+    const dialogTextBlock = poetryLibraryDialog.querySelector('.poetry-library-dialog-text');
+    expect(dialogListBlock).not.toBeNull();
+    expect(dialogTextBlock).not.toBeNull();
+    expect(dialogListBlock!.compareDocumentPosition(dialogTextBlock!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(within(poetryLibraryDialog).getByText(/la cigale, ayant chanté/i)).toBeInTheDocument();
+    await user.click(within(poetryLibraryDialog).getByRole('button', { name: /la grenouille qui veut se faire aussi grosse/i }));
+    expect(within(poetryLibraryDialog).getByText(/une grenouille vit un bœuf/i)).toBeInTheDocument();
+    expect(within(poetryLibraryDialog).getByRole('button', { name: /annuler/i })).toBeInTheDocument();
+    expect(within(poetryLibraryDialog).getByRole('button', { name: /importer/i })).toBeInTheDocument();
+    await user.click(within(poetryLibraryDialog).getByRole('button', { name: /importer/i }));
+    expect([...container.querySelectorAll('.poetry-recent-poem span')].map((node) => node.textContent)).toEqual([
+      'La Cigale et la Fourmi',
+      'Le Corbeau et le Renard',
+      'Le Loup et l’Agneau',
+      'Le Lièvre et la Tortue',
+      'La Grenouille qui veut se faire aussi grosse que le Bœuf',
+    ]);
+    expect(screen.queryByText(/fable chargée/i)).not.toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: /texte de la poésie/i })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /mémoriser ligne par ligne/i })).toBeInTheDocument();
     expect(screen.queryByText(/zone de travail de l’enfant/i)).not.toBeInTheDocument();
@@ -718,8 +741,36 @@ describe('Lot 4 dictation and poetry UI', () => {
     expect(within(firstPoetryLineToggle).getByText('👁️')).toBeInTheDocument();
     await user.click(firstPoetryLineToggle);
     expect(within(firstPoetryLineToggle).getByText('🙈')).toBeInTheDocument();
+    await user.click(firstPoetryLineToggle);
+    expect(within(firstPoetryLineToggle).getByText('👁️')).toBeInTheDocument();
+    fireEvent.keyDown(screen.getByRole('slider', { name: /masquer les lignes du haut/i }), { key: 'ArrowDown' });
+    expect(within(firstPoetryLineToggle).getByText('🙈')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /réciter la poésie/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /j’ai récité ma poésie/i })).toBeInTheDocument();
+    expect(screen.queryByText(/bloc récitation/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/masque le texte/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/chronomètre de récitation/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /j’ai récité ma poésie/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /démarrer l’enregistrement/i })).toHaveClass('poetry-recital-button');
+    expect(screen.getByRole('button', { name: /redémarrer/i })).toHaveClass('poetry-recital-button');
+    expect(screen.getByRole('button', { name: /analyser la récitation/i })).toHaveClass('poetry-recital-button');
+    await user.click(screen.getByRole('button', { name: /démarrer l’enregistrement/i }));
+    expect(screen.getByRole('button', { name: /enregistrement démarré/i })).toBeDisabled();
+    await user.click(screen.getByRole('button', { name: /^arrêter$/i }));
+    expect(screen.getByRole('button', { name: /redémarrer/i })).toBeEnabled();
+    await user.type(screen.getByLabelText(/transcription de la récitation/i), 'Une grenouille vit un bœuf qui lui sembla de belle taille.');
+    await user.click(screen.getByRole('button', { name: /analyser la récitation/i }));
+    const recitalAnalysisHeading = screen.getByRole('heading', { name: /analyse de la récitation/i });
+    expect(recitalAnalysisHeading).toBeInTheDocument();
+    const recitalAnalysisSection = recitalAnalysisHeading.closest('section');
+    expect(recitalAnalysisSection).not.toBeNull();
+    expect(recitalAnalysisSection).toHaveClass('poetry-recital-analysis-card');
+    expect(within(recitalAnalysisSection!).getByLabelText(/indicateurs de récitation/i)).toHaveTextContent(/erreur/i);
+    expect(within(recitalAnalysisSection!).getByLabelText(/indicateurs de récitation/i)).toHaveTextContent(/précision/i);
+    expect(within(recitalAnalysisSection!).queryByText(/mots par minute/i)).not.toBeInTheDocument();
+    expect(within(recitalAnalysisSection!).queryByText(/temps total/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/résultat récitation/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole('table', { name: /tableau de statistiques de récitation/i })).not.toBeInTheDocument();
+    expect([...container.querySelectorAll('.poetry-recent-poem span')].map((node) => node.textContent)[0]).toBe('La Grenouille qui veut se faire aussi grosse que le Bœuf');
     expect(screen.queryByRole('region', { name: /étapes de poésie/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: /quand tu es prête/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /cacher des mots/i })).not.toBeInTheDocument();
@@ -742,27 +793,44 @@ describe('Lot 4 dictation and poetry UI', () => {
     await waitFor(() => {
       expect(container.querySelector('.poetry-main-grid')).toBeInTheDocument();
     });
-    expect(screen.getByLabelText(/choisir une poésie/i)).toHaveValue('la-cigale-et-la-fourmi');
+    expect(screen.getByRole('heading', { name: /choisir une poésie/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /la cigale et la fourmi/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /le corbeau et le renard/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /le loup et l’agneau/i })).toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: /texte de la poésie/i })).toHaveTextContent('La Cigale, ayant chanté');
 
-    await user.selectOptions(screen.getByLabelText(/choisir une poésie/i), 'le-corbeau-et-le-renard');
+    await user.click(screen.getByRole('button', { name: /ouvrir le menu de toutes les poésies/i }));
+    const poetryLibraryDialog = screen.getByRole('dialog', { name: /aperçu de la poésie/i });
+    await user.click(within(poetryLibraryDialog).getByRole('button', { name: /le corbeau et le renard/i }));
+    expect(screen.getByRole('textbox', { name: /texte de la poésie/i })).toHaveTextContent('La Cigale, ayant chanté');
+    await user.click(within(poetryLibraryDialog).getByRole('button', { name: /importer/i }));
     expect(screen.getAllByText(/le corbeau et le renard/i).length).toBeGreaterThan(0);
     expect(screen.getByRole('textbox', { name: /texte de la poésie/i })).toHaveTextContent('Maître Corbeau');
+    expect(screen.queryByText(/fable chargée/i)).not.toBeInTheDocument();
 
     const importFile = new File(['Mon cartable dort\nSous la lune douce'], 'ma-poesie.txt', { type: 'text/plain' });
     await user.upload(screen.getByLabelText(/importer un fichier/i), importFile);
     await waitFor(() => {
-      expect(screen.getByText(/poésie importée/i)).toBeInTheDocument();
+      expect(screen.getAllByText(/poésie importée/i).length).toBeGreaterThan(0);
     });
     expect(screen.getByRole('textbox', { name: /texte de la poésie/i })).toHaveTextContent('Mon cartable dort Sous la lune douce');
+    expect([...container.querySelectorAll('.poetry-recent-poem span')].map((node) => node.textContent)).toEqual([
+      'Poésie importée',
+      'La Cigale et la Fourmi',
+      'Le Corbeau et le Renard',
+      'Le Loup et l’Agneau',
+      'Le Lièvre et la Tortue',
+    ]);
     expect(screen.getByText(/fichier importé/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /j’ai récité ma poésie/i })).toBeInTheDocument();
-
-    await user.click(screen.getByRole('button', { name: /j’ai récité ma poésie/i }));
+    expect(screen.queryByRole('button', { name: /j’ai récité ma poésie/i })).not.toBeInTheDocument();
+    await user.type(screen.getByLabelText(/transcription de la récitation/i), 'Mon cartable dor sou la lune douce');
+    await user.click(screen.getByRole('button', { name: /analyser la récitation/i }));
 
     await waitFor(() => {
-      expect(screen.getByText(/bravo, récitation validée/i)).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /analyse de la récitation/i })).toBeInTheDocument();
     });
-    expect(screen.getByText(/tu gagnes 6 étoiles/i)).toBeInTheDocument();
+    const importedAnalysisTags = screen.getByLabelText(/indicateurs de récitation/i);
+    expect(importedAnalysisTags).toHaveTextContent(/0 erreur/i);
+    expect(importedAnalysisTags).toHaveTextContent(/100% précision/i);
   });
 });

@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode, FormEvent, CSSProperties, KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent } from 'react';
-import { BookOpen, Database, Flame, Gift, GraduationCap, Home, LogOut, MapIcon, Mic, PencilLine, Settings, Sparkles, Star, Trophy, User, UserRound, Users } from 'lucide-react';
+import { BookOpen, Camera, Database, Flame, Gift, GraduationCap, Home, Library, LogOut, MapIcon, Mic, PencilLine, Settings, Sparkles, Star, Trophy, Upload, User, UserRound, Users } from 'lucide-react';
 import type { ApiState, ChildDashboard } from './types/api';
 import type { ActivityRecord, StoredActivityModule } from './types/activity';
 import type {
   DictationAnswerResult,
   DictationSession,
-  DictationMode,
   PoetryLibraryText,
   PoetryLineRecitalFeedback,
   PoetryRecitalResult,
@@ -38,7 +37,6 @@ import {
   submitMultiplicationAnswer,
   submitPoetryRecital,
   submitReadingAnswers,
-  buildOllamaDictationPromptFromTemplate,
   getDefaultOllamaDictationPromptTemplate,
 } from './services/childService';
 import {
@@ -205,8 +203,31 @@ const DEFAULT_HISTORY_PAGE_SIZE = 10;
 const ACTIVITY_CHART_HEIGHT_PX = 96;
 const DEFAULT_PARENT_CODE = '0000';
 const ADMIN_AUTH_STORAGE_KEY = 'devoirs.adminSession.v1';
+const RECENT_POETRY_SELECTIONS_STORAGE_KEY = 'devoirs.recentPoetrySelections.v1';
 const ADMIN_USERNAME = 'admin';
 const ADMIN_PASSWORD = 'KarineAdrien1287';
+
+function readRecentPoetrySelectionIdsFromStorage() {
+  if (typeof window === 'undefined') return [];
+  try {
+    const stored = window.localStorage.getItem(RECENT_POETRY_SELECTIONS_STORAGE_KEY);
+    if (!stored) return [];
+    const parsed = JSON.parse(stored);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((item): item is string => typeof item === 'string' && item.trim().length > 0).slice(0, 5);
+  } catch {
+    return [];
+  }
+}
+
+function writeRecentPoetrySelectionIdsToStorage(poemIds: string[]) {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(RECENT_POETRY_SELECTIONS_STORAGE_KEY, JSON.stringify(poemIds.slice(0, 5)));
+  } catch {
+    // Ignore local recent-list write failures; the current UI can still update in memory.
+  }
+}
 
 function readAdminSessionFromStorage(): AuthenticatedSession | null {
   if (typeof window === 'undefined') return null;
@@ -464,11 +485,6 @@ const FAMILY_SETTINGS_STORAGE_KEY = 'devoirs.familySettings.v1';
 const ACTIVITY_DATABASE_STORAGE_KEY = 'devoirs.activityRecords.v1';
 const MULTIPLICATION_TABLE_HISTORY_STORAGE_KEY = 'devoirs.multiplicationTableHistory.v1';
 const REWARD_SETTINGS_STORAGE_KEY = 'devoirs.rewardSettings.v1';
-function shouldAutoSyncRemoteDatabase() {
-  if (import.meta.env.MODE !== 'test') return true;
-  if (typeof window === 'undefined') return false;
-  return (window as unknown as { __DEVOIRS_TEST_AUTO_REMOTE_DATABASE__?: boolean }).__DEVOIRS_TEST_AUTO_REMOTE_DATABASE__ === true;
-}
 
 type LocalDatabaseTableMode = 'upsert-delete' | 'singleton' | 'profile-history' | 'object-records';
 
@@ -2067,6 +2083,11 @@ function areReadingChunksPhoneticallyEquivalent(expectedChunk: string[], actualC
   return getReadingPhoneticPhraseKey(expectedChunk) === getReadingPhoneticPhraseKey(actualChunk);
 }
 
+function areReadingWordsEquivalent(expected: string, actual: string) {
+  return normalizeReadingWord(expected) === normalizeReadingWord(actual)
+    || areReadingChunksPhoneticallyEquivalent([expected], [actual]);
+}
+
 function pushReadingCorrectChunk(tokens: ReadingAnalysisToken[], expectedChunk: string[], actualChunk: string[]) {
   const actualLabel = actualChunk.join(' ');
   expectedChunk.forEach((expected, index) => {
@@ -2091,10 +2112,7 @@ export function analyzeReadingRecording(storyText: string, transcriptText: strin
   while (expectedIndex < expectedWords.length || actualIndex < actualWords.length) {
     const expected = expectedWords[expectedIndex] ?? '';
     const actual = actualWords[actualIndex] ?? '';
-    const normalizedExpected = normalizeReadingWord(expected);
-    const normalizedActual = normalizeReadingWord(actual);
-
-    if (expected && actual && (normalizedExpected === normalizedActual || areReadingChunksPhoneticallyEquivalent([expected], [actual]))) {
+    if (expected && actual && areReadingWordsEquivalent(expected, actual)) {
       tokens.push({ expected, actual, status: 'correct' });
       expectedIndex += 1;
       actualIndex += 1;
@@ -2130,13 +2148,13 @@ export function analyzeReadingRecording(storyText: string, transcriptText: strin
 
     const nextExpected = expectedWords[expectedIndex + 1] ?? '';
     const nextActual = actualWords[actualIndex + 1] ?? '';
-    if (expected && actual && normalizeReadingWord(nextExpected) === normalizedActual) {
+    if (expected && actual && areReadingWordsEquivalent(nextExpected, actual)) {
       tokens.push({ expected, actual: `∅ ${expected}`, status: 'missing' });
       expectedIndex += 1;
       continue;
     }
 
-    if (expected && actual && normalizedExpected === normalizeReadingWord(nextActual)) {
+    if (expected && actual && areReadingWordsEquivalent(expected, nextActual)) {
       tokens.push({ expected: '', actual, status: 'extra' });
       actualIndex += 1;
       continue;
@@ -3045,7 +3063,6 @@ function DictationView({
 }) {
   const [sessionState, setSessionState] = useState<ApiState<DictationSession>>({ status: 'loading' });
   const exerciseDraftKey = `devoirs.exerciseDraft.${dashboard.child.id}.dictation`;
-  const [dictationMode, setDictationMode] = useSessionStorageState<DictationMode>(`${exerciseDraftKey}.dictationMode`, 'word_dictation');
   const [wordSeries, setWordSeries] = useSessionStorageState(`${exerciseDraftKey}.wordSeries`, '');
   const [verbSeries, setVerbSeries] = useSessionStorageState(`${exerciseDraftKey}.verbSeries`, '');
   const [ocrState, setOcrState] = useSessionStorageState<ApiState<WordDictationOcrResult> | null>(`${exerciseDraftKey}.ocrState`, null);
@@ -3056,9 +3073,6 @@ function DictationView({
   const [answerText, setAnswerText] = useSessionStorageState(`${exerciseDraftKey}.answerText`, '');
   const [answerState, setAnswerState] = useSessionStorageState<ApiState<DictationAnswerResult> | null>(`${exerciseDraftKey}.answerState`, null);
   const [dictationCorrectionMode, setDictationCorrectionMode] = useSessionStorageState<DictationCorrectionMode>(`${exerciseDraftKey}.correctionMode`, 'off');
-  const [llamaPrompt, setLlamaPrompt] = useState(() => getSavedLlamaDictationPrompt() ?? getDefaultOllamaDictationPromptTemplate());
-  const [isLlamaPromptAuto, setIsLlamaPromptAuto] = useState(() => getSavedLlamaDictationPrompt() === null);
-  const [isLlamaPromptSaved, setIsLlamaPromptSaved] = useState(false);
   const [isGeneratedTextHidden, setIsGeneratedTextHidden] = useState(false);
   const [isReadingDictation, setIsReadingDictation] = useState(false);
   const [dictationWordCursor, setDictationWordCursor] = useSessionStorageState(`${exerciseDraftKey}.wordCursor`, 0);
@@ -3093,16 +3107,6 @@ function DictationView({
       .filter(Boolean),
     [verbSeries],
   );
-  const llamaPromptPreview = useMemo(
-    () => buildOllamaDictationPromptFromTemplate(
-      llamaPrompt.trim() || getDefaultOllamaDictationPromptTemplate(),
-      preparedWordSeries,
-      preparedVerbSeries,
-      selectedVerbTenses.length > 0 ? selectedVerbTenses : ['present'],
-    ),
-    [llamaPrompt, preparedWordSeries, preparedVerbSeries, selectedVerbTenses],
-  );
-
   const dictationWordFeedback = answerState?.status === 'success' ? answerState.data.wordFeedback : [];
 
   const dictationCorrectionRows = useMemo(() => {
@@ -3176,11 +3180,6 @@ function DictationView({
   }, [dashboard.child.id]);
 
   useEffect(() => {
-    if (!isLlamaPromptAuto) return;
-    setLlamaPrompt(getDefaultOllamaDictationPromptTemplate());
-  }, [isLlamaPromptAuto, preparedWordSeries, preparedVerbSeries, selectedVerbTenses]);
-
-  useEffect(() => {
     if (generatedTextState?.status !== 'success') {
       setIsReadingDictation(false);
       return;
@@ -3202,17 +3201,6 @@ function DictationView({
     }
   }, [generatedTextState]);
 
-  useEffect(() => {
-    if (dictationMode !== 'word_dictation') {
-      setIsReadingDictation(false);
-      setDictationWordCursor(0);
-      clearDictationPlaybackTimers();
-      if (typeof window !== 'undefined' && window.speechSynthesis) {
-        window.speechSynthesis.cancel();
-      }
-    }
-  }, [dictationMode]);
-
   function toggleVerbTense(verbTense: VerbTense) {
     setSelectedVerbTenses((current) => current.includes(verbTense)
       ? current.filter((item) => item !== verbTense)
@@ -3232,7 +3220,6 @@ function DictationView({
       setWordSeries(result.words.join(', '));
       setPendingUnknownWords(result.unknownWords);
       setConfirmedUnknownWords((current) => current.filter((word) => result.words.includes(word)));
-      if (!getSavedLlamaDictationPrompt()) setIsLlamaPromptAuto(true);
       setOcrState({ status: 'success', data: result });
     } catch (error: unknown) {
       setOcrState({ status: 'error', message: error instanceof Error ? error.message : 'OCR impossible pour ce document.' });
@@ -3252,7 +3239,7 @@ function DictationView({
         verbTenses: selectedVerbTenses,
         verbs: preparedVerbSeries,
         confirmedUnknownWords: wordsConfirmedForGeneration,
-        prompt: llamaPrompt.trim() || getDefaultOllamaDictationPromptTemplate(),
+        prompt: getSavedLlamaDictationPrompt() ?? getDefaultOllamaDictationPromptTemplate(),
       });
 
       setPendingUnknownWords([]);
@@ -3514,54 +3501,41 @@ function DictationView({
       {sessionState.status === 'error' ? <div className="state-card error">{sessionState.message}</div> : null}
       {sessionState.status === 'success' ? (
         <>
-          <section className="dictation-mode-card" aria-label="Choix du type de dictée">
-            <button aria-pressed={dictationMode === 'word_dictation'} className={dictationMode === 'word_dictation' ? 'active' : ''} onClick={() => setDictationMode('word_dictation')} type="button">
-              <strong>Dictée de mots</strong>
-              <span>Je saisis une série de mots, l’app prépare un texte court.</span>
-            </button>
-            <button aria-pressed={dictationMode === 'classic_dictation'} className={dictationMode === 'classic_dictation' ? 'active' : ''} onClick={() => setDictationMode('classic_dictation')} type="button">
-              <strong>Dictée normale</strong>
-              <span>Phrase classique avec correction mot par mot.</span>
-            </button>
-          </section>
-
-          {dictationMode === 'word_dictation' ? (
-            <section className="language-card dictation-card word-dictation-card" aria-labelledby="word-dictation-title">
-              <div className="language-mascot" aria-hidden="true">🪄</div>
-              <div>
-                <p className="eyebrow">Préparation parent</p>
-                <h2 id="word-dictation-title">Dictée de mots</h2>
-                <p>Tape les mots à travailler. L’application prépare un texte court qui les contient tous, l’affiche au parent, puis place les contrôles de lecture et de vérification dessous.</p>
-                <label className="answer-field">
-                  <span>Série de mots (séparateur virgule)</span>
-                  <textarea
-                    placeholder="Ex. dragon, cartable, rivière"
-                    value={wordSeries}
-                    onChange={(event) => {
-                      setWordSeries(event.target.value);
-                      if (!getSavedLlamaDictationPrompt()) setIsLlamaPromptAuto(true);
-                      setPendingUnknownWords([]);
-                      setGeneratedTextState(null);
-                    }}
-                    rows={3}
-                  />
-                </label>
-                <label className="answer-field">
-                  <span>Verbes (séparateur virgule)</span>
-                  <textarea
-                    placeholder="Ex. cueillir, courir, découvrir"
-                    value={verbSeries}
-                    onChange={(event) => {
-                      setVerbSeries(event.target.value);
-                      if (!getSavedLlamaDictationPrompt()) setIsLlamaPromptAuto(true);
-                      setGeneratedTextState(null);
-                    }}
-                    rows={3}
-                  />
-                </label>
-                <div className="word-source-actions" aria-label="Import OCR des mots">
-                  <label>
-                    <span>📎 Importer un fichier</span>
+          <section className="language-card dictation-card word-dictation-card" aria-label="Préparation de la dictée magique">
+              <div className="dictation-preparation-stack">
+                <div className="dictation-entry-heading">Saisis tes mots (séparateurs virgule)</div>
+                <div className="dictation-entry-grid">
+                  <label className="answer-field dictation-entry-card">
+                    <span>Nom, adjectifs …</span>
+                    <textarea
+                      aria-label="Saisis tes mots (séparateurs virgule)"
+                      placeholder="Ex. dragon, cartable, rivière"
+                      value={wordSeries}
+                      onChange={(event) => {
+                        setWordSeries(event.target.value);
+                        setPendingUnknownWords([]);
+                        setGeneratedTextState(null);
+                      }}
+                      rows={3}
+                    />
+                  </label>
+                  <label className="answer-field dictation-entry-card">
+                    <span>Verbes</span>
+                    <textarea
+                      placeholder="Ex. cueillir, courir, découvrir"
+                      value={verbSeries}
+                      onChange={(event) => {
+                        setVerbSeries(event.target.value);
+                        setGeneratedTextState(null);
+                      }}
+                      rows={3}
+                    />
+                  </label>
+                </div>
+                <div className="word-source-actions poetry-import-actions" aria-label="Import OCR des mots">
+                  <label className="poetry-icon-button" title="Importer un fichier">
+                    <Upload size={20} aria-hidden="true" />
+                    <span className="poetry-icon-button-label">Importer un fichier</span>
                     <input
                       accept="image/*,.pdf,.txt,.doc,.docx"
                       aria-label="Importer un fichier"
@@ -3569,8 +3543,9 @@ function DictationView({
                       type="file"
                     />
                   </label>
-                  <label>
-                    <span>📷 Prendre une photo</span>
+                  <label className="poetry-icon-button" title="Prendre une photo">
+                    <Camera size={20} aria-hidden="true" />
+                    <span className="poetry-icon-button-label">Prendre une photo</span>
                     <input
                       accept="image/*"
                       aria-label="Prendre une photo"
@@ -3593,45 +3568,11 @@ function DictationView({
                     <button type="button" onClick={() => void confirmUnknownWordsAndGenerate()}>Confirmer et générer</button>
                   </div>
                 ) : null}
-                <div className="ollama-generation-note" aria-label="Moteur de génération OpenAI">
-                  <strong>IA OpenAI</strong>
-                  <span>gpt-4.1-mini via la route serveur sécurisée. L’app vérifie ensuite que tous les mots sont présents une seule fois.</span>
-                </div>
-                <label className="answer-field llama-prompt-editor">
-                  <span>Template du prompt Llama (éditable)</span>
-                  <textarea
-                    value={llamaPrompt}
-                    onChange={(event) => {
-                      const nextPrompt = event.target.value;
-                      setLlamaPrompt(nextPrompt);
-                      saveLlamaDictationPrompt(nextPrompt);
-                      setIsLlamaPromptSaved(nextPrompt.trim().length > 0);
-                      setIsLlamaPromptAuto(false);
-                    }}
-                    rows={8}
-                  />
-                  <small>Garde les balises {`{{mots}}`}, {`{{verbes}}`} et {`{{temps}}`} : elles sont remplacées juste avant l’appel OpenAI.</small>
-                  {isLlamaPromptSaved ? <small className="prompt-saved-confirmation">Nouveau prompt enregistré</small> : null}
-                </label>
-                <details className="llama-prompt-preview">
-                  <summary>Aperçu réel envoyé à OpenAI</summary>
-                  <pre>{llamaPromptPreview}</pre>
-                </details>
-                <button
-                  className="prompt-reset-button"
-                  type="button"
-                  onClick={() => {
-                    clearSavedLlamaDictationPrompt();
-                    setLlamaPrompt(getDefaultOllamaDictationPromptTemplate());
-                    setIsLlamaPromptAuto(true);
-                    setIsLlamaPromptSaved(false);
-                  }}
-                >
-                  Réinitialiser le prompt par défaut
-                </button>
                 <fieldset className="verb-tense-options">
-                  <legend>Temps des verbes</legend>
-                  <p>Sélection multiple possible.</p>
+                  <div className="verb-tense-header">
+                    <legend>Temps des verbes</legend>
+                    <p>Sélection multiple possible</p>
+                  </div>
                   <div>
                     {dictationVerbTenseOptions.map((option) => (
                       <label key={option.value}>
@@ -3816,108 +3757,6 @@ function DictationView({
                 ) : null}
               </div>
             </section>
-          ) : (
-            <section className="language-card dictation-card" aria-labelledby="dictation-title">
-              <div className="language-mascot" aria-hidden="true">✍️</div>
-              <div>
-                <p className="eyebrow">Mission orthographe</p>
-                <h2 id="dictation-title">{sessionState.data.title}</h2>
-                <p>{sessionState.data.instruction}</p>
-                <button className="audio-button" type="button">🔊 {sessionState.data.audioLabel}</button>
-                <div className="hint-list" aria-label="Indices de dictée">
-                  {sessionState.data.hints.map((hint) => <span key={hint}>{hint}</span>)}
-                </div>
-                <label className="answer-field">
-                  <span>Ta phrase</span>
-                  <textarea
-                    value={answerText}
-                    onChange={(event) => {
-                      setAnswerText(event.target.value);
-                      setAnswerState(null);
-                    }}
-                    rows={4}
-                    spellCheck={false}
-                    autoCorrect="off"
-                    autoCapitalize="off"
-                    autoComplete="off"
-                  />
-                </label>
-                <fieldset className="dictation-correction-controls" aria-label="Mode d’aide à l’orthographe">
-                  <legend>Mode d’aide à l’orthographe</legend>
-                  <label>
-                    <input
-                      checked={dictationCorrectionMode === 'off'}
-                      onChange={() => setDictationCorrectionMode('off')}
-                      type="radio"
-                      name="dictation-correction-mode"
-                    />
-                    Sans correcteur d’orthographe
-                  </label>
-                  <label>
-                    <input
-                      checked={dictationCorrectionMode === 'line'}
-                      onChange={() => setDictationCorrectionMode('line')}
-                      type="radio"
-                      name="dictation-correction-mode"
-                    />
-                    Aide corrective
-                  </label>
-                  <label>
-                    <input
-                      checked={dictationCorrectionMode === 'advanced'}
-                      onChange={() => setDictationCorrectionMode('advanced')}
-                      type="radio"
-                      name="dictation-correction-mode"
-                    />
-                    Aide corrective avancée
-                  </label>
-                </fieldset>
-                {dictationCorrectionMode === 'line' ? (
-                  <div className="dictation-line-review" aria-label="Indicateur de lignes">
-                    {dictationCorrectionRows.length > 0 ? (
-                      <>
-                        {dictationCorrectionRows.map((line, lineIndex) => (
-                          <p className={`dictation-line-indicator ${line.hasMistake ? 'line-has-error' : 'line-ok'}`} key={`line-check-${lineIndex}`}>
-                            {line.hasMistake ? '⚠️' : '✅'} Ligne {lineIndex + 1} {line.hasMistake ? 'avec erreur' : 'correcte'}
-                          </p>
-                        ))}
-                      </>
-                    ) : <p className="dictation-line-indicator">Valide le texte pour obtenir l’indicateur ligne par ligne.</p>}
-                  </div>
-                ) : null}
-                {dictationCorrectionMode === 'advanced' ? (
-                  <div className="dictation-line-reviews" aria-label="Aide corrective avancée">
-                    <p className="eyebrow">Mots à vérifier</p>
-                    {dictationHighlightedLines.length > 0 ? (
-                      <div className="dictation-advanced-preview">
-                        {dictationHighlightedLines.map((line, lineIndex) => (
-                          <p className={`dictation-line ${line.hasMistake ? 'line-has-error' : ''}`} key={`line-preview-${lineIndex}`}>
-                            {line.line}
-                          </p>
-                        ))}
-                      </div>
-                    ) : <p className="dictation-line-indicator">Valide le texte pour afficher les mots soulignés.</p>}
-                  </div>
-                ) : null}
-                <button className="primary-action" type="button" onClick={correctDictation} disabled={answerState?.status === 'loading'}>Corriger ma dictée</button>
-
-                {answerState?.status === 'error' ? <p className="feedback-card error">{answerState.message}</p> : null}
-                {answerState?.status === 'success' ? (
-                  <div className={answerState.data.isCorrect ? 'feedback-card success' : 'feedback-card retry'}>
-                    <h3>{answerState.data.feedbackTitle}</h3>
-                    <p>{answerState.data.feedbackMessage}</p>
-                    <p><strong>Correction :</strong> {answerState.data.correctedText}</p>
-                    <div className="word-feedback" aria-label="Correction mot par mot">
-                      {answerState.data.wordFeedback.map((word) => (
-                        <span className={word.status} key={`${word.expected}-${word.actual}`}>{word.expected}<small>{word.hint}</small></span>
-                      ))}
-                    </div>
-                    <button type="button" onClick={() => { setAnswerText(''); setAnswerState(null); }}>{answerState.data.retryLabel}</button>
-                  </div>
-                ) : null}
-              </div>
-            </section>
-          )}
         </>
       ) : null}
     </main>
@@ -3941,6 +3780,9 @@ function PoetryView({
   const [sessionState, setSessionState] = useState<ApiState<PoetrySession>>({ status: 'loading' });
   const [poetryLibrary, setPoetryLibrary] = useState<PoetryLibraryText[]>([]);
   const [selectedPoemId, setSelectedPoemId] = useState('');
+  const [recentPoemIds, setRecentPoemIds] = useState<string[]>([]);
+  const [isPoetryLibraryMenuOpen, setIsPoetryLibraryMenuOpen] = useState(false);
+  const [libraryDraftPoemId, setLibraryDraftPoemId] = useState('');
   const [importedPoetryText, setImportedPoetryText] = useState('');
   const [importStatus, setImportStatus] = useState<string>('');
   const [recitalState, setRecitalState] = useState<ApiState<PoetryRecitalResult> | null>(null);
@@ -3950,6 +3792,7 @@ function PoetryView({
   const [bottomVisibleUntil, setBottomVisibleUntil] = useState(0);
   const [isPoetryListening, setIsPoetryListening] = useState(false);
   const [isRecitalRecording, setIsRecitalRecording] = useState(false);
+  const [hasRecitalRecordingStarted, setHasRecitalRecordingStarted] = useState(false);
   const [recitalRecordingStartedAt, setRecitalRecordingStartedAt] = useState<number | null>(null);
   const [recitalElapsedSeconds, setRecitalElapsedSeconds] = useState(0);
   const [recitalTranscript, setRecitalTranscriptState] = useState('');
@@ -3960,6 +3803,7 @@ function PoetryView({
   const recitalIntervalRef = useRef<number | null>(null);
   const recitalRecognitionRef = useRef<{ start: () => void; stop: () => void; abort?: () => void; onresult?: ((event: unknown) => void) | null; onerror?: ((event: unknown) => void) | null; onend?: (() => void) | null } | null>(null);
   const recitalTranscriptRef = useRef(recitalTranscript);
+  const recitalTranscriptBaseRef = useRef('');
 
   useEffect(() => {
     let cancelled = false;
@@ -3970,6 +3814,10 @@ function PoetryView({
       .then(([session, library]) => {
         if (cancelled) return;
         setPoetryLibrary(library);
+        const storedRecentPoemIds = readRecentPoetrySelectionIdsFromStorage();
+        const initialRecentPoemIds = storedRecentPoemIds.length > 0 ? storedRecentPoemIds : library.slice(0, 5).map((poem) => poem.id);
+        setRecentPoemIds(initialRecentPoemIds);
+        if (storedRecentPoemIds.length === 0) writeRecentPoetrySelectionIdsToStorage(initialRecentPoemIds);
         setSelectedPoemId(library[0]?.id ?? session.poemId);
         setSessionState({ status: 'success', data: session });
       })
@@ -3980,6 +3828,22 @@ function PoetryView({
   }, [dashboard.child.id]);
 
   const selectedPoem = poetryLibrary.find((poem) => poem.id === selectedPoemId);
+  const selectedLibraryDraftPoem = poetryLibrary.find((poem) => poem.id === libraryDraftPoemId) ?? selectedPoem ?? poetryLibrary[0];
+  const recentRecitedPoems = useMemo(() => {
+    const poemsById = new Map(poetryLibrary.map((poem) => [poem.id, poem]));
+    const fallbackPoemIds = poetryLibrary.slice(0, 5).map((poem) => poem.id);
+    const orderedPoemIds = recentPoemIds.length > 0 ? recentPoemIds : fallbackPoemIds;
+    const seenPoemIds = new Set<string>();
+    return orderedPoemIds
+      .map((poemId) => poemsById.get(poemId))
+      .filter((poem): poem is PoetryLibraryText => Boolean(poem))
+      .filter((poem) => {
+        if (seenPoemIds.has(poem.id)) return false;
+        seenPoemIds.add(poem.id);
+        return true;
+      })
+      .slice(0, 5);
+  }, [poetryLibrary, recentPoemIds]);
   const displayedPoetryTitle = importedPoetryText.trim()
     ? 'Poésie importée'
     : selectedPoem?.title ?? (sessionState.status === 'success' ? sessionState.data.title : 'Poésie');
@@ -3989,6 +3853,16 @@ function PoetryView({
   const displayedPoetryText = importedPoetryText.trim()
     ? importedPoetryText
     : selectedPoem?.text ?? (sessionState.status === 'success' ? sessionState.data.lines.join('\n') : '');
+  const isImportedPoetryActive = importedPoetryText.trim().length > 0;
+  const recentPoetryListItems = useMemo(() => {
+    const importedItem = isImportedPoetryActive
+      ? [{ id: 'imported-poetry', title: 'Poésie importée', author: 'Texte fourni par la famille', isImported: true }]
+      : [];
+    const libraryItems = recentRecitedPoems
+      .slice(0, isImportedPoetryActive ? 4 : 5)
+      .map((poem) => ({ id: poem.id, title: poem.title, author: poem.author, isImported: false }));
+    return [...importedItem, ...libraryItems];
+  }, [isImportedPoetryActive, recentRecitedPoems]);
   const displayedPoetryLines = buildPoetryPracticeLinesFromText(displayedPoetryText);
   const effectiveBottomVisibleUntil = bottomVisibleUntil || displayedPoetryLines.length;
   const poetryLineCount = displayedPoetryLines.length;
@@ -4094,9 +3968,12 @@ function PoetryView({
   }
 
   function isPoetryLineHidden(lineId: string, index: number) {
+    const isHiddenByTimeline = hideWords || index < constrainedTopMaskCount || index >= effectiveBottomVisibleUntil;
+    if (isHiddenByTimeline) return true;
+
     const manualValue = manualLineVisibility[lineId];
     if (manualValue !== undefined) return manualValue;
-    return hideWords || index < constrainedTopMaskCount || index >= effectiveBottomVisibleUntil;
+    return false;
   }
 
   function togglePoetryLine(lineId: string, index: number) {
@@ -4140,10 +4017,34 @@ function PoetryView({
 
   function handlePoetrySelection(poemId: string) {
     setSelectedPoemId(poemId);
+    setIsPoetryLibraryMenuOpen(false);
     setImportedPoetryText('');
-    setImportStatus('Fable chargée dans la zone de texte.');
+    setImportStatus('');
+    setHasRecitalRecordingStarted(false);
+    setRecitalTranscript('');
+    setRecitalAnalysis(null);
+    setRecitalStatusMessage('');
     resetPoetryPracticeControls();
     setRecitalState(null);
+  }
+
+  function openPoetryLibraryDialog() {
+    setLibraryDraftPoemId(selectedPoem?.id ?? poetryLibrary[0]?.id ?? '');
+    setIsPoetryLibraryMenuOpen(true);
+  }
+
+  function importSelectedLibraryPoem() {
+    if (!selectedLibraryDraftPoem) return;
+    handlePoetrySelection(selectedLibraryDraftPoem.id);
+  }
+
+  function promoteSelectedPoemAfterRecital() {
+    if (isImportedPoetryActive || !selectedPoem?.id) return;
+    setRecentPoemIds((currentPoemIds) => {
+      const nextPoemIds = [selectedPoem.id, ...currentPoemIds.filter((currentPoemId) => currentPoemId !== selectedPoem.id)].slice(0, 5);
+      writeRecentPoetrySelectionIdsToStorage(nextPoemIds);
+      return nextPoemIds;
+    });
   }
 
   async function handlePoetryFileImport(file: File | null, source: 'file' | 'photo') {
@@ -4158,6 +4059,10 @@ function PoetryView({
       }
       setImportedPoetryText(detectedText);
       setImportStatus(source === 'photo' ? 'Photo OCRisée : vérifie le texte avant de réciter.' : 'Fichier importé : vérifie le texte avant de réciter.');
+      setHasRecitalRecordingStarted(false);
+      setRecitalTranscript('');
+      setRecitalAnalysis(null);
+      setRecitalStatusMessage('');
       resetPoetryPracticeControls();
     } catch {
       setImportStatus('Lecture impossible : colle le texte manuellement dans la zone ci-dessous.');
@@ -4229,13 +4134,15 @@ function PoetryView({
     recitalRecognitionRef.current = null;
   }
 
-  function startRecitalRecording() {
+  function startRecitalRecording({ resetTranscript = true }: { resetTranscript?: boolean } = {}) {
     if (!displayedPoetryText.trim()) return;
     const startedAt = Date.now();
     maskAllPoetryText();
+    setHasRecitalRecordingStarted(true);
     setRecitalRecordingStartedAt(startedAt);
     setRecitalElapsedSeconds(0);
-    setRecitalTranscript('');
+    if (resetTranscript) setRecitalTranscript('');
+    recitalTranscriptBaseRef.current = resetTranscript ? '' : recitalTranscriptRef.current.trim();
     setIsRecitalRecording(true);
     setRecitalAnalysis(null);
     setRecitalState(null);
@@ -4258,8 +4165,9 @@ function PoetryView({
     recognition.onresult = (event: unknown) => {
       const transcript = readPoetrySpeechRecognitionTranscript(event);
       if (transcript) {
-        setRecitalTranscript(transcript);
-        setRecitalStatusMessage('Transcription reçue. Tu peux arrêter pour lancer l’analyse.');
+        const baseTranscript = recitalTranscriptBaseRef.current;
+        setRecitalTranscript(baseTranscript ? `${baseTranscript} ${transcript}` : transcript);
+        setRecitalStatusMessage('Transcription reçue. Tu peux arrêter, corriger le texte ou reprendre la récitation.');
       }
     };
     recognition.onerror = () => {
@@ -4298,6 +4206,7 @@ function PoetryView({
       status: analysis.errorCount === 0 ? 'completed' : 'partial',
       details: { wordsPerMinute: analysis.wordsPerMinute, transcript: transcriptToAnalyze },
     }));
+    promoteSelectedPoemAfterRecital();
     onRecordExercise({
       module: 'poetry',
       moduleLabel: 'Poésie',
@@ -4313,8 +4222,7 @@ function PoetryView({
     stopRecitalSpeechRecognition();
     const transcript = recitalTranscriptRef.current;
     if (transcript.trim()) {
-      analyzeRecitalTranscript(transcript, elapsed);
-      setRecitalStatusMessage('Analyse terminée à partir de la transcription automatique.');
+      setRecitalStatusMessage('Enregistrement arrêté. Tu peux supprimer/corriger des mots, reprendre la récitation ou analyser.');
       return;
     }
     setRecitalStatusMessage('Aucune parole transcrite. Vérifie l’autorisation micro ou colle la transcription avant analyse.');
@@ -4346,6 +4254,7 @@ function PoetryView({
         status: isCompleted ? 'completed' : 'partial',
         details: { poemId: result.poemId, feedbackTitle: result.feedbackTitle },
       }));
+      promoteSelectedPoemAfterRecital();
       onRecordExercise({
         module: 'poetry',
         moduleLabel: 'Poésie',
@@ -4372,23 +4281,35 @@ function PoetryView({
         <>
           <section className="poetry-main-grid" aria-label="Choix et texte de la poésie">
             <aside className="poetry-picker-card" aria-label="Choisir ou importer une poésie">
-              <label htmlFor="poetry-library-select">Choisir une poésie</label>
-              <select
-                id="poetry-library-select"
-                value={selectedPoemId}
-                onChange={(event) => handlePoetrySelection(event.target.value)}
-              >
-                {poetryLibrary.map((poem) => <option key={poem.id} value={poem.id}>{poem.title}</option>)}
-              </select>
-              <div className="poetry-import-actions">
-                <label className="ghost-action poetry-profile-button" htmlFor="poetry-file-import">Importer un fichier</label>
+              <h2>Choisir une poésie</h2>
+              <div className="poetry-recent-list" aria-label="5 dernières poésies récitées">
+                {recentPoetryListItems.length > 0 ? recentPoetryListItems.map((poem) => (
+                  <button
+                    className={(poem.isImported || (poem.id === selectedPoemId && !isImportedPoetryActive)) ? 'poetry-recent-poem is-active' : 'poetry-recent-poem'}
+                    key={poem.id}
+                    onClick={() => { if (!poem.isImported) handlePoetrySelection(poem.id); }}
+                    type="button"
+                  >
+                    <span>{poem.title}</span>
+                    <small>{poem.author}</small>
+                  </button>
+                )) : <p className="poetry-recent-empty">Aucune poésie récitée pour le moment.</p>}
+              </div>
+              <div className="poetry-import-actions" aria-label="Actions poésie">
+                <label className="ghost-action poetry-profile-button poetry-icon-button" htmlFor="poetry-file-import" title="Importer un fichier">
+                  <Upload aria-hidden="true" size={20} strokeWidth={2.2} />
+                  <span className="poetry-icon-button-label">Importer un fichier</span>
+                </label>
                 <input
                   id="poetry-file-import"
                   type="file"
                   accept=".txt,.md,text/*,image/*"
                   onChange={(event) => void handlePoetryFileImport(event.target.files?.[0] ?? null, 'file')}
                 />
-                <label className="ghost-action poetry-profile-button" htmlFor="poetry-photo-import">Prendre une photo</label>
+                <label className="ghost-action poetry-profile-button poetry-icon-button" htmlFor="poetry-photo-import" title="Prendre une photo">
+                  <Camera aria-hidden="true" size={20} strokeWidth={2.2} />
+                  <span className="poetry-icon-button-label">Prendre une photo</span>
+                </label>
                 <input
                   id="poetry-photo-import"
                   type="file"
@@ -4396,6 +4317,18 @@ function PoetryView({
                   capture="environment"
                   onChange={(event) => void handlePoetryFileImport(event.target.files?.[0] ?? null, 'photo')}
                 />
+                <button
+                  aria-expanded={isPoetryLibraryMenuOpen}
+                  aria-controls="poetry-library-dialog"
+                  aria-label="Ouvrir le menu de toutes les poésies"
+                  className="ghost-action poetry-profile-button poetry-icon-button"
+                  onClick={openPoetryLibraryDialog}
+                  title="Ouvrir le menu de toutes les poésies"
+                  type="button"
+                >
+                  <Library aria-hidden="true" size={20} strokeWidth={2.2} />
+                  <span className="poetry-icon-button-label">Toutes les poésies</span>
+                </button>
               </div>
               {importStatus ? <p className="poetry-import-status">{importStatus}</p> : null}
             </aside>
@@ -4426,6 +4359,42 @@ function PoetryView({
               >{displayedPoetryText}</div>
             </section>
           </section>
+
+          {isPoetryLibraryMenuOpen && selectedLibraryDraftPoem ? (
+            <div className="poetry-library-dialog-backdrop" role="presentation">
+              <section
+                aria-labelledby="poetry-library-dialog-title"
+                aria-modal="true"
+                className="poetry-library-dialog"
+                id="poetry-library-dialog"
+                role="dialog"
+              >
+                <div className="poetry-library-dialog-list" aria-label="Poésies disponibles">
+                  {poetryLibrary.map((poem) => (
+                    <button
+                      className={poem.id === selectedLibraryDraftPoem.id ? 'is-active' : undefined}
+                      key={poem.id}
+                      onClick={() => setLibraryDraftPoemId(poem.id)}
+                      type="button"
+                    >
+                      <span>{poem.title}</span>
+                      <small>{poem.author}</small>
+                    </button>
+                  ))}
+                </div>
+                <div className="poetry-library-dialog-text">
+                  <h2 id="poetry-library-dialog-title">Aperçu de la poésie</h2>
+                  <h3>{selectedLibraryDraftPoem.title}</h3>
+                  <p>{selectedLibraryDraftPoem.author}</p>
+                  <div className="poetry-library-dialog-poem-text">{selectedLibraryDraftPoem.text}</div>
+                </div>
+                <div className="poetry-library-dialog-actions">
+                  <button className="poetry-profile-button" type="button" onClick={() => setIsPoetryLibraryMenuOpen(false)}>Annuler</button>
+                  <button className="primary-action" type="button" onClick={importSelectedLibraryPoem}>Importer</button>
+                </div>
+              </section>
+            </div>
+          ) : null}
 
           <section className="poetry-workbench poetry-workbench-full" aria-labelledby="poetry-workbench-title">
             <div className="poetry-practice-layout">
@@ -4492,23 +4461,37 @@ function PoetryView({
             </div>
           </section>
 
-          <section className="language-card reading-card reading-recording-card poetry-recital-recording-card poetry-recital-redesign" aria-labelledby="poetry-recital-title">
-            <div className="language-mascot" aria-hidden="true">🎤</div>
+          <section className="poetry-workbench poetry-recital-recording-card poetry-recital-redesign" aria-labelledby="poetry-recital-title">
             <div>
-              <p className="eyebrow">Bloc récitation · Même analyse que Lecture</p>
               <h2 id="poetry-recital-title">Réciter la poésie</h2>
-              <p>Masque le texte, démarre l’enregistrement, puis l’app compare ta récitation à la poésie originale avec la même analyse phonétique que le module Lecture.</p>
               <div className="reading-recorder-controls" role="group" aria-label="Enregistrement de récitation">
-                <button className="audio-button" disabled={isRecitalRecording || !displayedPoetryText.trim()} type="button" onClick={startRecitalRecording}>🎙️ Démarrer l’enregistrement</button>
-                <button className="audio-button" disabled={!isRecitalRecording} type="button" onClick={stopRecitalRecording}>⏹️ Arrêter et analyser</button>
-                <div className="timer-card inline" aria-label="Chronomètre de récitation">
-                  <span aria-hidden="true">⏱️</span>
-                  <div>
-                    <strong>Chronomètre</strong>
-                    <p className="timer-value">{formatDuration(recitalElapsedSeconds)}</p>
-                    <small>{isRecitalRecording ? 'Chrono lancé' : 'Prêt pour la récitation'}</small>
-                  </div>
-                </div>
+                <button
+                  className={hasRecitalRecordingStarted ? 'poetry-profile-button poetry-recital-button is-recording-started' : 'poetry-profile-button poetry-recital-button'}
+                  disabled={hasRecitalRecordingStarted || isRecitalRecording || !displayedPoetryText.trim()}
+                  type="button"
+                  onClick={() => startRecitalRecording()}
+                >
+                  {hasRecitalRecordingStarted ? 'Enregistrement démarré' : 'Démarrer l’enregistrement'}
+                </button>
+                <button
+                  className="poetry-profile-button poetry-recital-button"
+                  disabled={!hasRecitalRecordingStarted || !displayedPoetryText.trim()}
+                  type="button"
+                  onClick={() => {
+                    if (isRecitalRecording) stopRecitalRecording();
+                    else startRecitalRecording({ resetTranscript: false });
+                  }}
+                >
+                  {isRecitalRecording ? 'Arrêter' : 'Redémarrer'}
+                </button>
+                <button
+                  className="poetry-profile-button poetry-recital-button poetry-recital-button-primary"
+                  disabled={!displayedPoetryText.trim() || recitalTranscript.trim().length === 0}
+                  type="button"
+                  onClick={() => analyzeRecitalTranscript()}
+                >
+                  Analyser la récitation
+                </button>
               </div>
               {recitalStatusMessage ? <p className="feedback-card reading-recording-status" aria-live="polite">{recitalStatusMessage}</p> : null}
               <label className="transcript-editor">
@@ -4520,12 +4503,6 @@ function PoetryView({
                   placeholder="La transcription automatique apparaîtra ici. Tu peux la corriger avant d’analyser."
                 />
               </label>
-              <div className="poetry-recital-actions">
-                <button className="primary-action" disabled={!displayedPoetryText.trim() || recitalTranscript.trim().length === 0} type="button" onClick={() => analyzeRecitalTranscript()}>
-                  Analyser la récitation
-                </button>
-                <button className="primary-action secondary" type="button" onClick={validateRecital} disabled={recitalState?.status === 'loading' || displayedPoetryLines.length === 0}>J’ai récité ma poésie</button>
-              </div>
               {recitalState?.status === 'loading' ? <p className="feedback-card">La mascotte écoute ton effort…</p> : null}
               {recitalState?.status === 'error' ? <p className="feedback-card error">{recitalState.message}</p> : null}
               {recitalState?.status === 'success' ? (
@@ -4538,14 +4515,13 @@ function PoetryView({
           </section>
 
           {recitalAnalysis ? (
-            <section className="page-card reading-analysis-card" aria-labelledby="poetry-recital-analysis-title">
-              <p className="eyebrow">Résultat récitation</p>
-              <h2 id="poetry-recital-analysis-title">Analyse de la récitation</h2>
-              <div className="reading-stat-grid">
-                <article><strong>{recitalAnalysis.wordsPerMinute}</strong><span>Mots par minute</span></article>
-                <article><strong>{formatDuration(recitalAnalysis.durationSeconds)}</strong><span>Temps total</span></article>
-                <article><strong>{recitalAnalysis.errorCount}</strong><span>Erreurs</span></article>
-                <article><strong>{recitalAnalysis.accuracyPercent}%</strong><span>Précision</span></article>
+            <section className="poetry-workbench poetry-recital-analysis-card" aria-labelledby="poetry-recital-analysis-title">
+              <div className="poetry-recital-analysis-header">
+                <h2 id="poetry-recital-analysis-title">Analyse de la récitation</h2>
+                <div className="poetry-recital-analysis-tags" aria-label="Indicateurs de récitation">
+                  <span><strong>{recitalAnalysis.errorCount}</strong> erreur{recitalAnalysis.errorCount > 1 ? 's' : ''}</span>
+                  <span><strong>{recitalAnalysis.accuracyPercent}%</strong> précision</span>
+                </div>
               </div>
               <div className="reading-transcript-correction" aria-label="Transcription corrigée avec erreurs en couleur">
                 {recitalAnalysis.tokens.map((token, index) => (
@@ -4564,14 +4540,6 @@ function PoetryView({
                   </span>
                 ))}
               </div>
-              <table className="reading-stats-table" aria-label="Tableau de statistiques de récitation">
-                <tbody>
-                  <tr><th scope="row">Mots du texte</th><td>{recitalAnalysis.totalWords}</td></tr>
-                  <tr><th scope="row">Mots récités</th><td>{recitalAnalysis.spokenWords}</td></tr>
-                  <tr><th scope="row">Mots par minute</th><td>{recitalAnalysis.wordsPerMinute}</td></tr>
-                  <tr><th scope="row">Erreurs détectées</th><td>{recitalAnalysis.errorCount}</td></tr>
-                </tbody>
-              </table>
             </section>
           ) : null}
         </>
@@ -5568,15 +5536,7 @@ function formatActivityDateTime(dateIso: string) {
   }).format(new Date(dateIso));
 }
 
-function ActivityDatabaseView({
-  dashboard,
-  remoteDatabaseSync,
-  onLoadRemoteDatabase,
-}: {
-  dashboard: ChildDashboard;
-  remoteDatabaseSync: RemoteDatabaseSyncState;
-  onLoadRemoteDatabase: () => Promise<void>;
-}) {
+function ActivityDatabaseView({ dashboard }: { dashboard: ChildDashboard }) {
   const [moduleFilter, setModuleFilter] = useState<StoredActivityModule | 'all'>('all');
   const [records] = useState<ActivityRecord[]>(() => readActivityRecordsFromStorage());
   const [exportText, setExportText] = useState('');
@@ -5632,14 +5592,6 @@ function ActivityDatabaseView({
           <p className="eyebrow">Synchronisation locale</p>
           <h2 id="database-sync-title">Export / import des données Devoirs</h2>
           <p>Chaque table déclare sa clé primaire. À l’import, une ligne avec la même clé est mise à jour, une nouvelle clé est ajoutée, et <code>_deleted: true</code> supprime la ligne.</p>
-          <p>Les modifications sont enregistrées automatiquement en ligne dès qu’une donnée change. Le bouton de chargement sert seulement à forcer une relecture de la base distante.</p>
-          <p className={`form-feedback ${remoteDatabaseSync.status === 'offline' ? 'error' : 'success'}`}>
-            {remoteDatabaseSync.message}
-          </p>
-          {remoteDatabaseSync.updatedAtIso ? <p className="muted-text">Dernière synchro : {formatHistoryDateTime(remoteDatabaseSync.updatedAtIso)}</p> : null}
-          <div className="form-actions">
-            <button type="button" className="secondary-action" disabled={remoteDatabaseSync.status === 'loading'} onClick={() => void onLoadRemoteDatabase()}>Recharger depuis la base distante</button>
-          </div>
         </div>
         <div className="settings-grid">
           <article className="settings-card">
@@ -5735,6 +5687,8 @@ const rewardSettingOrder: RewardExerciseKey[] = ['multiplication', 'dictation', 
 function RewardSettingsView({ dashboard }: { dashboard: ChildDashboard }) {
   const [settings, setSettings] = useState<RewardSettings>(() => readRewardSettingsFromStorage());
   const [saveState, setSaveState] = useState<'idle' | 'saved'>('idle');
+  const [dictationPrompt, setDictationPrompt] = useState(() => getSavedLlamaDictationPrompt() ?? getDefaultOllamaDictationPromptTemplate());
+  const [dictationPromptSaveState, setDictationPromptSaveState] = useState<'idle' | 'saved'>('idle');
 
   function updateSetting(key: RewardExerciseKey, field: 'starsPerCompletedExercise' | 'perfectBonusStars', value: string) {
     const stars = Math.max(0, Number(value) || 0);
@@ -5751,6 +5705,18 @@ function RewardSettingsView({ dashboard }: { dashboard: ChildDashboard }) {
   function saveSettings() {
     writeRewardSettingsToStorage(settings);
     setSaveState('saved');
+  }
+
+  function updateDictationPrompt(nextPrompt: string) {
+    setDictationPrompt(nextPrompt);
+    saveLlamaDictationPrompt(nextPrompt);
+    setDictationPromptSaveState(nextPrompt.trim().length > 0 ? 'saved' : 'idle');
+  }
+
+  function resetDictationPrompt() {
+    clearSavedLlamaDictationPrompt();
+    setDictationPrompt(getDefaultOllamaDictationPromptTemplate());
+    setDictationPromptSaveState('saved');
   }
 
   return (
@@ -5804,6 +5770,28 @@ function RewardSettingsView({ dashboard }: { dashboard: ChildDashboard }) {
         <div className="form-actions">
           <button type="button" className="primary-action" onClick={saveSettings}>Enregistrer le paramétrage</button>
           {saveState === 'saved' ? <p className="form-feedback success">Paramétrage enregistré.</p> : null}
+        </div>
+      </section>
+
+      <section className="admin-panel" aria-labelledby="dictation-prompt-settings-title">
+        <div className="section-heading compact">
+          <p className="eyebrow">Dictée magique</p>
+          <h2 id="dictation-prompt-settings-title">Prompt de génération</h2>
+        </div>
+        <label className="answer-field llama-prompt-editor">
+          <span>Template du prompt de dictée magique</span>
+          <textarea
+            value={dictationPrompt}
+            onChange={(event) => updateDictationPrompt(event.target.value)}
+            rows={8}
+          />
+          <small>Garde les balises {`{{mots}}`}, {`{{verbes}}`} et {`{{temps}}`} : elles sont remplacées juste avant l’appel OpenAI.</small>
+          {dictationPromptSaveState === 'saved' ? <small className="prompt-saved-confirmation">Nouveau prompt enregistré</small> : null}
+        </label>
+        <div className="form-actions">
+          <button className="prompt-reset-button" type="button" onClick={resetDictationPrompt}>
+            Réinitialiser le prompt par défaut
+          </button>
         </div>
       </section>
     </main>
@@ -5942,8 +5930,6 @@ function ActivePage({
   onUpdateProfileOrders,
   exerciseHistory,
   onRecordExercise,
-  remoteDatabaseSync,
-  onLoadRemoteDatabase,
 }: {
   page: ChildPage;
   dashboard: ChildDashboard;
@@ -5955,8 +5941,6 @@ function ActivePage({
   onCreateProfile: (profile: Omit<ChildProfileConfig, 'id'>, profileId?: string) => void;
   onUpdateProfileOrders: (orders: Record<string, number>) => void;
   exerciseHistory: ProfileExerciseHistoryRecord[];
-  remoteDatabaseSync: RemoteDatabaseSyncState;
-  onLoadRemoteDatabase: () => Promise<void>;
   onRecordExercise: (payload: {
     module: ExerciseHistoryModule;
     moduleLabel: string;
@@ -5991,11 +5975,7 @@ function ActivePage({
         onUpdateProfileOrders={onUpdateProfileOrders}
       />;
     case 'database':
-      return <ActivityDatabaseView
-        dashboard={dashboard}
-        remoteDatabaseSync={remoteDatabaseSync}
-        onLoadRemoteDatabase={onLoadRemoteDatabase}
-      />;
+      return <ActivityDatabaseView dashboard={dashboard} />;
     case 'settings':
       return <RewardSettingsView dashboard={dashboard} />;
     case 'home':
@@ -6012,74 +5992,15 @@ export default function App() {
   const [activeProfileId, setActiveProfileId] = useState<string>(() => readActiveProfileIdFromStorage(FALLBACK_PROFILE.id));
   const [dashboardState, setDashboardState] = useState<ApiState<ChildDashboard>>({ status: 'loading' });
   const [profileExerciseHistory, setProfileExerciseHistory] = useState<ProfileExerciseHistoryMap>(() => readProfileExerciseHistoryFromStorage());
-  const [remoteDatabaseSync, setRemoteDatabaseSync] = useState<RemoteDatabaseSyncState>({
-    status: 'idle',
-    message: 'Base distante en attente de synchronisation.',
-  });
-  const [isRemoteDatabaseHydrated, setIsRemoteDatabaseHydrated] = useState(false);
   const [pendingParentProfileId, setPendingParentProfileId] = useState<string | null>(null);
   const [parentCodeAttempt, setParentCodeAttempt] = useState('');
   const [parentCodeError, setParentCodeError] = useState('');
-
-  async function loadRemoteDatabaseSnapshot() {
-    setRemoteDatabaseSync({ status: 'loading', message: 'Chargement de la base distante…' });
-    try {
-      const remoteDatabase = await fetchRemoteFamilyDatabase();
-      if (!remoteDatabase.found || !remoteDatabase.snapshot) {
-        setRemoteDatabaseSync({
-          status: 'synced',
-          message: 'Base distante prête : aucun snapshot familial enregistré pour le moment.',
-          updatedAtIso: remoteDatabase.updatedAtIso,
-        });
-        return;
-      }
-      const applied = applyRemoteDatabaseSnapshot(remoteDatabase.snapshot);
-      setProfiles(applied.profiles);
-      setActiveProfileId(applied.activeProfileId);
-      setProfileExerciseHistory(applied.profileExerciseHistory);
-      setRemoteDatabaseSync({
-        status: 'synced',
-        message: `Base distante synchronisée : ${applied.result.tables} table(s), ${applied.result.added} ajout(s), ${applied.result.updated} mise(s) à jour.`,
-        updatedAtIso: remoteDatabase.updatedAtIso,
-      });
-    } catch (error: unknown) {
-      setRemoteDatabaseSync({
-        status: 'offline',
-        message: error instanceof Error ? error.message : 'Base distante indisponible.',
-      });
-    } finally {
-      setIsRemoteDatabaseHydrated(true);
-    }
-  }
-
-  async function saveCurrentDatabaseOnline() {
-    setRemoteDatabaseSync({ status: 'loading', message: 'Sauvegarde vers la base distante…' });
-    try {
-      const result = await saveRemoteFamilyDatabase(buildLocalDatabaseExport());
-      setRemoteDatabaseSync({
-        status: 'synced',
-        message: 'Base distante synchronisée : sauvegarde en ligne effectuée.',
-        updatedAtIso: result.updatedAtIso,
-      });
-      setIsRemoteDatabaseHydrated(true);
-    } catch (error: unknown) {
-      setRemoteDatabaseSync({
-        status: 'offline',
-        message: error instanceof Error ? error.message : 'Sauvegarde distante impossible.',
-      });
-    }
-  }
 
   const activeProfile = useMemo(() => {
     return profiles.find((profile) => profile.id === activeProfileId) ?? profiles[0] ?? FALLBACK_PROFILE;
   }, [profiles, activeProfileId]);
 
   const activeProfileHistory = profileExerciseHistory[activeProfile.id] ?? [];
-
-  useEffect(() => {
-    if (!shouldAutoSyncRemoteDatabase()) return;
-    void loadRemoteDatabaseSnapshot();
-  }, []);
 
   useEffect(() => {
     if (profiles.length === 0) return;
@@ -6112,11 +6033,6 @@ export default function App() {
   useEffect(() => {
     writeProfileExerciseHistoryToStorage(profileExerciseHistory);
   }, [profileExerciseHistory]);
-
-  useEffect(() => {
-    if (!shouldAutoSyncRemoteDatabase() || !isRemoteDatabaseHydrated || remoteDatabaseSync.status === 'loading') return;
-    void saveCurrentDatabaseOnline();
-  }, [profiles, activeProfileId, profileExerciseHistory, isRemoteDatabaseHydrated]);
 
   function requestActivateProfile(profileId: string) {
     if (profileId === activeProfileId) return;
@@ -6213,8 +6129,6 @@ export default function App() {
           onCreateProfile={createOrUpdateProfile}
           onUpdateProfileOrders={updateProfileOrders}
           exerciseHistory={activeProfileHistory}
-          remoteDatabaseSync={remoteDatabaseSync}
-          onLoadRemoteDatabase={loadRemoteDatabaseSnapshot}
           onRecordExercise={logExerciseForActiveProfile}
         />
       );
@@ -6222,7 +6136,7 @@ export default function App() {
     if (dashboardState.status === 'loading') return <div className="state-card">Chargement de ton aventure…</div>;
     if (dashboardState.status === 'empty') return <div className="state-card">Aucune mission pour le moment.</div>;
     return <div className="state-card error">{dashboardState.message}</div>;
-  }, [activePage, activeProfileId, activeProfile, dashboardState, profiles, activeProfileHistory, remoteDatabaseSync]);
+  }, [activePage, activeProfileId, activeProfile, dashboardState, profiles, activeProfileHistory]);
 
   const showSideNav = dashboardState.status === 'success';
   const pendingParentProfile = profiles.find((profile) => profile.id === pendingParentProfileId) ?? null;

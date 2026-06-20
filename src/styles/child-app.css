@@ -908,6 +908,81 @@
   margin: 12px 0;
 }
 
+.dictation-preparation-stack {
+  display: grid;
+  gap: 14px;
+}
+
+.dictation-entry-heading {
+  color: var(--color-primary-dark);
+  font-size: 1.08rem;
+  font-weight: 900;
+  letter-spacing: -0.01em;
+}
+
+.dictation-entry-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 14px;
+}
+
+.dictation-entry-card {
+  height: 100%;
+  margin: 0;
+  border: 1px solid rgba(109, 93, 252, 0.14);
+  border-radius: 22px;
+  padding: 14px;
+  background: #fff;
+  box-shadow: 0 14px 28px rgba(78, 67, 150, 0.08);
+}
+
+.dictation-entry-card textarea {
+  min-height: 112px;
+}
+
+.word-source-actions .poetry-icon-button {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  min-height: 46px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  color: #5d4dc1;
+  background: #fff;
+  box-shadow: 0 10px 24px rgba(92, 73, 194, 0.14), inset 0 0 0 1px rgba(109, 93, 252, 0.14);
+  cursor: pointer;
+}
+
+.word-source-actions .poetry-icon-button:hover,
+.word-source-actions .poetry-icon-button:focus-within {
+  color: #fff;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+}
+
+.word-source-actions .poetry-icon-button input[type="file"] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.word-source-actions .poetry-icon-button-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .word-source-actions label {
   position: relative;
   display: inline-grid;
@@ -1538,10 +1613,28 @@
   font-weight: 700;
 }
 
+.verb-tense-options .verb-tense-header {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  grid-template-columns: none;
+}
+
+.verb-tense-options .verb-tense-header legend,
+.verb-tense-options .verb-tense-header p {
+  margin: 0;
+}
+
+.verb-tense-options .verb-tense-header p {
+  color: #8a849c;
+  font-weight: 700;
+}
+
 .generation-provider-options > div,
 .verb-tense-options > div {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
   gap: 10px;
 }
 
@@ -1633,6 +1726,29 @@
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+}
+
+.poetry-icon-button {
+  position: relative;
+  width: 46px;
+  height: 46px;
+  padding: 0;
+}
+
+.poetry-icon-button svg {
+  flex: 0 0 auto;
+}
+
+.poetry-icon-button-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .poetry-import-actions input[type="file"] {
@@ -2017,6 +2133,150 @@
   padding: 24px 24px 26px;
 }
 
+.poetry-recent-list {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 16px;
+}
+
+.poetry-recent-poem,
+.poetry-library-dialog-list button {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  border: 1px solid rgba(109, 93, 252, 0.14);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.86);
+  color: var(--color-primary-dark);
+  padding: 10px 12px;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.poetry-recent-poem span,
+.poetry-library-dialog-list button span {
+  font-weight: 740;
+  line-height: 1.18;
+}
+
+.poetry-recent-poem small,
+.poetry-library-dialog-list button small,
+.poetry-recent-empty {
+  color: #6d7280;
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.poetry-recent-poem:hover,
+.poetry-recent-poem:focus-visible,
+.poetry-library-dialog-list button:hover,
+.poetry-library-dialog-list button:focus-visible,
+.poetry-recent-poem.is-active,
+.poetry-library-dialog-list button.is-active {
+  outline: none;
+  border-color: rgba(109, 93, 252, 0.36);
+  background: rgba(109, 93, 252, 0.09);
+}
+
+.poetry-recent-empty {
+  margin: 0;
+  padding: 10px 0 0;
+}
+
+.poetry-library-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 32px;
+  background: rgba(37, 30, 76, 0.28);
+  backdrop-filter: blur(4px);
+}
+
+.poetry-library-dialog {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.65fr) minmax(0, 1.35fr);
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 18px;
+  width: min(920px, calc(100vw - 48px));
+  max-height: min(720px, calc(100vh - 56px));
+  padding: 22px;
+  border: 1px solid #e8e3f3;
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 26px 70px rgba(49, 35, 122, 0.2);
+}
+
+.poetry-library-dialog-text,
+.poetry-library-dialog-list {
+  min-height: 0;
+  overflow: auto;
+}
+
+.poetry-library-dialog-text {
+  padding: 6px 2px 6px 8px;
+}
+
+.poetry-library-dialog-text h2,
+.poetry-library-dialog-text h3,
+.poetry-library-dialog-text p {
+  margin: 0;
+}
+
+.poetry-library-dialog-text h2 {
+  color: #6d7280;
+  font-size: 0.82rem;
+  font-weight: 760;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.poetry-library-dialog-text h3 {
+  margin-top: 8px;
+  color: #332a7c;
+  font-size: 1.34rem;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+}
+
+.poetry-library-dialog-text p {
+  margin-top: 4px;
+  color: #6d7280;
+  font-size: 0.9rem;
+  font-weight: 650;
+}
+
+.poetry-library-dialog-poem-text {
+  margin-top: 18px;
+  padding: 18px;
+  border: 1px solid #ede8f1;
+  border-radius: 22px;
+  background: #fffdf8;
+  color: #30384d;
+  font-size: 1rem;
+  font-weight: 560;
+  line-height: 1.72;
+  white-space: pre-wrap;
+}
+
+.poetry-library-dialog-list {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  padding-right: 10px;
+}
+
+.poetry-library-dialog-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 4px;
+}
+
 .poetry-profile-button {
   display: inline-flex;
   align-items: center;
@@ -2070,7 +2330,7 @@
 }
 
 .poetry-text-card {
-  min-height: 626px;
+  min-height: 0;
   padding: 24px 26px 26px;
 }
 
@@ -2090,7 +2350,7 @@
 }
 
 .poetry-redesign-textarea {
-  min-height: 442px;
+  min-height: 0;
   border-color: #ede8f1;
   border-radius: 22px;
   background: #fffdf8;
@@ -2101,8 +2361,8 @@
 }
 
 .poetry-two-column-text {
-  max-height: 442px;
-  overflow: auto;
+  max-height: none;
+  overflow: visible;
   white-space: pre-wrap;
   column-count: 2;
   column-gap: 32px;
@@ -2134,27 +2394,92 @@
 }
 
 .poetry-recital-redesign {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 18px;
+  display: block;
   margin-top: 16px;
   padding: 24px 28px;
   border-radius: 26px;
+  background: rgba(255, 255, 255, 0.96);
 }
 
-.poetry-recital-redesign .language-mascot {
-  width: 76px;
-  height: 76px;
-  border-radius: 24px;
-  background: #f3efff;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.8);
+.poetry-recital-redesign h2 {
+  margin: 0 0 14px;
+  color: #332a7c;
+  font-size: 1.02rem;
+  line-height: 1.15;
+  font-weight: 780;
+  letter-spacing: -0.025em;
 }
 
-.poetry-recital-actions {
+.poetry-recital-button {
+  min-height: 42px;
+}
+
+.poetry-recital-button-primary,
+.poetry-recital-button.is-recording-started {
+  border-color: transparent;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+  color: #ffffff;
+  box-shadow: 0 12px 24px rgba(109, 93, 252, 0.18);
+}
+
+.poetry-recital-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.72;
+}
+
+.poetry-recital-analysis-card {
+  position: relative;
+  display: grid;
+  gap: 16px;
+  margin-top: 16px;
+  padding: 24px 28px;
+  border-radius: 26px;
+  background: rgba(255, 255, 255, 0.96);
+}
+
+.poetry-recital-analysis-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.poetry-recital-analysis-header h2 {
+  margin: 0;
+  color: #332a7c;
+  font-size: 1.02rem;
+  line-height: 1.15;
+  font-weight: 780;
+  letter-spacing: -0.025em;
+}
+
+.poetry-recital-analysis-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 14px;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.poetry-recital-analysis-tags span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 30px;
+  padding: 6px 10px;
+  border: 1px solid rgba(109, 93, 252, 0.16);
+  border-radius: 999px;
+  background: rgba(109, 93, 252, 0.08);
+  color: #332a7c;
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+
+.poetry-recital-analysis-tags strong {
+  font-weight: 820;
+}
+
+.poetry-recital-analysis-card .reading-transcript-correction {
+  margin-top: 0;
 }
 
 .primary-action.secondary {
@@ -5285,6 +5610,13 @@
   background: rgba(109, 93, 252, 0.08);
   color: var(--color-primary-dark);
   font-weight: 400;
+}
+
+.poetry-redesign-page .poetry-recital-button-primary,
+.poetry-redesign-page .poetry-recital-button.is-recording-started {
+  border-color: transparent;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+  color: #ffffff;
 }
 
 .admin-data-page,
