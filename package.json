@@ -11,6 +11,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@vercel/postgres": "^0.10.0",
     "@vitejs/plugin-react": "latest",
     "an-array-of-french-words": "^2.0.0",
     "lucide-react": "latest",

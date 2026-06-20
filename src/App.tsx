@@ -57,6 +57,11 @@ import {
   writeRewardSettingsToStorage,
 } from './services/rewardSettingsDatabase';
 import type { RewardExerciseKey, RewardSettings } from './services/rewardSettingsDatabase';
+import {
+  fetchRemoteFamilyDatabase,
+  saveRemoteFamilyDatabase,
+} from './services/remoteFamilyDatabase';
+import type { RemoteDatabaseSnapshot } from './services/remoteFamilyDatabase';
 import './styles/tokens.css';
 import './styles/base.css';
 import './styles/child-app.css';
@@ -124,6 +129,12 @@ type FamilySettings = {
 type AuthenticatedSession = {
   username: string;
   role: 'admin' | 'user';
+};
+
+type RemoteDatabaseSyncState = {
+  status: 'idle' | 'loading' | 'synced' | 'offline';
+  message: string;
+  updatedAtIso?: string;
 };
 
 type ExerciseHistoryStatus = 'success' | 'partial' | 'needs_review';
@@ -453,6 +464,7 @@ const FAMILY_SETTINGS_STORAGE_KEY = 'devoirs.familySettings.v1';
 const ACTIVITY_DATABASE_STORAGE_KEY = 'devoirs.activityRecords.v1';
 const MULTIPLICATION_TABLE_HISTORY_STORAGE_KEY = 'devoirs.multiplicationTableHistory.v1';
 const REWARD_SETTINGS_STORAGE_KEY = 'devoirs.rewardSettings.v1';
+const SHOULD_AUTO_SYNC_REMOTE_DATABASE = import.meta.env.MODE !== 'test';
 
 type LocalDatabaseTableMode = 'upsert-delete' | 'singleton' | 'profile-history' | 'object-records';
 
@@ -833,6 +845,16 @@ function importLocalDatabaseSnapshot(rawText: string): LocalDatabaseImportResult
       tables: summary.tables + 1,
     };
   }, { added: 0, updated: 0, deleted: 0, tables: 0 });
+}
+
+function applyRemoteDatabaseSnapshot(snapshot: RemoteDatabaseSnapshot) {
+  const result = importLocalDatabaseSnapshot(JSON.stringify(snapshot));
+  return {
+    result,
+    profiles: readProfilesFromStorage(),
+    activeProfileId: readActiveProfileIdFromStorage(FALLBACK_PROFILE.id),
+    profileExerciseHistory: readProfileExerciseHistoryFromStorage(),
+  };
 }
 
 const DEFAULT_FAMILY_PROFILES: ChildProfileConfig[] = [
@@ -5542,7 +5564,17 @@ function formatActivityDateTime(dateIso: string) {
   }).format(new Date(dateIso));
 }
 
-function ActivityDatabaseView({ dashboard }: { dashboard: ChildDashboard }) {
+function ActivityDatabaseView({
+  dashboard,
+  remoteDatabaseSync,
+  onLoadRemoteDatabase,
+  onSaveRemoteDatabase,
+}: {
+  dashboard: ChildDashboard;
+  remoteDatabaseSync: RemoteDatabaseSyncState;
+  onLoadRemoteDatabase: () => Promise<void>;
+  onSaveRemoteDatabase: () => Promise<void>;
+}) {
   const [moduleFilter, setModuleFilter] = useState<StoredActivityModule | 'all'>('all');
   const [records] = useState<ActivityRecord[]>(() => readActivityRecordsFromStorage());
   const [exportText, setExportText] = useState('');
@@ -5598,6 +5630,14 @@ function ActivityDatabaseView({ dashboard }: { dashboard: ChildDashboard }) {
           <p className="eyebrow">Synchronisation locale</p>
           <h2 id="database-sync-title">Export / import des données Devoirs</h2>
           <p>Chaque table déclare sa clé primaire. À l’import, une ligne avec la même clé est mise à jour, une nouvelle clé est ajoutée, et <code>_deleted: true</code> supprime la ligne.</p>
+          <p className={`form-feedback ${remoteDatabaseSync.status === 'offline' ? 'error' : 'success'}`}>
+            {remoteDatabaseSync.message}
+          </p>
+          {remoteDatabaseSync.updatedAtIso ? <p className="muted-text">Dernière synchro : {formatHistoryDateTime(remoteDatabaseSync.updatedAtIso)}</p> : null}
+          <div className="form-actions">
+            <button type="button" className="secondary-action" disabled={remoteDatabaseSync.status === 'loading'} onClick={() => void onLoadRemoteDatabase()}>Charger depuis la base distante</button>
+            <button type="button" className="primary-action" disabled={remoteDatabaseSync.status === 'loading'} onClick={() => void onSaveRemoteDatabase()}>Sauvegarder en ligne</button>
+          </div>
         </div>
         <div className="settings-grid">
           <article className="settings-card">
@@ -5900,6 +5940,9 @@ function ActivePage({
   onUpdateProfileOrders,
   exerciseHistory,
   onRecordExercise,
+  remoteDatabaseSync,
+  onLoadRemoteDatabase,
+  onSaveRemoteDatabase,
 }: {
   page: ChildPage;
   dashboard: ChildDashboard;
@@ -5911,6 +5954,9 @@ function ActivePage({
   onCreateProfile: (profile: Omit<ChildProfileConfig, 'id'>, profileId?: string) => void;
   onUpdateProfileOrders: (orders: Record<string, number>) => void;
   exerciseHistory: ProfileExerciseHistoryRecord[];
+  remoteDatabaseSync: RemoteDatabaseSyncState;
+  onLoadRemoteDatabase: () => Promise<void>;
+  onSaveRemoteDatabase: () => Promise<void>;
   onRecordExercise: (payload: {
     module: ExerciseHistoryModule;
     moduleLabel: string;
@@ -5945,7 +5991,12 @@ function ActivePage({
         onUpdateProfileOrders={onUpdateProfileOrders}
       />;
     case 'database':
-      return <ActivityDatabaseView dashboard={dashboard} />;
+      return <ActivityDatabaseView
+        dashboard={dashboard}
+        remoteDatabaseSync={remoteDatabaseSync}
+        onLoadRemoteDatabase={onLoadRemoteDatabase}
+        onSaveRemoteDatabase={onSaveRemoteDatabase}
+      />;
     case 'settings':
       return <RewardSettingsView dashboard={dashboard} />;
     case 'home':
@@ -5962,15 +6013,74 @@ export default function App() {
   const [activeProfileId, setActiveProfileId] = useState<string>(() => readActiveProfileIdFromStorage(FALLBACK_PROFILE.id));
   const [dashboardState, setDashboardState] = useState<ApiState<ChildDashboard>>({ status: 'loading' });
   const [profileExerciseHistory, setProfileExerciseHistory] = useState<ProfileExerciseHistoryMap>(() => readProfileExerciseHistoryFromStorage());
+  const [remoteDatabaseSync, setRemoteDatabaseSync] = useState<RemoteDatabaseSyncState>({
+    status: 'idle',
+    message: 'Base distante en attente de synchronisation.',
+  });
+  const [isRemoteDatabaseHydrated, setIsRemoteDatabaseHydrated] = useState(false);
   const [pendingParentProfileId, setPendingParentProfileId] = useState<string | null>(null);
   const [parentCodeAttempt, setParentCodeAttempt] = useState('');
   const [parentCodeError, setParentCodeError] = useState('');
+
+  async function loadRemoteDatabaseSnapshot() {
+    setRemoteDatabaseSync({ status: 'loading', message: 'Chargement de la base distante…' });
+    try {
+      const remoteDatabase = await fetchRemoteFamilyDatabase();
+      if (!remoteDatabase.found || !remoteDatabase.snapshot) {
+        setRemoteDatabaseSync({
+          status: 'synced',
+          message: 'Base distante prête : aucun snapshot familial enregistré pour le moment.',
+          updatedAtIso: remoteDatabase.updatedAtIso,
+        });
+        return;
+      }
+      const applied = applyRemoteDatabaseSnapshot(remoteDatabase.snapshot);
+      setProfiles(applied.profiles);
+      setActiveProfileId(applied.activeProfileId);
+      setProfileExerciseHistory(applied.profileExerciseHistory);
+      setRemoteDatabaseSync({
+        status: 'synced',
+        message: `Base distante synchronisée : ${applied.result.tables} table(s), ${applied.result.added} ajout(s), ${applied.result.updated} mise(s) à jour.`,
+        updatedAtIso: remoteDatabase.updatedAtIso,
+      });
+    } catch (error: unknown) {
+      setRemoteDatabaseSync({
+        status: 'offline',
+        message: error instanceof Error ? error.message : 'Base distante indisponible.',
+      });
+    } finally {
+      setIsRemoteDatabaseHydrated(true);
+    }
+  }
+
+  async function saveCurrentDatabaseOnline() {
+    setRemoteDatabaseSync({ status: 'loading', message: 'Sauvegarde vers la base distante…' });
+    try {
+      const result = await saveRemoteFamilyDatabase(buildLocalDatabaseExport());
+      setRemoteDatabaseSync({
+        status: 'synced',
+        message: 'Base distante synchronisée : sauvegarde en ligne effectuée.',
+        updatedAtIso: result.updatedAtIso,
+      });
+      setIsRemoteDatabaseHydrated(true);
+    } catch (error: unknown) {
+      setRemoteDatabaseSync({
+        status: 'offline',
+        message: error instanceof Error ? error.message : 'Sauvegarde distante impossible.',
+      });
+    }
+  }
 
   const activeProfile = useMemo(() => {
     return profiles.find((profile) => profile.id === activeProfileId) ?? profiles[0] ?? FALLBACK_PROFILE;
   }, [profiles, activeProfileId]);
 
   const activeProfileHistory = profileExerciseHistory[activeProfile.id] ?? [];
+
+  useEffect(() => {
+    if (!SHOULD_AUTO_SYNC_REMOTE_DATABASE) return;
+    void loadRemoteDatabaseSnapshot();
+  }, []);
 
   useEffect(() => {
     if (profiles.length === 0) return;
@@ -6003,6 +6113,11 @@ export default function App() {
   useEffect(() => {
     writeProfileExerciseHistoryToStorage(profileExerciseHistory);
   }, [profileExerciseHistory]);
+
+  useEffect(() => {
+    if (!SHOULD_AUTO_SYNC_REMOTE_DATABASE || !isRemoteDatabaseHydrated || remoteDatabaseSync.status === 'loading') return;
+    void saveCurrentDatabaseOnline();
+  }, [profiles, activeProfileId, profileExerciseHistory, isRemoteDatabaseHydrated]);
 
   function requestActivateProfile(profileId: string) {
     if (profileId === activeProfileId) return;
@@ -6099,6 +6214,9 @@ export default function App() {
           onCreateProfile={createOrUpdateProfile}
           onUpdateProfileOrders={updateProfileOrders}
           exerciseHistory={activeProfileHistory}
+          remoteDatabaseSync={remoteDatabaseSync}
+          onLoadRemoteDatabase={loadRemoteDatabaseSnapshot}
+          onSaveRemoteDatabase={saveCurrentDatabaseOnline}
           onRecordExercise={logExerciseForActiveProfile}
         />
       );
@@ -6106,7 +6224,7 @@ export default function App() {
     if (dashboardState.status === 'loading') return <div className="state-card">Chargement de ton aventure…</div>;
     if (dashboardState.status === 'empty') return <div className="state-card">Aucune mission pour le moment.</div>;
     return <div className="state-card error">{dashboardState.message}</div>;
-  }, [activePage, activeProfileId, activeProfile, dashboardState, profiles, activeProfileHistory]);
+  }, [activePage, activeProfileId, activeProfile, dashboardState, profiles, activeProfileHistory, remoteDatabaseSync]);
 
   const showSideNav = dashboardState.status === 'success';
   const pendingParentProfile = profiles.find((profile) => profile.id === pendingParentProfileId) ?? null;
