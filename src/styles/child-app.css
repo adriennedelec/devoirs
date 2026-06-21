@@ -778,9 +778,11 @@
 }
 
 .multiplication-final-summary {
-  display: grid;
-  gap: 14px;
-  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 2px;
 }
 
 .score-pill {
@@ -792,6 +794,15 @@
   color: var(--color-primary-dark) !important;
   box-shadow: inset 0 0 0 2px rgba(92, 73, 194, 0.14);
   font-weight: 1000;
+}
+
+.multiplication-final-summary .score-pill {
+  margin: 0;
+}
+
+.score-pill.time-pill {
+  color: #147348 !important;
+  box-shadow: inset 0 0 0 2px rgba(20, 115, 72, 0.12);
 }
 
 .full-table-review {
@@ -910,14 +921,41 @@
 
 .dictation-preparation-stack {
   display: grid;
-  gap: 14px;
+  gap: 12px;
+}
+
+.word-dictation-card {
+  grid-template-columns: minmax(0, 1fr);
+  width: 100%;
+}
+
+.dictation-preparation-block {
+  display: grid;
+  width: 100%;
+  box-sizing: border-box;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid rgba(109, 93, 252, 0.14);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.72), 0 12px 26px rgba(78, 67, 150, 0.06);
 }
 
 .dictation-entry-heading {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
   color: var(--color-primary-dark);
-  font-size: 1.08rem;
-  font-weight: 900;
+  font-size: 1rem;
+  font-weight: 820;
   letter-spacing: -0.01em;
+}
+
+.dictation-entry-heading small {
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0;
 }
 
 .dictation-entry-grid {
@@ -931,13 +969,13 @@
   margin: 0;
   border: 1px solid rgba(109, 93, 252, 0.14);
   border-radius: 22px;
-  padding: 14px;
+  padding: 12px;
   background: #fff;
   box-shadow: 0 14px 28px rgba(78, 67, 150, 0.08);
 }
 
 .dictation-entry-card textarea {
-  min-height: 112px;
+  min-height: 82px;
 }
 
 .word-source-actions .poetry-icon-button {
@@ -1065,44 +1103,77 @@
 
 .verb-tense-options {
   display: grid;
-  gap: 10px;
-  margin: 14px 0;
+  gap: 8px;
+  margin: 4px 0 0;
   border: 0;
   padding: 0;
 }
 
+.verb-tense-header {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
 .verb-tense-options legend {
   color: var(--color-primary-dark);
-  font-weight: 1000;
+  font-weight: 820;
 }
 
-.verb-tense-options > p {
+.verb-tense-header p {
   margin: 0;
   color: var(--color-text-muted);
-  font-weight: 800;
+  font-size: 0.78rem;
+  font-weight: 500;
 }
 
-.verb-tense-options > div {
+.verb-tense-options > div:last-child {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
 }
 
 .verb-tense-options label {
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: 10px;
-  align-items: start;
-  border-radius: 20px;
-  padding: 12px;
-  background: #f4f0ff;
+  gap: 8px;
+  align-items: center;
+  border-radius: 16px;
+  padding: 9px 10px;
+  background: #fff;
   color: var(--color-primary-dark);
-  font-weight: 900;
+  font-weight: 760;
+  box-shadow: inset 0 0 0 1px rgba(109, 93, 252, 0.1);
 }
 
 .verb-tense-options input {
-  margin-top: 4px;
+  margin-top: 0;
   accent-color: var(--color-primary);
+}
+
+.dictation-generate-row {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.dictation-generate-action.primary-action {
+  width: fit-content;
+  border: 1px solid rgba(109, 93, 252, 0.18);
+  border-radius: 999px;
+  padding: 10px 14px;
+  background: rgba(109, 93, 252, 0.08);
+  color: var(--color-primary-dark);
+  font: inherit;
+  font-weight: 400;
+  line-height: 1.15;
+  box-shadow: none;
+}
+
+.dictation-generate-action.primary-action:hover,
+.dictation-generate-action.primary-action:focus-visible {
+  outline: none;
+  border-color: rgba(109, 93, 252, 0.28);
+  background: rgba(109, 93, 252, 0.12);
 }
 
 .verb-tense-options small {
@@ -1658,6 +1729,43 @@
   font-weight: 700;
 }
 
+.dictation-entry-card.answer-field textarea {
+  min-height: 82px;
+}
+
+.word-dictation-card .verb-tense-options {
+  gap: 8px;
+  margin: 4px 0 0;
+  border-radius: 0;
+  padding: 0;
+  background: transparent;
+}
+
+.word-dictation-card .verb-tense-options legend {
+  font-weight: 820;
+}
+
+.word-dictation-card .verb-tense-options .verb-tense-header p {
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+
+.word-dictation-card .verb-tense-options > div:last-child {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: center;
+  gap: 8px;
+}
+
+.word-dictation-card .verb-tense-options label {
+  align-items: center;
+  border: 0;
+  border-radius: 16px;
+  padding: 9px 10px;
+  box-shadow: inset 0 0 0 1px rgba(109, 93, 252, 0.1);
+  font-weight: 760;
+}
+
 .loading-feedback,
 .primary-action:disabled {
   display: inline-flex;
@@ -2074,9 +2182,19 @@
   background: transparent;
 }
 
+.dictation-redesign-page {
+  gap: 0;
+  background: transparent;
+}
+
 .child-app-layout:has(.poetry-redesign-page),
-.child-app-layout:has(.poetry-redesign-page) .child-app-shell {
-  background: #ffffff;
+.child-app-layout:has(.poetry-redesign-page) .child-app-shell,
+.child-app-layout:has(.dictation-redesign-page),
+.child-app-layout:has(.dictation-redesign-page) .child-app-shell {
+  background:
+    radial-gradient(circle at top left, rgba(255, 191, 63, 0.24), transparent 34rem),
+    radial-gradient(circle at top right, rgba(76, 201, 240, 0.24), transparent 28rem),
+    linear-gradient(135deg, var(--color-bg), var(--color-bg-soft));
 }
 
 .poetry-page-hero {
@@ -2834,7 +2952,7 @@
 .magic-exercise-card {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(240px, 0.72fr) minmax(420px, 1.28fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 18px;
   width: 100%;
   max-width: none;
@@ -3142,6 +3260,347 @@
   box-shadow: 0 14px 28px rgba(122, 90, 248, 0.28);
 }
 
+/* Tables de multiplication — reprise de la structure visuelle Poésie */
+.child-app-layout:has(.multiplication-redesign-page),
+.child-app-layout:has(.multiplication-redesign-page) .child-app-shell {
+  background:
+    radial-gradient(circle at top left, rgba(255, 191, 63, 0.24), transparent 34rem),
+    radial-gradient(circle at top right, rgba(76, 201, 240, 0.24), transparent 28rem),
+    linear-gradient(135deg, var(--color-bg), var(--color-bg-soft));
+}
+
+.multiplication-redesign-page {
+  gap: 0;
+  background: transparent;
+}
+
+.multiplication-page-hero {
+  position: relative;
+  min-height: 232px;
+  margin: 0;
+}
+
+.multiplication-page-hero img {
+  position: absolute;
+  top: -18px;
+  left: 12px;
+  z-index: 2;
+  display: block;
+  width: 247px;
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 15px 22px rgba(105, 80, 180, 0.13));
+}
+
+.multiplication-page-hero h1 {
+  position: absolute;
+  top: 46px;
+  left: 281px;
+  max-width: min(760px, calc(100vw - 620px));
+  margin: 0;
+  color: #2f276f;
+  font-size: clamp(3rem, 5.4vw, 4rem);
+  font-weight: 400;
+  line-height: 0.95;
+  letter-spacing: -0.065em;
+}
+
+.multiplication-main-grid {
+  position: relative;
+  display: grid;
+  grid-template-columns: 340px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  transform: translateY(-51px);
+}
+
+.multiplication-picker-card,
+.multiplication-question-card {
+  border: 1px solid #e8e3f3;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 14px 34px rgba(76, 54, 150, 0.07);
+}
+
+.multiplication-picker-card {
+  position: relative;
+  align-self: start;
+  min-height: 0;
+  padding: 22px 22px 24px;
+}
+
+.multiplication-picker-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 16px;
+}
+
+.multiplication-picker-card h2 {
+  margin: 0;
+  color: var(--color-primary-dark);
+  font-size: 1.4rem;
+  font-weight: 760;
+  letter-spacing: -0.03em;
+}
+
+.multiplication-library-button.poetry-icon-button {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  padding: 0;
+  border-color: rgba(109, 93, 252, 0.18);
+  background: rgba(109, 93, 252, 0.08);
+  color: var(--color-primary-dark);
+}
+
+.multiplication-library-menu {
+  position: absolute;
+  z-index: 10;
+  top: 72px;
+  right: 18px;
+  left: 18px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid #e4def8;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 18px 44px rgba(76, 54, 150, 0.16);
+}
+
+.multiplication-library-menu button {
+  display: grid;
+  gap: 2px;
+  place-items: center;
+  min-height: 54px;
+  border: 1px solid rgba(109, 93, 252, 0.14);
+  border-radius: 16px;
+  background: #fffdf8;
+  color: #4b3bc4;
+  box-shadow: 0 8px 18px rgba(76, 54, 150, 0.06);
+  font-weight: 760;
+}
+
+.multiplication-library-menu button.is-active {
+  color: #ffffff;
+  background: rgba(109, 93, 252, 0.92);
+}
+
+.multiplication-library-menu button span {
+  font-size: 1.18rem;
+  font-weight: 820;
+  line-height: 1;
+}
+
+.multiplication-library-menu button small {
+  color: var(--color-text-muted);
+  font-size: 0.68rem;
+  font-weight: 520;
+}
+
+.multiplication-library-menu button.is-active small {
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.multiplication-table-list.magic-table-selector {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.multiplication-table-list.magic-table-selector button {
+  display: grid;
+  gap: 3px;
+  place-items: center;
+  min-height: 74px;
+  border: 1px solid #e8e3f3;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.86);
+  color: #4b3bc4;
+  box-shadow: 0 10px 24px rgba(76, 54, 150, 0.06);
+  font-weight: 760;
+}
+
+.multiplication-table-list button span {
+  font-size: 1.45rem;
+  font-weight: 820;
+  line-height: 1;
+}
+
+.multiplication-table-list button small {
+  color: var(--color-text-muted);
+  font-size: 0.72rem;
+  font-weight: 520;
+}
+
+.multiplication-table-list.magic-table-selector button.active {
+  color: #ffffff;
+  background: rgba(109, 93, 252, 0.92);
+  box-shadow: 0 16px 28px rgba(109, 93, 252, 0.2);
+}
+
+.multiplication-table-list button.active small {
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.multiplication-question-card.magic-exercise-card {
+  align-self: start;
+  min-height: 0;
+  margin: 0;
+  padding: 22px 22px 24px;
+  border: 1px solid #e8e3f3;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 14px 34px rgba(76, 54, 150, 0.07);
+}
+
+.multiplication-question-card .calculation-panel {
+  min-height: 0;
+  align-content: start;
+  gap: 10px;
+}
+
+.multiplication-question-topline {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  min-height: 42px;
+}
+
+.multiplication-chrono {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 88px;
+  padding: 7px 14px;
+  border: 1px solid rgba(109, 93, 252, 0.18);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.9);
+  color: #2f276f;
+  box-shadow: 0 10px 22px rgba(76, 54, 150, 0.08);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.9rem;
+  font-weight: 760;
+  transform: translate(-50%, -50%);
+}
+
+.multiplication-chrono.is-running {
+  border-color: rgba(109, 93, 252, 0.34);
+  background: rgba(246, 244, 255, 0.96);
+}
+
+.multiplication-question-card .table-ribbon {
+  padding: 8px 16px;
+  border: 1px solid rgba(109, 93, 252, 0.18);
+  border-radius: 999px;
+  background: rgba(109, 93, 252, 0.08);
+  color: var(--color-primary-dark);
+  box-shadow: none;
+  font-size: 0.86rem;
+  font-weight: 500;
+}
+
+.multiplication-question-topline .eyebrow {
+  margin: 0;
+  color: #2f276f;
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+}
+
+.multiplication-question-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 78px;
+  gap: 12px;
+  align-items: start;
+}
+
+.multiplication-question-body {
+  display: grid;
+  gap: 10px;
+}
+
+.multiplication-question-card .calculation-panel h2 {
+  color: #2f276f;
+  font-size: clamp(2.2rem, 3.8vw, 2.85rem);
+  font-weight: 520;
+  line-height: 0.95;
+  letter-spacing: -0.055em;
+}
+
+.multiplication-question-card .magic-answer-grid {
+  gap: 10px;
+}
+
+.multiplication-question-card .magic-answer-grid button {
+  min-height: 56px;
+  border: 1px solid #e8e3f3;
+  border-radius: 18px;
+  background: #fffdf8;
+  color: #2f276f;
+  box-shadow: 0 9px 20px rgba(76, 54, 150, 0.06);
+  font-size: 1.35rem;
+  font-weight: 660;
+}
+
+.multiplication-question-card .table-progress-strip {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 7px;
+  align-content: start;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.multiplication-question-card .table-progress-strip span {
+  width: 44px;
+  min-width: 44px;
+  min-height: 32px;
+  font-weight: 680;
+}
+
+.multiplication-history-card {
+  margin-top: -34px;
+  border: 1px solid #e8e3f3;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 14px 34px rgba(76, 54, 150, 0.07);
+}
+
+@media (max-width: 980px) {
+  .multiplication-page-hero h1 {
+    left: 230px;
+    max-width: calc(100vw - 360px);
+    font-size: clamp(2.25rem, 8vw, 3.4rem);
+  }
+
+  .multiplication-page-hero img {
+    width: 210px;
+  }
+
+  .multiplication-main-grid {
+    grid-template-columns: 1fr;
+    transform: translateY(-36px);
+  }
+
+  .multiplication-picker-card,
+  .multiplication-question-card.magic-exercise-card {
+    min-height: auto;
+  }
+}
+
 @keyframes loadingDotPulse {
   0%, 80%, 100% { opacity: 0.28; transform: translateY(0); }
   40% { opacity: 1; transform: translateY(-3px); }
@@ -3355,6 +3814,40 @@
 .table-progress-strip span.missed {
   color: #b42318;
   background: #fff0f0;
+}
+
+.multiplication-question-card .table-progress-strip {
+  display: grid;
+  grid-template-columns: 1fr;
+  flex-wrap: nowrap;
+  gap: 4px;
+  align-items: start;
+  margin-top: 0;
+  transform: translateY(-8px);
+}
+
+.multiplication-question-card .table-progress-strip span {
+  justify-content: space-between;
+  gap: 4px;
+  width: 78px;
+  min-width: 78px;
+  min-height: 25px;
+  padding: 0 8px;
+  font-size: 0.72rem;
+  font-weight: 660;
+}
+
+.multiplication-question-card .table-progress-strip span strong,
+.multiplication-question-card .table-progress-strip span small {
+  color: inherit;
+  font: inherit;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.multiplication-question-card .table-progress-strip span small {
+  font-size: 0.66rem;
+  font-weight: 720;
 }
 
 .multiplication-history-card {
@@ -5303,6 +5796,23 @@
 .activity-history-table .result-pill,
 .activity-history-table tbody td:first-child {
   font-weight: 400;
+}
+
+.multiplication-history-table.activity-history-table,
+.multiplication-history-table.activity-history-table th,
+.multiplication-history-table.activity-history-table td,
+.multiplication-history-table.activity-history-table tbody td:first-child,
+.multiplication-history-table.activity-history-table .history-date-time,
+.multiplication-history-table.activity-history-table .history-pill,
+.multiplication-history-table.activity-history-table .history-fact {
+  font-weight: 400;
+}
+
+.multiplication-history-table.activity-history-table thead th {
+  background: #f2efff;
+  color: #4d3fb4;
+  font-weight: 400;
+  text-transform: none;
 }
 
 .history-pagination {

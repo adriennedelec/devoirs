@@ -1,0 +1,424 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Test design — Poésie condensée</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Nunito, Quicksand, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: #1f2a44;
+      background: #fff;
+    }
+    .app-shell {
+      display: grid;
+      grid-template-columns: 228px 1fr;
+      min-height: 100vh;
+      background: #fff;
+    }
+    .sidebar {
+      padding: 24px 14px;
+      background: linear-gradient(180deg, #f3efff 0%, #eef6ff 100%);
+      border-right: 1px solid #e4def8;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 24px;
+      font-size: 0.95rem;
+      font-weight: 800;
+      color: #332a7c;
+    }
+    .nav button {
+      width: 100%;
+      border: 0;
+      border-radius: 16px;
+      background: transparent;
+      padding: 11px 13px;
+      margin-bottom: 10px;
+      text-align: left;
+      color: #4a5470;
+      font: inherit;
+      font-size: 0.95rem;
+      font-weight: 700;
+    }
+    .nav button.active {
+      background: #fff;
+      color: #4b3bc4;
+      box-shadow: 0 12px 30px rgba(76, 54, 150, 0.12);
+    }
+    main {
+      position: relative;
+      min-width: 0;
+      padding: 0 18px 18px;
+      background: #fff;
+    }
+    .poetry-hero {
+      position: relative;
+      height: 232px;
+      max-width: 982px;
+      margin: 0 0 0;
+    }
+    .poetry-hero img {
+      position: absolute;
+      left: 12px;
+      top: 2px;
+      width: 247px;
+      height: auto;
+      object-fit: contain;
+      display: block;
+      z-index: 2;
+      filter: drop-shadow(0 15px 22px rgba(105, 80, 180, 0.13));
+    }
+    .poetry-hero h1 {
+      position: absolute;
+      left: 281px;
+      top: 76px;
+      margin: 0;
+      color: #2f276f;
+      font-size: 4rem;
+      line-height: 0.95;
+      letter-spacing: -0.065em;
+      font-weight: 400;
+    }
+    .poetry-layout {
+      position: relative;
+      display: grid;
+      grid-template-columns: 340px minmax(0, 1fr);
+      gap: 10px;
+      align-items: start;
+      max-width: 982px;
+      margin: 0 0 0;
+      transform: translateY(-51px);
+    }
+    .panel {
+      border: 1px solid #e8e3f3;
+      border-radius: 24px;
+      background: rgba(255, 255, 255, 0.96);
+      box-shadow: 0 14px 34px rgba(76, 54, 150, 0.07);
+    }
+    .chooser {
+      padding: 24px 24px 26px;
+      min-height: 458px;
+    }
+    .text-panel {
+      padding: 24px 26px 26px;
+      min-height: 626px;
+    }
+    .panel-title {
+      margin: 0;
+      color: #332a7c;
+      font-size: 1.02rem;
+      line-height: 1.15;
+      font-weight: 780;
+      letter-spacing: -0.025em;
+    }
+    .chooser .panel-title {
+      margin-top: 0;
+      margin-bottom: 14px;
+    }
+    .poem-list {
+      display: grid;
+      gap: 10px;
+    }
+    .poem-option {
+      border: 1px solid #eeeaf6;
+      border-radius: 18px;
+      background: #fdfcff;
+      padding: 14px 16px;
+      min-height: 72px;
+      text-align: left;
+      font: inherit;
+      color: #1f2a44;
+      cursor: pointer;
+    }
+    .poem-option strong {
+      display: block;
+      font-size: 1.02rem;
+      line-height: 1.15;
+      margin-bottom: 4px;
+      font-weight: 800;
+    }
+    .poem-option span {
+      color: #667085;
+      font-size: 0.9rem;
+      font-weight: 650;
+    }
+    .poem-option.selected {
+      border-color: #b9adff;
+      background: #f5f0ff;
+      box-shadow: inset 0 0 0 1px rgba(109, 93, 252, 0.22);
+    }
+    .import-actions {
+      display: grid;
+      gap: 12px;
+      margin-top: 20px;
+    }
+    .soft-action {
+      border: 0;
+      border-radius: 16px;
+      background: #5138d5;
+      color: #fff;
+      padding: 12px 16px;
+      font: inherit;
+      font-size: 0.98rem;
+      font-weight: 800;
+      box-shadow: 0 12px 22px rgba(75, 59, 196, 0.2);
+    }
+    .soft-action.secondary {
+      background: #fffdf2;
+      color: #7b5600;
+      box-shadow: 0 8px 18px rgba(189, 144, 0, 0.07);
+      border: 1px solid #faecc5;
+    }
+    .text-toolbar {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 14px;
+      align-items: start;
+      margin-bottom: 14px;
+    }
+    .text-toolbar p {
+      margin: 10px 0 0;
+      color: #6d7280;
+      font-size: 0.88rem;
+      font-weight: 650;
+    }
+    .text-toolbar .soft-action {
+      padding: 12px 18px;
+      min-width: 94px;
+      margin-top: 3px;
+    }
+    .poem-text {
+      min-height: 442px;
+      border: 1px solid #ede8f1;
+      border-radius: 22px;
+      padding: 26px 28px;
+      background: #fffdf8;
+      color: #30384d;
+      font-size: 1.05rem;
+      font-weight: 560;
+      line-height: 1.85;
+      white-space: pre-line;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.8);
+    }
+    .poetry-extra-grid {
+      display: grid;
+      gap: 16px;
+      max-width: 982px;
+      margin: -36px 0 0;
+    }
+    .poetry-extra-card {
+      border: 1px solid #ede8f1;
+      border-radius: 26px;
+      background: #ffffff;
+      padding: 24px 28px;
+      box-shadow: 0 14px 34px rgba(76, 54, 150, 0.065);
+    }
+    .poetry-extra-card.memory-card {
+      background: linear-gradient(135deg, #fff8e8 0%, #f5f0ff 100%);
+    }
+    .poetry-extra-card h3 {
+      margin: 0 0 8px;
+      color: #332a7c;
+      font-size: 1.32rem;
+      line-height: 1.2;
+      font-weight: 820;
+      letter-spacing: -0.03em;
+    }
+    .block-eyebrow {
+      margin: 0 0 2px;
+      color: #5f6380;
+      font-size: 0.78rem;
+      line-height: 1.1;
+      font-weight: 850;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+    .poetry-extra-card p {
+      margin: 0;
+      color: #667085;
+      font-size: 1rem;
+      line-height: 1.45;
+      font-weight: 600;
+    }
+    .memory-head,
+    .recital-head {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: start;
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+    .line-memory-preview {
+      display: grid;
+      grid-template-columns: 74px minmax(0, 1fr);
+      gap: 8px 14px;
+      align-items: center;
+      padding: 18px;
+      border-radius: 22px;
+      background: rgba(244, 238, 255, 0.78);
+    }
+    .line-memory-preview span {
+      display: grid;
+      place-items: center;
+      min-height: 32px;
+      border-radius: 999px;
+      background: #ffffff;
+      color: #4b3bc4;
+      font-size: 0.84rem;
+      font-weight: 760;
+      box-shadow: 0 8px 18px rgba(76, 54, 150, 0.07);
+    }
+    .line-memory-preview p {
+      color: #555e72;
+      font-size: 1rem;
+      font-weight: 680;
+    }
+    .recital-card-grid {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 18px;
+      align-items: start;
+    }
+    .recital-icon {
+      display: grid;
+      place-items: center;
+      width: 76px;
+      height: 76px;
+      border-radius: 24px;
+      background: #f3efff;
+      font-size: 2rem;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.8);
+    }
+    .recital-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 18px;
+    }
+    .transcription-box {
+      min-height: 94px;
+      margin-top: 16px;
+      border: 1px solid #ede8f1;
+      border-radius: 18px;
+      padding: 16px;
+      color: #6d7280;
+      background: #fff;
+      font-weight: 650;
+    }
+    @media (max-width: 880px) {
+      .app-shell { grid-template-columns: 1fr; }
+      .sidebar { display: none; }
+      main { padding: 0 12px 24px; }
+      .poetry-hero { height: 150px; }
+      .poetry-hero img { left: 0; width: 240px; height: auto; }
+      .poetry-hero h1 { left: 236px; top: 76px; font-size: 3rem; }
+      .poetry-layout { grid-template-columns: 1fr; transform: none; }
+      .chooser, .text-panel { min-height: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Navigation enfant">
+      <div class="brand">✨ Devoirs</div>
+      <nav class="nav">
+        <button>Accueil</button>
+        <button>Lecture</button>
+        <button>Tables</button>
+        <button>Dictée</button>
+        <button class="active">Poésie</button>
+        <button>Profil</button>
+      </nav>
+    </aside>
+
+    <main>
+      <header class="poetry-hero">
+        <img src="./poesie-corbeau-renard.png" alt="Illustration poésie" />
+        <h1>Poésie</h1>
+      </header>
+
+      <section class="poetry-layout" aria-label="Test mise en page poésie condensée">
+        <aside class="panel chooser">
+          <h2 class="panel-title">Choisir une poésie</h2>
+          <div class="poem-list">
+            <button class="poem-option selected"><strong>La Cigale et la Fourmi</strong><span>Jean de La Fontaine · 22 lignes</span></button>
+            <button class="poem-option"><strong>Le Corbeau et le Renard</strong><span>Jean de La Fontaine · 18 lignes</span></button>
+            <button class="poem-option"><strong>Le Lièvre et la Tortue</strong><span>Jean de La Fontaine · 28 lignes</span></button>
+          </div>
+          <div class="import-actions">
+            <button class="soft-action">Importer un fichier</button>
+            <button class="soft-action secondary">Prendre une photo</button>
+          </div>
+        </aside>
+
+        <article class="panel text-panel">
+          <div class="text-toolbar">
+            <div>
+              <h2 class="panel-title">Texte de la poésie</h2>
+              <p>Jean de La Fontaine · lecture et mémorisation</p>
+            </div>
+            <button class="soft-action secondary">Écouter</button>
+          </div>
+          <div class="poem-text">La Cigale, ayant chanté
+Tout l’été,
+Se trouva fort dépourvue
+Quand la bise fut venue.
+Pas un seul petit morceau
+De mouche ou de vermisseau.
+Elle alla crier famine
+Chez la Fourmi sa voisine,
+La priant de lui prêter
+Quelque grain pour subsister
+Jusqu’à la saison nouvelle.</div>
+        </article>
+      </section>
+
+      <section class="poetry-extra-grid" aria-label="Blocs de travail poésie">
+        <article class="poetry-extra-card memory-card" aria-labelledby="line-memory-title">
+          <div class="memory-head">
+            <div>
+              <p class="block-eyebrow">Zone de travail de l’enfant</p>
+              <h3 id="line-memory-title">Mémoriser ligne par ligne</h3>
+              <p>Clique sur “Ligne 1”, “Ligne 2”… pour masquer ou afficher une ligne précise.</p>
+            </div>
+            <button class="soft-action">Tout afficher</button>
+          </div>
+          <div class="line-memory-preview" aria-label="Lignes de mémorisation">
+            <span>Ligne 1</span><p>La Cigale, ayant chanté</p>
+            <span>Ligne 2</span><p>Tout l’été,</p>
+            <span>Ligne 3</span><p>Se trouva fort dépourvue</p>
+            <span>Ligne 4</span><p>Quand la bise fut venue.</p>
+            <span>Ligne 5</span><p>Pas un seul petit morceau</p>
+            <span>Ligne 6</span><p>De mouche ou de vermisseau,</p>
+          </div>
+        </article>
+
+        <article class="poetry-extra-card" aria-labelledby="recite-title">
+          <div class="recital-card-grid">
+            <div class="recital-icon" aria-hidden="true">🎤</div>
+            <div>
+              <p class="block-eyebrow">Bloc récitation · même analyse que lecture</p>
+              <h3 id="recite-title">Réciter la poésie</h3>
+              <p>Masque le texte, démarre l’enregistrement, puis l’app compare ta récitation à la poésie originale.</p>
+              <div class="recital-controls">
+                <button class="soft-action">🎙️ Démarrer l’enregistrement</button>
+                <button class="soft-action secondary">⏹️ Arrêter et analyser</button>
+              </div>
+              <div class="transcription-box">La transcription automatique apparaîtra ici. Tu peux la corriger avant d’analyser.</div>
+              <div class="recital-controls">
+                <button class="soft-action">Analyser la récitation</button>
+              </div>
+            </div>
+          </div>
+        </article>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

@@ -64,6 +64,8 @@ import './styles/tokens.css';
 import './styles/base.css';
 import './styles/child-app.css';
 import poetryPageIllustrationUrl from './assets/page-illustrations/poesie-corbeau-renard.png';
+import dictationPageIllustrationUrl from './assets/page-illustrations/illustration-dictee.png';
+import multiplicationPageIllustrationUrl from './assets/page-illustrations/illustration-multiplication.png';
 
 type ChildPage = 'home' | 'path' | 'rewards' | 'reading' | 'multiplication' | 'dictation' | 'poetry' | 'profile' | 'database' | 'settings';
 
@@ -2687,6 +2689,7 @@ function MultiplicationView({
   const [completedTableHistory, setCompletedTableHistory] = useState<CompletedMultiplicationTable[]>(() => readMultiplicationTableHistoryFromStorage());
   const [timerStartedAt, setTimerStartedAt] = useSessionStorageState<number | null>(`${exerciseDraftKey}.timerStartedAt`, null);
   const [elapsedSeconds, setElapsedSeconds] = useSessionStorageState(`${exerciseDraftKey}.elapsedSeconds`, 0);
+  const [isMultiplicationLibraryMenuOpen, setIsMultiplicationLibraryMenuOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -2710,8 +2713,13 @@ function MultiplicationView({
 
   const currentQuestion = sessionState.status === 'success' ? sessionState.data.questions[questionIndex] : null;
   const finalScore = attemptHistory.reduce((score, record) => score + record.scorePoint, 0);
-  const goodAnswerCount = attemptHistory.filter((record) => record.scorePoint === 1).length;
   const activeTable = sessionState.status === 'success' ? sessionState.data.selectedTable : 7;
+  const visibleTableOptions = sessionState.status === 'success'
+    ? sessionState.data.availableTables.filter((table) => table.value <= 10)
+    : [];
+  const libraryTableOptions = sessionState.status === 'success'
+    ? sessionState.data.availableTables.filter((table) => table.value >= 11 && table.value <= 20)
+    : [];
   const activeProfileTableHistory = completedTableHistory.filter((record) => {
     return record.profileId
       ? record.profileId === dashboard.child.id
@@ -2854,6 +2862,7 @@ function MultiplicationView({
 
   async function selectTable(table: number) {
     setSessionState({ status: 'loading' });
+    setIsMultiplicationLibraryMenuOpen(false);
     setQuestionIndex(0);
     setAnswerState(null);
     setFirstTryByQuestion({});
@@ -2869,139 +2878,130 @@ function MultiplicationView({
   }
 
   return (
-    <main className="multiplication-screen magical-math-screen child-main">
+    <main className="multiplication-screen multiplication-redesign-page magical-math-screen child-main">
       {sessionState.status === 'loading' ? <div className="state-card">Préparation des tables…</div> : null}
       {sessionState.status === 'error' ? <div className="state-card error">{sessionState.message}</div> : null}
       {sessionState.status === 'success' && currentQuestion ? (
         <>
-          <ChildTopBar dashboard={dashboard} title="Tables de multiplication" />
+          <header className="multiplication-page-hero" aria-labelledby="multiplication-page-title">
+            <img src={multiplicationPageIllustrationUrl} alt="Illustration multiplication" />
+            <h1 id="multiplication-page-title">Tables de multiplication</h1>
+          </header>
 
-          <section className="magic-table-selector" aria-label="Choisis une table">
-            {sessionState.data.availableTables.map((table) => (
+          <section className="multiplication-main-grid" aria-label="Choix de table et question de multiplication">
+            <section className="multiplication-picker-card" aria-label="Choisis une table">
+            <div className="multiplication-picker-header">
+              <h2>Choisis ta table</h2>
               <button
-                aria-label={table.label}
-                aria-pressed={sessionState.data.selectedTable === table.value}
-                className={sessionState.data.selectedTable === table.value ? 'active' : ''}
-                key={table.value}
-                onClick={() => selectTable(table.value)}
+                aria-controls="multiplication-library-menu"
+                aria-expanded={isMultiplicationLibraryMenuOpen}
+                aria-label="Ouvrir la bibliothèque des tables de 11 à 20"
+                className="ghost-action poetry-profile-button poetry-icon-button multiplication-library-button"
+                onClick={() => setIsMultiplicationLibraryMenuOpen((isOpen) => !isOpen)}
+                title="Tables de 11 à 20"
                 type="button"
               >
-                {table.value}
+                <Library aria-hidden="true" size={20} strokeWidth={2.2} />
+                <span className="poetry-icon-button-label">Tables 11 à 20</span>
               </button>
-            ))}
-          </section>
-
-          <section className="math-progress-grid" aria-label="Progression des tables">
-            <article className="math-progress-card">
-              <div className="progress-icon" aria-hidden="true">🎯</div>
-              <div>
-                <p className="eyebrow">Objectif du jour</p>
-                <h2>Réussis {sessionState.data.totalQuestions} calculs</h2>
-                <ProgressBar value={(attemptHistory.length / sessionState.data.totalQuestions) * 100} />
-                <strong>{attemptHistory.length} / {sessionState.data.totalQuestions}</strong>
-              </div>
-            </article>
-            <article className="math-progress-card">
-              <div className="progress-icon" aria-hidden="true">🏆</div>
-              <div>
-                <p className="eyebrow">Série actuelle</p>
-                <h2>{goodAnswerCount} bonnes réponses</h2>
-                <div className="streak-dots" aria-label={`${goodAnswerCount} bonnes réponses`}>
-                  {Array.from({ length: 5 }, (_, index) => <span key={index}>{index < goodAnswerCount ? '✅' : '○'}</span>)}
-                </div>
-              </div>
-            </article>
-            <article className="math-progress-card">
-              <div className="progress-icon level" aria-hidden="true">{dashboard.child.level}</div>
-              <div>
-                <p className="eyebrow">Niveau joueur</p>
-                <h2>Niveau {dashboard.child.level}</h2>
-                <p>{dashboard.child.title}</p>
-                <ProgressBar value={68} />
-                <strong>680 / 1000 XP</strong>
-              </div>
-            </article>
-          </section>
-
-          <section className="magic-exercise-card question-card magic-question-card" aria-labelledby="multiplication-question">
-            <div className="character-stage">
-              <div className="encouragement-bubble">Réponds à la question de la table de {activeTable}.<br />Tu es capable ! 💪</div>
-              <div className="characters" aria-hidden="true">
-                <div className="kid-character">🧒👍</div>
-                <div className="robot-character">🤖</div>
-              </div>
-              <div className="treasure-chest" aria-hidden="true">🧰🪙</div>
-              <aside className="help-card">
-                <strong>💡 Aide</strong>
-                <p>{activeTable} × {currentQuestion.rightFactor} = c'est {currentQuestion.rightFactor} groupes de {activeTable}.</p>
-                <p>{Array.from({ length: currentQuestion.rightFactor }, () => activeTable).join(' + ')} = {activeTable * currentQuestion.rightFactor}</p>
-              </aside>
-              <aside className="timer-card" aria-label="Chronomètre de la table">
-                <span aria-hidden="true">⏱️</span>
-                <div>
-                  <strong>Chronomètre</strong>
-                  <p className="timer-value">{formatDuration(elapsedSeconds)}</p>
-                  <small>{timerStartedAt ? 'Chrono lancé' : 'Démarre à la première réponse'}</small>
-                </div>
-              </aside>
             </div>
-
-            <div className="calculation-panel">
-              <div className="table-ribbon">Table de {activeTable}</div>
-              <p className="eyebrow">Question {questionIndex + 1} sur {sessionState.data.totalQuestions}</p>
-              <h2 id="multiplication-question">{currentQuestion.prompt}</h2>
-              <ProgressBar value={((questionIndex + 1) / sessionState.data.totalQuestions) * 100} />
-              <div className="answer-grid magic-answer-grid" aria-label="Choix de réponse">
-                {currentQuestion.options.map((option) => (
-                  <button
-                    key={option}
-                    onClick={() => answerQuestion(option)}
-                    disabled={answerState?.status === 'loading' || Boolean(answerState?.status === 'success' && answerState.data.sessionSummary)}
+            <div className="magic-table-selector multiplication-table-list">
+              {visibleTableOptions.map((table) => (
+                <button
+                    aria-label={table.label}
+                    aria-pressed={sessionState.data.selectedTable === table.value}
+                    className={sessionState.data.selectedTable === table.value ? 'active' : ''}
+                    key={table.value}
+                    onClick={() => selectTable(table.value)}
                     type="button"
                   >
-                    {option}
+                    <span>{table.value}</span>
+                    <small>Table de {table.value}</small>
                   </button>
                 ))}
               </div>
-              <div className="table-progress-strip" aria-label={`Avancement de la table de ${activeTable}`}>
-                {MULTIPLICATION_REVIEW_FACTORS.map((factor) => {
-                  return <span className={getTableFactClass(factor)} key={factor}>{factor}×</span>;
-                })}
-              </div>
-              {answerState?.status === 'loading' ? <p className="feedback-card">Le robot vérifie…</p> : null}
-              {answerState?.status === 'error' ? <p className="feedback-card error">{answerState.message}</p> : null}
-              {answerState?.status === 'success' && !answerState.data.sessionSummary ? (
-                <div className={answerState.data.isCorrect ? 'instant-reward success' : 'instant-reward retry'}>
-                  <strong>{answerState.data.isCorrect ? 'Correct !' : answerState.data.feedbackTitle}</strong>
-                  <span>{answerState.data.isCorrect ? `⭐ +${answerState.data.earnedStars}` : answerState.data.feedbackMessage}</span>
+              {isMultiplicationLibraryMenuOpen ? (
+                <div className="multiplication-library-menu" id="multiplication-library-menu" role="menu" aria-label="Tables de 11 à 20">
+                  {libraryTableOptions.map((table) => (
+                    <button
+                      aria-pressed={sessionState.data.selectedTable === table.value}
+                      className={sessionState.data.selectedTable === table.value ? 'is-active' : undefined}
+                      key={table.value}
+                      onClick={() => selectTable(table.value)}
+                      role="menuitem"
+                      type="button"
+                    >
+                      <span>{table.value}</span>
+                      <small>Table de {table.value}</small>
+                    </button>
+                  ))}
                 </div>
               ) : null}
-              {answerState?.status === 'success' && answerState.data.sessionSummary ? (
-                <div className="multiplication-final-summary feedback-card success">
-                  <p><strong>{answerState.data.sessionSummary.title}</strong> {answerState.data.sessionSummary.message}</p>
-                  <p className="score-pill">Score : {finalScore} / {sessionState.data.totalQuestions}</p>
-                  <div className="full-table-review" aria-label="Table complète avec erreurs">
-                    <h3>Table complète de {sessionState.data.selectedTable}</h3>
-                    <ul>
-                      {buildTableFacts(sessionState.data).map((fact) => (
-                        <li className={fact.status} key={fact.rightFactor}>{fact.line}</li>
+            </section>
+
+            <section className="multiplication-question-card magic-exercise-card question-card magic-question-card" aria-labelledby="multiplication-question">
+              <div className="calculation-panel">
+                <div className="multiplication-question-layout">
+                  <div className="multiplication-question-body">
+                    <div className="multiplication-question-topline">
+                      <div className="table-ribbon">Table de {activeTable}</div>
+                      <p className="eyebrow">Question {questionIndex + 1} sur {sessionState.data.totalQuestions}</p>
+                      <p className={timerStartedAt ? 'multiplication-chrono is-running' : 'multiplication-chrono'} aria-label="Chronomètre">
+                        {formatDuration(elapsedSeconds)}
+                      </p>
+                    </div>
+                    <h2 id="multiplication-question">{currentQuestion.prompt}</h2>
+                    <ProgressBar value={((questionIndex + 1) / sessionState.data.totalQuestions) * 100} />
+                    <div className="answer-grid magic-answer-grid" aria-label="Choix de réponse">
+                      {currentQuestion.options.map((option) => (
+                        <button
+                          key={option}
+                          onClick={() => answerQuestion(option)}
+                          disabled={answerState?.status === 'loading' || Boolean(answerState?.status === 'success' && answerState.data.sessionSummary)}
+                          type="button"
+                        >
+                          {option}
+                        </button>
                       ))}
-                    </ul>
+                    </div>
+                    {answerState?.status === 'success' && answerState.data.sessionSummary ? (
+                      <div className="multiplication-final-summary" aria-label="Résultat final de la table">
+                        <p className="score-pill">Score : {finalScore} / {sessionState.data.totalQuestions}</p>
+                        <p className="score-pill time-pill">Temps : {formatDuration(elapsedSeconds)}</p>
+                      </div>
+                    ) : null}
+                    {answerState?.status === 'loading' ? <p className="feedback-card">Le robot vérifie…</p> : null}
+                    {answerState?.status === 'error' ? <p className="feedback-card error">{answerState.message}</p> : null}
+                    {answerState?.status === 'success' && !answerState.data.sessionSummary ? (
+                      <div className={answerState.data.isCorrect ? 'instant-reward success' : 'instant-reward retry'}>
+                        <strong>{answerState.data.isCorrect ? 'Correct !' : answerState.data.feedbackTitle}</strong>
+                        <span>{answerState.data.isCorrect ? `⭐ +${answerState.data.earnedStars}` : answerState.data.feedbackMessage}</span>
+                      </div>
+                    ) : null}
+                  </div>
+                  <div className="table-progress-strip" aria-label={`Avancement de la table de ${activeTable}`}>
+                    {MULTIPLICATION_REVIEW_FACTORS.map((factor) => {
+                      const factClass = getTableFactClass(factor);
+                      const showResult = factClass === 'mastered';
+                      return (
+                        <span className={factClass} key={factor}>
+                          <strong>{activeTable}×{factor}</strong>
+                          {showResult ? <small>= {activeTable * factor}</small> : null}
+                        </span>
+                      );
+                    })}
                   </div>
                 </div>
-              ) : null}
-              <button className="listen-button" type="button">🔊 Écouter la question</button>
-            </div>
+              </div>
+            </section>
           </section>
 
           <section className="multiplication-history-card" aria-labelledby="multiplication-history-title">
             <div className="section-heading compact">
-              <p className="eyebrow">Carnet de progrès</p>
-              <h2 id="multiplication-history-title">Historique des tables réalisées</h2>
-              <p>Retrouve tes tables terminées, tes réponses justes, celles à revoir et ton score.</p>
+              <h2 id="multiplication-history-title">Historique des tables que tu as réalisées</h2>
             </div>
             <div className="multiplication-history-table-wrap">
-              <table aria-label="Historique des tables réalisées" className="multiplication-history-table">
+              <table aria-label="Historique des tables que tu as réalisées" className="multiplication-history-table activity-history-table">
                 <thead>
                   <tr>
                     <th scope="col">Élève</th>
@@ -3026,7 +3026,7 @@ function MultiplicationView({
                       <td><span className="history-date-time">{formatHistoryDateTime(record.completedAtIso)}</span></td>
                       <td><span className="history-pill success">{record.correctCount} justes</span></td>
                       <td><span className="history-pill retry">{record.wrongCount} {record.wrongCount > 1 ? 'fausses' : 'fausse'}</span></td>
-                      <td><strong>{record.score} / {record.totalQuestions}</strong></td>
+                      <td>{record.score} / {record.totalQuestions}</td>
                       <td><span className="history-pill time">{formatDuration(record.durationSeconds)}</span></td>
                       <td>
                         <div className="history-fact-list" aria-label={`Détail de la table de ${record.table}`}>
@@ -3495,15 +3495,22 @@ function DictationView({
   }
 
   return (
-    <main className="child-main">
-      <ChildTopBar dashboard={dashboard} title="Dictée magique" />
+    <main className="child-main dictation-redesign-page">
+      <header className="poetry-page-hero dictation-page-hero" aria-labelledby="dictation-page-title">
+        <img src={dictationPageIllustrationUrl} alt="Illustration dictée" />
+        <h1 id="dictation-page-title">Dictée</h1>
+      </header>
       {sessionState.status === 'loading' ? <div className="state-card">Préparation de la dictée…</div> : null}
       {sessionState.status === 'error' ? <div className="state-card error">{sessionState.message}</div> : null}
       {sessionState.status === 'success' ? (
         <>
           <section className="language-card dictation-card word-dictation-card" aria-label="Préparation de la dictée magique">
+              <div className="dictation-preparation-block">
               <div className="dictation-preparation-stack">
-                <div className="dictation-entry-heading">Saisis tes mots (séparateurs virgule)</div>
+                <div className="dictation-entry-heading">
+                  <span>Saisis tes mots</span>
+                  <small>Séparateur virgule</small>
+                </div>
                 <div className="dictation-entry-grid">
                   <label className="answer-field dictation-entry-card">
                     <span>Nom, adjectifs …</span>
@@ -3516,7 +3523,7 @@ function DictationView({
                         setPendingUnknownWords([]);
                         setGeneratedTextState(null);
                       }}
-                      rows={3}
+                      rows={2}
                     />
                   </label>
                   <label className="answer-field dictation-entry-card">
@@ -3528,7 +3535,7 @@ function DictationView({
                         setVerbSeries(event.target.value);
                         setGeneratedTextState(null);
                       }}
-                      rows={3}
+                      rows={2}
                     />
                   </label>
                 </div>
@@ -3581,14 +3588,17 @@ function DictationView({
                           onChange={() => toggleVerbTense(option.value)}
                           type="checkbox"
                         />
-                        <span><strong>{option.label}</strong><small>{option.helper}</small></span>
+                        <span><strong>{option.label}</strong></span>
                       </label>
                     ))}
                   </div>
                 </fieldset>
-                <button className="primary-action" type="button" onClick={() => void prepareWordDictationText()} disabled={generatedTextState?.status === 'loading'}>
-                  {generatedTextState?.status === 'loading' ? <>Génération en cours <LoadingDots /></> : 'Générer le texte'}
-                </button>
+                <div className="dictation-generate-row">
+                  <button className="primary-action dictation-generate-action" type="button" onClick={() => void prepareWordDictationText()} disabled={generatedTextState?.status === 'loading'}>
+                    {generatedTextState?.status === 'loading' ? <>Génération en cours <LoadingDots /></> : 'Générer le texte'}
+                  </button>
+                </div>
+                </div>
                 {generatedTextState?.status === 'loading' ? <p className="feedback-card loading-feedback">Ollama écrit puis l’app vérifie les mots <LoadingDots /></p> : null}
                 {generatedTextState?.status === 'error' ? <p className="feedback-card error">{generatedTextState.message}</p> : null}
                 {generatedTextState?.status === 'success' ? (

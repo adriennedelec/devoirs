@@ -32,15 +32,35 @@ describe('Lot 3 multiplication module UI', () => {
     await waitFor(() => {
       expect(screen.getByRole('region', { name: /choisis une table/i })).toBeInTheDocument();
     });
+    expect(screen.getByRole('img', { name: /illustration multiplication/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /choisis ta table/i })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: /choix de table et question de multiplication/i })).toHaveClass('multiplication-main-grid');
+    expect(screen.queryByRole('button', { name: /écouter la question/i })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /table de 7/i })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.queryByRole('button', { name: /table de 12/i })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /bibliothèque des tables de 11 à 20/i }));
+    const libraryMenu = screen.getByRole('menu', { name: /tables de 11 à 20/i });
+    expect(within(libraryMenu).getByRole('menuitem', { name: /12\s*table de 12/i })).toBeInTheDocument();
+    await user.click(within(libraryMenu).getByRole('menuitem', { name: /table de 12/i }));
+    expect(await screen.findByRole('heading', { name: /12 × 8 = \?/i })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /table de 7/i }));
+    expect(await screen.findByRole('heading', { name: /7 × 8 = \?/i })).toBeInTheDocument();
     const navigation = screen.getByRole('navigation', { name: /navigation enfant/i });
     expect(navigation).toBeInTheDocument();
     expect(navigation).toHaveClass('child-side-nav');
     expect(within(navigation).getByRole('button', { name: /tables/i })).toHaveAttribute('aria-current', 'page');
-    expect(screen.getByText(/entraîne-toi et deviens un champion/i)).toBeInTheDocument();
-    expect(screen.getByText(/réussis 9 calculs/i)).toBeInTheDocument();
+    expect(screen.queryByText(/objectif du jour/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/réussis 9 calculs/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/série actuelle/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/niveau joueur/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/réponds à la question/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/aide/i)).not.toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /7 × 8 = \?/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '56' })).toBeInTheDocument();
+    expect(screen.getByLabelText(/chronomètre/i)).toHaveTextContent('00:00');
+    const progressStrip = screen.getByLabelText(/avancement de la table de 7/i);
+    expect(within(progressStrip).getByText('7×8')).toBeInTheDocument();
+    expect(within(progressStrip).queryByText('= 56')).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/8 fois 7/i)).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: '56' }));
@@ -49,6 +69,7 @@ describe('Lot 3 multiplication module UI', () => {
       expect(screen.getByText(/question 2 sur 9/i)).toBeInTheDocument();
     });
     expect(screen.getByRole('heading', { name: /7 × 6 = \?/i })).toBeInTheDocument();
+    expect(within(screen.getByLabelText(/avancement de la table de 7/i)).getByText('= 56')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /question suivante/i })).not.toBeInTheDocument();
   });
 
@@ -104,7 +125,11 @@ describe('Lot 3 multiplication module UI', () => {
     await waitFor(() => {
       expect(screen.getByText(/score : 9 \/ 9/i)).toBeInTheDocument();
     });
-    const firstHistory = screen.getByRole('table', { name: /historique des tables réalisées/i });
+    const firstHistory = screen.getByRole('table', { name: /historique des tables que tu as réalisées/i });
+    expect(screen.queryByText(/carnet de progrès/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/retrouve tes tables/i)).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /historique des tables que tu as réalisées/i })).toBeInTheDocument();
+    expect(firstHistory).toHaveClass('activity-history-table');
     expect(within(firstHistory).getByText('Emma')).toBeInTheDocument();
     expect(within(firstHistory).getByText('Table de 7')).toBeInTheDocument();
 
@@ -133,7 +158,7 @@ describe('Lot 3 multiplication module UI', () => {
     await user.click(within(navigation).getByRole('button', { name: /tables/i }));
 
     await waitFor(() => {
-      const reopenedHistory = screen.getByRole('table', { name: /historique des tables réalisées/i });
+      const reopenedHistory = screen.getByRole('table', { name: /historique des tables que tu as réalisées/i });
       expect(within(reopenedHistory).getByText('Emma')).toBeInTheDocument();
       expect(within(reopenedHistory).getByText('Table de 7')).toBeInTheDocument();
     });
@@ -202,7 +227,7 @@ describe('Lot 3 multiplication module UI', () => {
     const navigation = screen.getByRole('navigation', { name: /navigation enfant/i });
     await user.click(within(navigation).getByRole('button', { name: /tables/i }));
 
-    const history = await screen.findByRole('table', { name: /historique des tables réalisées/i });
+    const history = await screen.findByRole('table', { name: /historique des tables que tu as réalisées/i });
     expect(within(history).getByText('Enora')).toBeInTheDocument();
     expect(within(history).getByText('Table de 7')).toBeInTheDocument();
     expect(within(history).queryByText('Louane')).not.toBeInTheDocument();
@@ -261,6 +286,13 @@ describe('Lot 3 multiplication module UI', () => {
     await waitFor(() => {
       expect(screen.getByText(/score : 9 \/ 9/i)).toBeInTheDocument();
     });
+    expect(screen.getByText(/temps : \d{2}:\d{2}/i)).toBeInTheDocument();
+    const finalResult = screen.getByLabelText(/résultat final de la table/i);
+    expect(finalResult).not.toHaveClass('feedback-card');
+    expect(finalResult).not.toHaveClass('success');
+    expect(screen.queryByText(/série terminée/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/table complète de 7/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/table complète avec erreurs/i)).not.toBeInTheDocument();
 
     const storedActivities = JSON.parse(window.localStorage.getItem('devoirs.activityRecords.v1') ?? '[]');
     expect(storedActivities).toHaveLength(1);
@@ -295,6 +327,8 @@ describe('Lot 3 multiplication module UI', () => {
     expect(css).toContain('max-width: none;');
     expect(css).toMatch(/\.math-magic-header[\s\S]*?width: 100%;[\s\S]*?max-width: none;/);
     expect(css).toMatch(/\.magic-exercise-card[\s\S]*?width: 100%;[\s\S]*?max-width: none;/);
+    expect(css).toContain('.multiplication-history-table.activity-history-table');
+    expect(css).toMatch(/\.multiplication-history-table\.activity-history-table,[\s\S]*?\.multiplication-history-table\.activity-history-table \.history-fact \{[\s\S]*?font-weight: 400;/);
   });
 
   it('uses one continuous magical background and a denser multiplication layout', () => {
