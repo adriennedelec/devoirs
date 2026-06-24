@@ -1,6 +1,7 @@
 export type DictationMode = 'word_dictation' | 'classic_dictation';
 
 export type VerbTense = 'present' | 'imparfait' | 'passe_compose' | 'futur';
+export type WordDictationTextLength = 'S' | 'M' | 'L' | 'XL';
 
 export type VerbTenseOption = {
   value: VerbTense;
@@ -29,6 +30,7 @@ export type WordDictationTextRequest = {
   words: string[];
   verbTenses: VerbTense[];
   verbs?: string[];
+  textLength?: WordDictationTextLength;
   confirmedUnknownWords?: string[];
   generationProvider?: WordDictationGenerationProvider;
   prompt?: string;
@@ -46,6 +48,7 @@ export type WordDictationTextResult = {
   isHiddenByDefault: boolean;
   wordChecklist: string[];
   selectedVerbTenses: VerbTense[];
+  selectedTextLength: WordDictationTextLength;
   generationProvider: WordDictationGenerationProvider;
   readingInstruction: string;
   controlResult: WordDictationControlResult;

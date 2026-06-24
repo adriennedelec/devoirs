@@ -11,6 +11,7 @@ import type {
   PoetryRecitalResult,
   PoetrySession,
   VerbTense,
+  WordDictationTextLength,
   WordDictationOcrResult,
   WordDictationTextResult,
 } from './types/language';
@@ -30,13 +31,14 @@ import {
   getPoetryLibraryTexts,
   getPoetrySession,
   getReadingSession,
+  buildGeneratedReadingSession,
   dictationVerbTenseOptions,
+  evaluateReadingAnswers,
   extractWordDictationWordsFromOcr,
   generateWordDictationText,
   submitDictationAnswer,
   submitMultiplicationAnswer,
   submitPoetryRecital,
-  submitReadingAnswers,
   getDefaultOllamaDictationPromptTemplate,
 } from './services/childService';
 import {
@@ -64,6 +66,7 @@ import './styles/tokens.css';
 import './styles/base.css';
 import './styles/child-app.css';
 import poetryPageIllustrationUrl from './assets/page-illustrations/poesie-corbeau-renard.png';
+import readingPageIllustrationUrl from './assets/page-illustrations/illustration-lecture.png';
 import dictationPageIllustrationUrl from './assets/page-illustrations/illustration-dictee.png';
 import multiplicationPageIllustrationUrl from './assets/page-illustrations/illustration-multiplication.png';
 
@@ -178,6 +181,21 @@ type ProfileActivityData = {
   historyRows: FamilyActivityHistoryRow[];
   earnedStarsByProfile: Record<string, number>;
   hasStoredActivities: boolean;
+};
+
+type LearningProgressGauge = {
+  id: string;
+  label: string;
+  value: number;
+  max: number;
+  helper: string;
+};
+
+type LearningProgressSubjectGroup = {
+  id: string;
+  title: string;
+  gauge: LearningProgressGauge;
+  children: LearningProgressGauge[];
 };
 
 type HistorySortKey = 'profile' | 'activity' | 'subject' | 'date' | 'result';
@@ -460,6 +478,84 @@ const SCHOOL_LEVEL_OPTIONS = ['CP', 'CE1', 'CE2', 'CM1', 'CM2', '6e', '5e', '4e'
 const MAX_HISTORY_BY_PROFILE = 120;
 const MULTIPLICATION_REVIEW_FACTORS = [2, 3, 4, 5, 6, 7, 8, 9, 10];
 const dictationWordTokenRegex = /[A-Za-zÀ-ÖØ-öø-ÿ0-9'-]+/g;
+
+const DICTATION_AUTO_MIN_COUNT = 1;
+const DICTATION_AUTO_MAX_COUNT = 24;
+const DICTATION_AUTO_DEFAULT_WORD_COUNT = 8;
+const DICTATION_AUTO_DEFAULT_VERB_COUNT = 5;
+const DICTATION_TEXT_LENGTH_OPTIONS: Array<{ value: WordDictationTextLength; label: string; helper: string }> = [
+  { value: 'S', label: 'S', helper: '35-55 mots' },
+  { value: 'M', label: 'M', helper: '55-85 mots' },
+  { value: 'L', label: 'L', helper: '85-120 mots' },
+  { value: 'XL', label: 'XL', helper: '120-180 mots' },
+];
+const DICTATION_AUTO_NOUN_POOL = [
+  'dragon', 'cartable', 'baignoire', 'rivière', 'forêt', 'montagne', 'étoile', 'jardin',
+  'château', 'nuage', 'sourire', 'secret', 'courage', 'voyage', 'cabane', 'lanterne',
+  'chemin', 'crayon', 'maison', 'histoire', 'fenêtre', 'pirate', 'robot', 'trésor',
+];
+const DICTATION_AUTO_ADJECTIVE_POOL = [
+  'magique', 'joli', 'grand', 'petit', 'rapide', 'calme', 'brillant', 'joyeux',
+  'curieux', 'silencieux', 'doré', 'bleu', 'facile', 'difficile', 'courageux', 'léger',
+];
+const DICTATION_AUTO_OTHER_POOL = [
+  'doucement', 'souvent', 'toujours', 'hier', 'demain', 'maintenant', 'près', 'loin',
+  'ensemble', 'vite', 'ici', 'ailleurs',
+];
+const DICTATION_AUTO_VERB_POOL = [
+  'manger', 'dormir', 'courir', 'jouer', 'lire', 'écrire', 'chanter', 'sauter',
+  'chercher', 'trouver', 'regarder', 'écouter', 'ranger', 'ouvrir', 'fermer', 'préparer',
+  'dessiner', 'marcher', 'apprendre', 'répondre', 'découvrir', 'se couvrir', 'grandir', 'choisir',
+];
+function clampDictationAutoCount(value: number) {
+  if (!Number.isFinite(value)) return DICTATION_AUTO_MIN_COUNT;
+  return Math.min(DICTATION_AUTO_MAX_COUNT, Math.max(DICTATION_AUTO_MIN_COUNT, Math.floor(value)));
+}
+
+function parseDictationAutoCountInput(value: string | number) {
+  if (typeof value === 'number') return clampDictationAutoCount(value);
+  if (value.trim() === '') return DICTATION_AUTO_MIN_COUNT;
+  return clampDictationAutoCount(Number(value));
+}
+
+function stepDictationAutoCountInput(value: string | number, delta: number) {
+  const startingCount = typeof value === 'string' && value.trim() === ''
+    ? DICTATION_AUTO_MIN_COUNT
+    : parseDictationAutoCountInput(value);
+  return clampDictationAutoCount(startingCount + delta);
+}
+
+function takeDictationPoolItems(pool: string[], count: number) {
+  return Array.from({ length: count }, (_, index) => pool[index % pool.length]);
+}
+
+function getAutoWordDistribution(count: number) {
+  const safeCount = clampDictationAutoCount(count);
+  if (safeCount === 1) return { nouns: 1, adjectives: 0, other: 0 };
+  if (safeCount === 2) return { nouns: 1, adjectives: 1, other: 0 };
+
+  const other = Math.max(1, Math.round(safeCount * 0.1));
+  const adjectives = Math.max(1, Math.round(safeCount * 0.3));
+  return {
+    nouns: Math.max(1, safeCount - adjectives - other),
+    adjectives,
+    other,
+  };
+}
+
+function buildAutoDictationWordList(count: number) {
+  const distribution = getAutoWordDistribution(count);
+  return [
+    ...takeDictationPoolItems(DICTATION_AUTO_NOUN_POOL, distribution.nouns),
+    ...takeDictationPoolItems(DICTATION_AUTO_ADJECTIVE_POOL, distribution.adjectives),
+    ...takeDictationPoolItems(DICTATION_AUTO_OTHER_POOL, distribution.other),
+  ];
+}
+
+function buildAutoDictationList(pool: string[], count: number) {
+  const safeCount = clampDictationAutoCount(count);
+  return takeDictationPoolItems(pool, safeCount);
+}
 
 function extractDictationWords(text: string) {
   return Array.from(text.matchAll(dictationWordTokenRegex), (match) => match[0]);
@@ -1833,6 +1929,194 @@ function routeForSubject(subject: string): ChildPage {
   return 'path';
 }
 
+function normalizeProgressName(value: string) {
+  return value.trim().toLocaleLowerCase('fr-FR').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
+function isActivityForProfile(record: ActivityRecord, activeProfile: ChildProfileConfig, dashboard: ChildDashboard) {
+  const profileNames = [activeProfile.name, dashboard.child.firstName]
+    .filter(Boolean)
+    .map((name) => normalizeProgressName(name));
+  return record.profileId === activeProfile.id || profileNames.includes(normalizeProgressName(record.profileName));
+}
+
+function getMultiplicationTableFromActivity(record: ActivityRecord) {
+  const detailsTable = record.details.table;
+  if (typeof detailsTable === 'number' && Number.isFinite(detailsTable)) return detailsTable;
+  const labelMatch = record.exerciseLabel.match(/table\s+de\s+(\d+)/i);
+  return labelMatch ? Number(labelMatch[1]) : null;
+}
+
+function countMasteredMultiplicationFacts(record: ActivityRecord) {
+  const detailsFacts = record.details.facts;
+  if (Array.isArray(detailsFacts)) {
+    return detailsFacts.filter((fact) => {
+      return typeof fact === 'object' && fact !== null && 'status' in fact && fact.status === 'mastered';
+    }).length;
+  }
+  return record.correctCount;
+}
+
+function isPerfectMultiplicationAttempt(record: ActivityRecord) {
+  return record.module === 'multiplication' && record.totalQuestions > 0 && record.correctCount >= record.totalQuestions;
+}
+
+function buildLearningProgressGauges(dashboard: ChildDashboard, activeProfile: ChildProfileConfig) {
+  const records = readActivityRecordsFromStorage().filter((record) => isActivityForProfile(record, activeProfile, dashboard));
+  const subjectTotals = new Map<string, { correct: number; exercises: number }>([
+    ['Mathématiques', { correct: 0, exercises: 0 }],
+    ['Français', { correct: 0, exercises: 0 }],
+  ]);
+  const frenchExerciseTotals = new Map<StoredActivityModule, { correct: number; exercises: number }>([
+    ['reading', { correct: 0, exercises: 0 }],
+    ['dictation', { correct: 0, exercises: 0 }],
+    ['poetry', { correct: 0, exercises: 0 }],
+  ]);
+
+  records.forEach((record) => {
+    const label = record.module === 'multiplication' ? 'Mathématiques' : 'Français';
+    const current = subjectTotals.get(label) ?? { correct: 0, exercises: 0 };
+    current.correct += record.module === 'multiplication' ? (isPerfectMultiplicationAttempt(record) ? 1 : 0) : record.correctCount;
+    current.exercises += 1;
+    subjectTotals.set(label, current);
+
+    if (record.module !== 'multiplication') {
+      const exerciseTotal = frenchExerciseTotals.get(record.module) ?? { correct: 0, exercises: 0 };
+      exerciseTotal.correct += record.correctCount;
+      exerciseTotal.exercises += 1;
+      frenchExerciseTotals.set(record.module, exerciseTotal);
+    }
+  });
+
+  const createSubjectGauge = (label: 'Mathématiques' | 'Français'): LearningProgressGauge => {
+    const total = subjectTotals.get(label) ?? { correct: 0, exercises: 0 };
+    const max = label === 'Mathématiques' ? 10000 : 10;
+    const value = Math.min(max, total.correct);
+    return {
+      id: `subject-${label}`,
+      label,
+      value,
+      max,
+      helper: '',
+    };
+  };
+
+  const createFrenchExerciseGauge = (module: StoredActivityModule, label: string): LearningProgressGauge => {
+    const total = frenchExerciseTotals.get(module) ?? { correct: 0, exercises: 0 };
+    const value = Math.min(10, total.correct);
+    return {
+      id: `french-${module}`,
+      label,
+      value,
+      max: 10,
+      helper: total.exercises > 0 ? `${total.exercises} exercice(s) enregistré(s)` : 'Aucun exercice terminé pour le moment',
+    };
+  };
+
+  const multiplicationGauges: LearningProgressGauge[] = Array.from({ length: 9 }, (_, index) => index + 2).map((table) => {
+    const tableRecords = records.filter((record) => record.module === 'multiplication' && getMultiplicationTableFromActivity(record) === table);
+    const perfectAttempts = tableRecords.filter(isPerfectMultiplicationAttempt).length;
+    const value = Math.min(10, perfectAttempts);
+    return {
+      id: `multiplication-table-${table}`,
+      label: `Table de ${table}`,
+      value,
+      max: 10,
+      helper: `${value} tentative(s) tout juste sur 10`,
+    };
+  });
+
+  const subjectGroups: LearningProgressSubjectGroup[] = [
+    {
+      id: 'mathematics',
+      title: 'Mathématiques',
+      gauge: createSubjectGauge('Mathématiques'),
+      children: multiplicationGauges,
+    },
+    {
+      id: 'french',
+      title: 'Français',
+      gauge: createSubjectGauge('Français'),
+      children: [
+        createFrenchExerciseGauge('reading', 'Lecture'),
+        createFrenchExerciseGauge('dictation', 'Dictée'),
+        createFrenchExerciseGauge('poetry', 'Poésie'),
+      ],
+    },
+  ];
+
+  return { subjectGroups };
+}
+
+function LearningGauge({ gauge, variant = 'default' }: { gauge: LearningProgressGauge; variant?: 'default' | 'subject-summary' | 'table-compact' }) {
+  const percent = gauge.max > 0 ? (gauge.value / gauge.max) * 100 : 0;
+  const tableMatch = gauge.label.match(/Table de (\d+)/i);
+  const displayLabel = variant === 'table-compact' && tableMatch ? `${tableMatch[1]}x` : gauge.label;
+  const isMathSubjectScale = variant === 'subject-summary' && gauge.max === 10000;
+  const starMilestones = [
+    { threshold: 10, valueLabel: '10', rewardLabel: '1 étoile', icons: '★' },
+    { threshold: 100, valueLabel: '100', rewardLabel: '10 étoiles', icons: '★★' },
+    { threshold: 1000, valueLabel: '1000', rewardLabel: '50 étoiles', icons: '★★★' },
+    { threshold: 10000, valueLabel: '10.000', rewardLabel: '100 étoiles', icons: '★★★★' },
+  ];
+  return (
+    <article className={`learning-gauge-card learning-gauge-card--${variant}`}>
+      <div className="learning-gauge-card-header">
+        <h3>{displayLabel}</h3>
+        <strong>{gauge.value} / {gauge.max}</strong>
+      </div>
+      <div
+        className="learning-gauge-track"
+        role="meter"
+        aria-label={`${gauge.label} — progression ${gauge.value} sur ${gauge.max}`}
+        aria-valuemin={0}
+        aria-valuemax={gauge.max}
+        aria-valuenow={gauge.value}
+      >
+        <span style={{ width: `${Math.min(100, Math.max(0, percent))}%` }} />
+      </div>
+      {variant === 'table-compact' ? (
+        <div className="learning-table-scale" aria-hidden="true">
+          <span>0</span>
+          <span>5</span>
+          <span>10</span>
+        </div>
+      ) : null}
+      {isMathSubjectScale ? (
+        <div className="learning-star-scale" aria-hidden="true">
+          {starMilestones.map((milestone) => (
+            <span className={gauge.value >= milestone.threshold ? 'is-active' : undefined} key={milestone.threshold}>
+              <strong>{milestone.valueLabel}</strong>
+              <em>{milestone.rewardLabel}</em>
+              <i>{milestone.icons}</i>
+            </span>
+          ))}
+        </div>
+      ) : null}
+      {gauge.helper ? <p>{gauge.helper}</p> : null}
+    </article>
+  );
+}
+
+function LearningSubjectGroup({ group }: { group: LearningProgressSubjectGroup }) {
+  const titleId = `learning-subject-${group.id}`;
+
+  return (
+    <section className="learning-subject-card" aria-labelledby={titleId}>
+      <div className="learning-subject-card-main">
+        <h3 id={titleId}>{group.title}</h3>
+        <LearningGauge gauge={group.gauge} variant="subject-summary" />
+      </div>
+      <div className="learning-subsection">
+        <h4>{group.id === 'mathematics' ? 'Tables de multiplication' : 'Exercices de français'}</h4>
+        <div className="learning-subgauge-grid" aria-label={group.id === 'mathematics' ? 'Tables de multiplication — sous-parties de Mathématiques' : 'Lecture, Dictée et Poésie — sous-parties de Français'}>
+          {group.children.map((gauge) => <LearningGauge key={gauge.id} gauge={gauge} variant={group.id === 'mathematics' ? 'table-compact' : 'default'} />)}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function HomeView({ dashboard, onNavigate }: { dashboard: ChildDashboard; onNavigate: (page: ChildPage) => void }) {
   return (
     <main className="child-main">
@@ -1908,58 +2192,68 @@ function HomeView({ dashboard, onNavigate }: { dashboard: ChildDashboard; onNavi
   );
 }
 
-function LearningPathView({ dashboard }: { dashboard: ChildDashboard }) {
+function LearningPathView({ dashboard, activeProfile }: { dashboard: ChildDashboard; activeProfile: ChildProfileConfig }) {
+  const { subjectGroups } = buildLearningProgressGauges(dashboard, activeProfile);
+
   return (
     <main className="child-main">
       <ChildTopBar dashboard={dashboard} title="Mon parcours" />
-      <section className="page-card path-hero">
-        <p className="eyebrow">Aventure pédagogique</p>
-        <h2>Chaque étape te rapproche de la réussite !</h2>
-        <p>Avance monde après monde. Les étapes complétées débloquent de nouveaux badges adaptés à ton niveau.</p>
-        <ProgressBar value={dashboard.progress.percent} />
-      </section>
-      <section className="path-grid world-map" aria-label="Mondes du parcours">
-        {dashboard.learningWorlds.map((world, index) => (
-          <article className={`path-step ${world.status}`} key={world.id}>
-            <span className="step-number">{index + 1}</span>
-            <span className="step-icon" aria-hidden="true">{world.icon}</span>
-            <h3>{world.title}</h3>
-            <p>{world.description}</p>
-            <strong>{world.status === 'locked' ? 'À débloquer' : `${world.unlockedBadges} badge(s)`}</strong>
-            <ProgressBar value={world.progressPercent} />
-          </article>
-        ))}
+      <section className="page-card learning-progress-panel" aria-labelledby="learning-progress-title">
+        <div className="section-heading">
+          <h2 id="learning-progress-title">Progression de {dashboard.child.firstName}</h2>
+        </div>
+        <div className="learning-subject-stack" aria-label="Suivi par matière et sous-parties">
+          {subjectGroups.map((group) => <LearningSubjectGroup key={group.id} group={group} />)}
+        </div>
       </section>
     </main>
   );
 }
 
-function RewardsView({ dashboard }: { dashboard: ChildDashboard }) {
+const REWARD_MENU_SECTIONS = [
+  { id: 'profile-photos', title: 'Photo de profils', icon: '📸', helper: 'Choisis une nouvelle photo pour ton avatar.' },
+  { id: 'clothes-accessories', title: 'Vêtements et accessoires', icon: '👕', helper: 'Ajoute des tenues et des petits objets magiques.' },
+  { id: 'places', title: 'Lieux', icon: '🏰', helper: 'Débloque des décors pour ton aventure.' },
+];
+
+function RewardsView({ dashboard, activeProfile }: { dashboard: ChildDashboard; activeProfile: ChildProfileConfig }) {
+  const stars = activeProfile.stars ?? dashboard.child.stars;
+
   return (
-    <main className="child-main">
+    <main className="child-main rewards-page-main">
       <ChildTopBar dashboard={dashboard} title="Mes récompenses" />
-      <section className="page-card rewards-hero">
-        <p className="eyebrow">Niveau {dashboard.child.level}</p>
-        <h2>{dashboard.child.title}</h2>
-        <p>Boutique magique : continue tes missions pour débloquer badges, accessoires et surprises.</p>
-        <ProgressBar value={68} />
+      <section className="rewards-avatar-stage" aria-label="Avatar et étoiles">
+        <div className="rewards-stars-block" aria-label={`${stars} étoiles disponibles`}>
+          <Star size={22} aria-hidden="true" />
+          <span>{stars}</span>
+          <strong>étoiles</strong>
+        </div>
+        <div className="rewards-full-avatar" aria-label={`Avatar de ${activeProfile.name} de plein pied`}>
+          <div className="rewards-avatar-character" aria-hidden="true">
+            <div className="rewards-avatar-head">
+              {activeProfile.avatarPhotoUrl ? (
+                <img src={activeProfile.avatarPhotoUrl} alt="" />
+              ) : (
+                <span>{activeProfile.avatarEmoji || dashboard.child.avatarEmoji}</span>
+              )}
+            </div>
+            <div className="rewards-avatar-body" />
+            <div className="rewards-avatar-feet">
+              <span />
+              <span />
+            </div>
+          </div>
+        </div>
+        <h2>{activeProfile.name}</h2>
       </section>
-      <section className="reward-grid" aria-label="Boutique magique">
-        {dashboard.rewardShelf.map((reward) => (
-          <article className={`reward-card ${reward.status}`} key={reward.id}>
-            <span aria-hidden="true">{reward.icon}</span>
-            <h3>{reward.title}</h3>
-            <p>{reward.description}</p>
-            <strong>{reward.status === 'locked' ? 'Verrouillé' : 'Débloqué'} · {reward.costStars} ⭐</strong>
-          </article>
-        ))}
-      </section>
-      <section className="card-panel reward-history" aria-label="Historique des étoiles">
-        <p className="eyebrow">Historique récent</p>
-        {dashboard.rewardHistory.map((event) => (
-          <article key={event.id}>
-            <strong>{event.title}</strong>
-            <p>{event.description}</p>
+      <section className="reward-menu-sections" aria-label="Rubriques de récompenses">
+        {REWARD_MENU_SECTIONS.map((section) => (
+          <article className="reward-menu-card" key={section.id}>
+            <span className="reward-menu-card-icon" aria-hidden="true">{section.icon}</span>
+            <div>
+              <h3>{section.title}</h3>
+              <p>{section.helper}</p>
+            </div>
           </article>
         ))}
       </section>
@@ -1976,6 +2270,8 @@ type ReadingGenerationFields = {
   place: string;
   size: ReadingTextSize;
 };
+
+type ReadingChoiceFieldKey = 'character' | 'animal' | 'object' | 'place';
 
 type ReadingAnalysisToken = {
   expected: string;
@@ -2002,18 +2298,40 @@ const READING_SIZE_OPTIONS: Array<{ value: ReadingTextSize; label: string; wordR
   { value: 'XXL', label: 'XXL', wordRange: '1200 à 1800 mots' },
 ];
 
+const READING_GENERATION_CHOICES: Record<ReadingChoiceFieldKey, string[]> = {
+  character: ['Lina', 'Noé', 'Zoé l’inventrice', 'Milo le magicien', 'Inès l’exploratrice', 'Tom le détective', 'Lila la pirate', 'Sami le pilote', 'Jade la gardienne', 'Hugo le rêveur'],
+  animal: ['renard', 'dragon miniature', 'chouette savante', 'chat astronaute', 'panda ninja', 'dauphin farceur', 'loup gentil', 'phénix doré', 'tortue rapide', 'écureuil détective'],
+  object: ['clé dorée', 'carte au trésor', 'boussole magique', 'carnet secret', 'skateboard volant', 'lampe à étoiles', 'montre à remonter le temps', 'potion arc-en-ciel', 'stylo invisible', 'sac à malices'],
+  place: ['forêt', 'bibliothèque volante', 'château nuage', 'île aux énigmes', 'musée des dinosaures', 'école des sorciers', 'station lunaire', 'cabane dans les arbres', 'grotte lumineuse', 'village sous-marin'],
+};
+
 const DEFAULT_READING_PROMPT_TEMPLATE = `Tu es un enseignant de lecture pour un enfant de primaire.\n\nÉcris une histoire courte, fluide et bien ponctuée pour entraîner la lecture à voix haute.\n\nContraintes obligatoires :\n- Personnage : {{personnage}}\n- Animal : {{animal}}\n- Objet : {{objet}}\n- Lieu : {{lieu}}\n- Taille : {{taille}}\n\nRègles :\n1. Utilise un vocabulaire simple et naturel.\n2. Fais une seule histoire complète, sans titre, sans liste et sans commentaire.\n3. Évite les phrases trop longues.\n4. Réponds uniquement avec le texte de l'histoire.`;
 
 function getReadingSizeRange(size: ReadingTextSize) {
   return READING_SIZE_OPTIONS.find((option) => option.value === size)?.wordRange ?? '90 à 150 mots';
 }
 
+function parseReadingChoiceValue(value: string) {
+  return value.split(',').map((item) => item.trim()).filter(Boolean).slice(0, 2);
+}
+
+function serializeReadingChoiceValue(values: string[]) {
+  return values.map((item) => item.trim()).filter(Boolean).slice(0, 2).join(', ');
+}
+
+function formatReadingPromptChoice(value: string, fallback: string) {
+  const values = parseReadingChoiceValue(value);
+  if (values.length === 0) return fallback;
+  if (values.length === 1) return values[0];
+  return `${values[0]} et ${values[1]}`;
+}
+
 function buildReadingPromptFromTemplate(template: string, fields: ReadingGenerationFields) {
   const replacements = {
-    personnage: fields.character.trim() || 'un enfant',
-    animal: fields.animal.trim() || 'un animal',
-    objet: fields.object.trim() || 'un objet',
-    lieu: fields.place.trim() || 'un lieu',
+    personnage: formatReadingPromptChoice(fields.character, 'un enfant'),
+    animal: formatReadingPromptChoice(fields.animal, 'un animal'),
+    objet: formatReadingPromptChoice(fields.object, 'un objet'),
+    lieu: formatReadingPromptChoice(fields.place, 'un lieu'),
     taille: `${fields.size} (${getReadingSizeRange(fields.size)})`,
   };
 
@@ -2217,9 +2535,10 @@ function ReadingView({
     place: 'forêt',
     size: 'S',
   });
-  const [readingPrompt, setReadingPrompt] = useSessionStorageState(`${exerciseDraftKey}.prompt`, DEFAULT_READING_PROMPT_TEMPLATE);
+  const [readingPrompt] = useSessionStorageState(`${exerciseDraftKey}.prompt`, DEFAULT_READING_PROMPT_TEMPLATE);
   const [generatedStoryState, setGeneratedStoryState] = useSessionStorageState<ApiState<string> | null>(`${exerciseDraftKey}.generatedStory`, null);
   const [isReadingRecording, setIsReadingRecording] = useState(false);
+  const [hasReadingRecordingStarted, setHasReadingRecordingStarted] = useState(false);
   const [recordingStartedAt, setRecordingStartedAt] = useState<number | null>(null);
   const [recordingElapsedSeconds, setRecordingElapsedSeconds] = useSessionStorageState(`${exerciseDraftKey}.recordingElapsedSeconds`, 0);
   const [recordedTranscript, setRecordedTranscriptState] = useSessionStorageState(`${exerciseDraftKey}.recordedTranscript`, '');
@@ -2228,6 +2547,7 @@ function ReadingView({
   const recordingIntervalRef = useRef<number | null>(null);
   const readingRecognitionRef = useRef<{ start: () => void; stop: () => void; abort?: () => void; onresult?: ((event: unknown) => void) | null; onerror?: ((event: unknown) => void) | null; onend?: (() => void) | null } | null>(null);
   const recordedTranscriptRef = useRef(recordedTranscript);
+  const readingTranscriptBaseRef = useRef(recordedTranscript.trim());
 
   const readingPromptPreview = useMemo(
     () => buildReadingPromptFromTemplate(readingPrompt.trim() || DEFAULT_READING_PROMPT_TEMPLATE, generationFields),
@@ -2339,7 +2659,53 @@ function ReadingView({
     setGenerationFields((current) => ({ ...current, [field]: value }));
   }
 
+  function addReadingChoice(field: ReadingChoiceFieldKey, value: string) {
+    if (!value) return;
+    setGenerationFields((current) => {
+      const selected = parseReadingChoiceValue(current[field]);
+      if (selected.includes(value) || selected.length >= 2) return current;
+      return { ...current, [field]: serializeReadingChoiceValue([...selected, value]) };
+    });
+  }
+
+  function removeReadingChoice(field: ReadingChoiceFieldKey, value: string) {
+    setGenerationFields((current) => ({
+      ...current,
+      [field]: serializeReadingChoiceValue(parseReadingChoiceValue(current[field]).filter((item) => item !== value)),
+    }));
+  }
+
+  function renderReadingChoiceField(field: ReadingChoiceFieldKey, label: string, selectLabel: string) {
+    const selected = parseReadingChoiceValue(generationFields[field]);
+    const availableChoices = READING_GENERATION_CHOICES[field].filter((choice) => !selected.includes(choice));
+    return (
+      <div className="reading-choice-field">
+        <span className="reading-field-title">{label}</span>
+        <select
+          aria-label={selectLabel}
+          disabled={selected.length >= 2}
+          value=""
+          onChange={(event) => addReadingChoice(field, event.target.value)}
+        >
+          <option value="">{selected.length >= 2 ? '2 choix sélectionnés' : 'Ajouter un choix'}</option>
+          {availableChoices.map((choice) => (
+            <option key={choice} value={choice}>{choice}</option>
+          ))}
+        </select>
+        <div className="reading-selected-choices" aria-label={`${label} sélectionnés`}>
+          {selected.map((choice) => (
+            <span className="reading-selected-choice" key={choice}>
+              {choice}
+              <button type="button" aria-label={`Supprimer ${choice}`} onClick={() => removeReadingChoice(field, choice)}>×</button>
+            </span>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   async function generateReadingStory() {
+    setHasReadingRecordingStarted(false);
     setGeneratedStoryState({ status: 'loading' });
     setRecordingAnalysis(null);
     setRecordedTranscript('');
@@ -2359,18 +2725,28 @@ function ReadingView({
       if (payload.error) throw new Error(payload.error);
       const text = stripReadingLlmEnvelope(payload.response ?? '');
       if (!text) throw new Error('L’IA n’a pas renvoyé de texte lisible.');
+      const generatedSession = buildGeneratedReadingSession({
+        childId: MOCK_LEARNING_SERVICE_CHILD_ID,
+        storyText: text,
+        fields: generationFields,
+      });
       setGeneratedStoryState({ status: 'success', data: text });
+      setSessionState({ status: 'success', data: generatedSession });
+      setAnswers({});
+      setResultState(null);
     } catch (error: unknown) {
       setGeneratedStoryState({ status: 'error', message: error instanceof Error ? error.message : 'Impossible de générer l’histoire.' });
     }
   }
 
-  function startReadingRecording() {
+  function startReadingRecording({ resetTranscript = true }: { resetTranscript?: boolean } = {}) {
     if (!storyText.trim()) return;
     const startedAt = Date.now();
+    setHasReadingRecordingStarted(true);
     setRecordingStartedAt(startedAt);
     setRecordingElapsedSeconds(0);
-    setRecordedTranscript('');
+    if (resetTranscript) setRecordedTranscript('');
+    readingTranscriptBaseRef.current = resetTranscript ? '' : recordedTranscriptRef.current.trim();
     setIsReadingRecording(true);
     setRecordingAnalysis(null);
     setRecordingStatusMessage('Écoute en cours… Autorise le micro puis lis le texte à voix haute.');
@@ -2392,8 +2768,9 @@ function ReadingView({
     recognition.onresult = (event: unknown) => {
       const transcript = readSpeechRecognitionTranscript(event);
       if (transcript) {
-        setRecordedTranscript(transcript);
-        setRecordingStatusMessage('Transcription reçue. Tu peux arrêter pour lancer l’analyse.');
+        const baseTranscript = readingTranscriptBaseRef.current;
+        setRecordedTranscript(baseTranscript ? `${baseTranscript} ${transcript}` : transcript);
+        setRecordingStatusMessage('Transcription reçue. Tu peux arrêter, corriger le texte ou reprendre la lecture.');
       }
     };
     recognition.onerror = () => {
@@ -2411,12 +2788,11 @@ function ReadingView({
   }
 
   function stopReadingRecording() {
-    const elapsed = stopReadingTimer();
+    stopReadingTimer();
     stopSpeechRecognition();
     const transcript = recordedTranscriptRef.current;
     if (transcript.trim()) {
-      analyzeTranscript(transcript, elapsed);
-      setRecordingStatusMessage('Analyse terminée à partir de la transcription automatique.');
+      setRecordingStatusMessage('Enregistrement arrêté. Tu peux supprimer/corriger des mots, reprendre la lecture ou analyser.');
       return;
     }
     setRecordingStatusMessage('Aucune parole transcrite. Vérifie l’autorisation micro ou colle la transcription avant analyse.');
@@ -2458,7 +2834,7 @@ function ReadingView({
     if (sessionState.status !== 'success') return;
     setResultState({ status: 'loading' });
     try {
-      const result = await submitReadingAnswers(MOCK_LEARNING_SERVICE_CHILD_ID, {
+      const result = evaluateReadingAnswers(sessionState.data, {
         sessionId: sessionState.data.id,
         answers: sessionState.data.questions.map((question) => ({ questionId: question.id, selectedOptionId: answers[question.id] ?? '' })),
       });
@@ -2492,35 +2868,25 @@ function ReadingView({
   }
 
   return (
-    <main className="child-main reading-ai-page">
-      <ChildTopBar dashboard={dashboard} title="Lecture" />
+    <main className="child-main reading-ai-page reading-redesign-page">
+      <header className="poetry-page-hero reading-page-hero" aria-labelledby="reading-page-title">
+        <img src={readingPageIllustrationUrl} alt="Illustration lecture" />
+        <h1 id="reading-page-title">Lecture</h1>
+      </header>
       {sessionState.status === 'loading' ? <div className="state-card">Préparation de la page Lecture…</div> : null}
       {sessionState.status === 'error' ? <div className="state-card error">{sessionState.message}</div> : null}
       {sessionState.status === 'success' ? (
         <>
           <section className="reading-generator-grid" aria-label="Génération IA de l’histoire">
             <article className="page-card reading-generator-card">
-              <p className="eyebrow">Bloc 1 · Préparation IA</p>
               <h2>Générer l’histoire</h2>
               <div className="reading-field-grid">
-                <label>
-                  Personnage
-                  <input value={generationFields.character} onChange={(event) => updateReadingField('character', event.target.value)} />
-                </label>
-                <label>
-                  Animal
-                  <input value={generationFields.animal} onChange={(event) => updateReadingField('animal', event.target.value)} />
-                </label>
-                <label>
-                  Objet
-                  <input value={generationFields.object} onChange={(event) => updateReadingField('object', event.target.value)} />
-                </label>
-                <label>
-                  Lieu
-                  <input value={generationFields.place} onChange={(event) => updateReadingField('place', event.target.value)} />
-                </label>
-                <label>
-                  Taille du texte
+                {renderReadingChoiceField('character', 'Personnage', 'Choisir un personnage')}
+                {renderReadingChoiceField('animal', 'Animal', 'Choisir un animal')}
+                {renderReadingChoiceField('object', 'Objet', 'Choisir un objet')}
+                {renderReadingChoiceField('place', 'Lieu', 'Choisir un lieu')}
+                <label className="reading-size-field">
+                  <span className="reading-field-title">Taille du texte</span>
                   <select value={generationFields.size} onChange={(event) => updateReadingField('size', event.target.value as ReadingTextSize)}>
                     {READING_SIZE_OPTIONS.map((option) => (
                       <option key={option.value} value={option.value}>{option.label} · {option.wordRange}</option>
@@ -2528,50 +2894,45 @@ function ReadingView({
                   </select>
                 </label>
               </div>
-              <button className="primary-action" disabled={generatedStoryState?.status === 'loading'} onClick={generateReadingStory} type="button">
+              <button className="poetry-profile-button reading-generate-button" disabled={generatedStoryState?.status === 'loading'} onClick={generateReadingStory} type="button">
                 {generatedStoryState?.status === 'loading' ? <>Génération en cours <LoadingDots /></> : 'Générer'}
               </button>
               {generatedStoryState?.status === 'error' ? <p className="feedback-card error">{generatedStoryState.message}</p> : null}
             </article>
-
-            <article className="page-card reading-prompt-card">
-              <p className="eyebrow">Bloc 2 · Prompt</p>
-              <h2>Définir le prompt</h2>
-              <label>
-                Prompt de génération Lecture
-                <textarea
-                  className="prompt-editor"
-                  rows={12}
-                  value={readingPrompt}
-                  onChange={(event) => setReadingPrompt(event.target.value)}
-                />
-              </label>
-              <details>
-                <summary>Aperçu réel envoyé à l’IA</summary>
-                <pre className="prompt-preview">{readingPromptPreview}</pre>
-              </details>
-            </article>
           </section>
 
           <section className="language-card reading-card reading-recording-card" aria-labelledby="reading-title">
-            <div className="language-mascot" aria-hidden="true">📖</div>
             <div>
-              <p className="eyebrow">Bloc 3 · Texte à lire · Mission compréhension</p>
-              <h2 id="reading-title">{storyTitle}</h2>
-              <p>{generatedStoryState?.status === 'success' ? 'Lis ce texte à voix haute. Appuie sur Démarrer pour lancer le chrono.' : sessionState.data.instruction}</p>
-              <button className="audio-button" type="button">🔊 Écouter l’histoire</button>
+              <h2 id="reading-title">Ton histoire</h2>
+              <button className="poetry-profile-button reading-action-button" type="button">🔊 Écouter l’histoire</button>
               <div className="story-lines generated-reading-story">
+                <p className="reading-story-title"><strong>{storyTitle}</strong></p>
                 {storyText.split(/\n+/).filter(Boolean).map((line, index) => <p key={`${line}-${index}`}>{line}</p>)}
               </div>
               <div className="reading-recorder-controls" role="group" aria-label="Enregistrement de lecture">
-                <button className="audio-button" disabled={isReadingRecording || !storyText.trim()} type="button" onClick={startReadingRecording}>🎙️ Démarrer l’enregistrement</button>
-                <button className="audio-button" disabled={!isReadingRecording} type="button" onClick={stopReadingRecording}>⏹️ Arrêter et analyser</button>
+                <button
+                  className={hasReadingRecordingStarted ? 'poetry-profile-button reading-action-button is-recording-started' : 'poetry-profile-button reading-action-button'}
+                  disabled={hasReadingRecordingStarted || isReadingRecording || !storyText.trim()}
+                  type="button"
+                  onClick={() => startReadingRecording()}
+                >
+                  {hasReadingRecordingStarted ? 'Enregistrement démarré' : '🎙️ Démarrer l’enregistrement'}
+                </button>
+                <button
+                  className="poetry-profile-button reading-action-button"
+                  disabled={!hasReadingRecordingStarted || !storyText.trim()}
+                  type="button"
+                  onClick={() => {
+                    if (isReadingRecording) stopReadingRecording();
+                    else startReadingRecording({ resetTranscript: false });
+                  }}
+                >
+                  {isReadingRecording || !hasReadingRecordingStarted ? 'Arrêter' : 'Redémarrer'}
+                </button>
                 <div className="timer-card inline" aria-label="Chronomètre de lecture">
                   <span aria-hidden="true">⏱️</span>
                   <div>
-                    <strong>Chronomètre</strong>
                     <p className="timer-value">{formatDuration(recordingElapsedSeconds)}</p>
-                    <small>{isReadingRecording ? 'Chrono lancé' : 'Prêt pour la lecture'}</small>
                   </div>
                 </div>
               </div>
@@ -2585,7 +2946,7 @@ function ReadingView({
                   placeholder="La transcription automatique apparaîtra ici. Pour le MVP, colle ou corrige le texte entendu avant analyse."
                 />
               </label>
-              <button className="primary-action" disabled={!storyText.trim() || recordedTranscript.trim().length === 0} type="button" onClick={() => analyzeTranscript()}>
+              <button className="poetry-profile-button reading-action-button" disabled={!storyText.trim() || recordedTranscript.trim().length === 0} type="button" onClick={() => analyzeTranscript()}>
                 Analyser la lecture
               </button>
             </div>
@@ -2629,10 +2990,9 @@ function ReadingView({
             </section>
           ) : null}
 
-          <section className="quiz-stack" aria-label="Questions de compréhension">
+          <section className="quiz-stack reading-comprehension-card" aria-label="Questions de compréhension">
             <div className="section-heading compact">
-              <p className="eyebrow">Bonus compréhension</p>
-              <h2>Questions de l’histoire démo</h2>
+              <h2>As-tu compris ton histoire ?</h2>
             </div>
             {sessionState.data.questions.map((question) => (
               <article className="quiz-card" key={question.id}>
@@ -2655,7 +3015,7 @@ function ReadingView({
             {resultState?.status === 'loading' ? <p className="feedback-card">La mascotte relit tes réponses…</p> : null}
             {resultState?.status === 'error' ? <p className="feedback-card error">{resultState.message}</p> : null}
             {resultState?.status === 'success' ? (
-              <div className="feedback-card success">
+              <div className="feedback-card success reading-comprehension-result">
                 <h3>{resultState.data.feedbackTitle}</h3>
                 <p>{resultState.data.feedbackMessage}</p>
               </div>
@@ -3065,8 +3425,11 @@ function DictationView({
   const exerciseDraftKey = `devoirs.exerciseDraft.${dashboard.child.id}.dictation`;
   const [wordSeries, setWordSeries] = useSessionStorageState(`${exerciseDraftKey}.wordSeries`, '');
   const [verbSeries, setVerbSeries] = useSessionStorageState(`${exerciseDraftKey}.verbSeries`, '');
+  const [autoWordCount, setAutoWordCount] = useSessionStorageState<string | number>(`${exerciseDraftKey}.autoWordCount`, String(DICTATION_AUTO_DEFAULT_WORD_COUNT));
+  const [autoVerbCount, setAutoVerbCount] = useSessionStorageState<string | number>(`${exerciseDraftKey}.autoVerbCount`, String(DICTATION_AUTO_DEFAULT_VERB_COUNT));
   const [ocrState, setOcrState] = useSessionStorageState<ApiState<WordDictationOcrResult> | null>(`${exerciseDraftKey}.ocrState`, null);
   const [selectedVerbTenses, setSelectedVerbTenses] = useSessionStorageState<VerbTense[]>(`${exerciseDraftKey}.selectedVerbTenses`, []);
+  const [selectedTextLength, setSelectedTextLength] = useSessionStorageState<WordDictationTextLength>(`${exerciseDraftKey}.selectedTextLength`, 'M');
   const [confirmedUnknownWords, setConfirmedUnknownWords] = useSessionStorageState<string[]>(`${exerciseDraftKey}.confirmedUnknownWords`, []);
   const [pendingUnknownWords, setPendingUnknownWords] = useSessionStorageState<string[]>(`${exerciseDraftKey}.pendingUnknownWords`, []);
   const [generatedTextState, setGeneratedTextState] = useSessionStorageState<ApiState<WordDictationTextResult> | null>(`${exerciseDraftKey}.generatedTextState`, null);
@@ -3207,6 +3570,29 @@ function DictationView({
       : [...current, verbTense]);
   }
 
+  function generateAutomaticWordSeries() {
+    const count = parseDictationAutoCountInput(autoWordCount);
+    setAutoWordCount(String(count));
+    setWordSeries(buildAutoDictationWordList(count).join(', '));
+    setPendingUnknownWords([]);
+    setGeneratedTextState(null);
+  }
+
+  function generateAutomaticVerbSeries() {
+    const count = parseDictationAutoCountInput(autoVerbCount);
+    setAutoVerbCount(String(count));
+    setVerbSeries(buildAutoDictationList(DICTATION_AUTO_VERB_POOL, count).join(', '));
+    setGeneratedTextState(null);
+  }
+
+  function stepAutoWordCount(delta: number) {
+    setAutoWordCount((current) => String(stepDictationAutoCountInput(current, delta)));
+  }
+
+  function stepAutoVerbCount(delta: number) {
+    setAutoVerbCount((current) => String(stepDictationAutoCountInput(current, delta)));
+  }
+
   async function handleWordSourceUpload(file: File | undefined) {
     if (!file) return;
     setOcrState({ status: 'loading' });
@@ -3238,6 +3624,7 @@ function DictationView({
         words: preparedWordSeries,
         verbTenses: selectedVerbTenses,
         verbs: preparedVerbSeries,
+        textLength: selectedTextLength,
         confirmedUnknownWords: wordsConfirmedForGeneration,
         prompt: getSavedLlamaDictationPrompt() ?? getDefaultOllamaDictationPromptTemplate(),
       });
@@ -3512,10 +3899,47 @@ function DictationView({
                   <small>Séparateur virgule</small>
                 </div>
                 <div className="dictation-entry-grid">
-                  <label className="answer-field dictation-entry-card">
-                    <span>Nom, adjectifs …</span>
+                  <div className="answer-field dictation-entry-card">
+                    <div className="dictation-entry-card-header">
+                      <label htmlFor="dictation-word-series">Nom, adjectifs …</label>
+                      <div className="dictation-auto-generate-controls" role="group" aria-label="Générer automatiquement des noms, adjectifs et adverbes">
+                        <button type="button" onClick={generateAutomaticWordSeries}>Générer</button>
+                        <div className="dictation-auto-count-field">
+                          <button
+                            aria-label="Augmenter le nombre de mots"
+                            className="dictation-count-arrow"
+                            onClick={() => stepAutoWordCount(1)}
+                            type="button"
+                          >
+                            ▲
+                          </button>
+                          <label className="dictation-auto-count-input">
+                            <span className="sr-only">Nombre de mots à générer</span>
+                            <input
+                              aria-label="Nombre de mots à générer"
+                              max={DICTATION_AUTO_MAX_COUNT}
+                              min={DICTATION_AUTO_MIN_COUNT}
+                              onBlur={(event) => setAutoWordCount(String(parseDictationAutoCountInput(event.currentTarget.value)))}
+                              onChange={(event) => setAutoWordCount(event.currentTarget.value)}
+                              type="number"
+                              value={autoWordCount}
+                            />
+                          </label>
+                          <button
+                            aria-label="Diminuer le nombre de mots"
+                            className="dictation-count-arrow"
+                            onClick={() => stepAutoWordCount(-1)}
+                            type="button"
+                          >
+                            ▼
+                          </button>
+                        </div>
+                        <span className="dictation-auto-count-unit" aria-hidden="true">mots</span>
+                      </div>
+                    </div>
                     <textarea
                       aria-label="Saisis tes mots (séparateurs virgule)"
+                      id="dictation-word-series"
                       placeholder="Ex. dragon, cartable, rivière"
                       value={wordSeries}
                       onChange={(event) => {
@@ -3525,10 +3949,48 @@ function DictationView({
                       }}
                       rows={2}
                     />
-                  </label>
-                  <label className="answer-field dictation-entry-card">
-                    <span>Verbes</span>
+                  </div>
+                  <div className="answer-field dictation-entry-card">
+                    <div className="dictation-entry-card-header">
+                      <label htmlFor="dictation-verb-series">Verbes</label>
+                      <div className="dictation-auto-generate-controls" role="group" aria-label="Générer automatiquement des verbes">
+                        <button type="button" onClick={generateAutomaticVerbSeries}>Générer</button>
+                        <div className="dictation-auto-count-field">
+                          <button
+                            aria-label="Augmenter le nombre de verbes"
+                            className="dictation-count-arrow"
+                            onClick={() => stepAutoVerbCount(1)}
+                            type="button"
+                          >
+                            ▲
+                          </button>
+                          <label className="dictation-auto-count-input">
+                            <span className="sr-only">Nombre de verbes à générer</span>
+                            <input
+                              aria-label="Nombre de verbes à générer"
+                              max={DICTATION_AUTO_MAX_COUNT}
+                              min={DICTATION_AUTO_MIN_COUNT}
+                              onBlur={(event) => setAutoVerbCount(String(parseDictationAutoCountInput(event.currentTarget.value)))}
+                              onChange={(event) => setAutoVerbCount(event.currentTarget.value)}
+                              type="number"
+                              value={autoVerbCount}
+                            />
+                          </label>
+                          <button
+                            aria-label="Diminuer le nombre de verbes"
+                            className="dictation-count-arrow"
+                            onClick={() => stepAutoVerbCount(-1)}
+                            type="button"
+                          >
+                            ▼
+                          </button>
+                        </div>
+                        <span className="dictation-auto-count-unit" aria-hidden="true">verbes</span>
+                      </div>
+                    </div>
                     <textarea
+                      aria-label="Saisis tes verbes (séparateurs virgule)"
+                      id="dictation-verb-series"
                       placeholder="Ex. cueillir, courir, découvrir"
                       value={verbSeries}
                       onChange={(event) => {
@@ -3537,7 +3999,7 @@ function DictationView({
                       }}
                       rows={2}
                     />
-                  </label>
+                  </div>
                 </div>
                 <div className="word-source-actions poetry-import-actions" aria-label="Import OCR des mots">
                   <label className="poetry-icon-button" title="Importer un fichier">
@@ -3576,8 +4038,8 @@ function DictationView({
                   </div>
                 ) : null}
                 <fieldset className="verb-tense-options">
+                  <legend className="verb-tense-title">Temps des verbes</legend>
                   <div className="verb-tense-header">
-                    <legend>Temps des verbes</legend>
                     <p>Sélection multiple possible</p>
                   </div>
                   <div>
@@ -3589,6 +4051,25 @@ function DictationView({
                           type="checkbox"
                         />
                         <span><strong>{option.label}</strong></span>
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
+                <fieldset className="dictation-text-length-options">
+                  <legend>Longueur du texte</legend>
+                  <div>
+                    {DICTATION_TEXT_LENGTH_OPTIONS.map((option) => (
+                      <label key={option.value}>
+                        <input
+                          checked={selectedTextLength === option.value}
+                          onChange={() => {
+                            setSelectedTextLength(option.value);
+                            setGeneratedTextState(null);
+                          }}
+                          type="radio"
+                          name="dictation-text-length"
+                        />
+                        <span><strong>{option.label}</strong> · {option.helper}</span>
                       </label>
                     ))}
                   </div>
@@ -4492,7 +4973,7 @@ function PoetryView({
                     else startRecitalRecording({ resetTranscript: false });
                   }}
                 >
-                  {isRecitalRecording ? 'Arrêter' : 'Redémarrer'}
+                  {isRecitalRecording || !hasRecitalRecordingStarted ? 'Arrêter' : 'Redémarrer'}
                 </button>
                 <button
                   className="poetry-profile-button poetry-recital-button poetry-recital-button-primary"
@@ -5795,7 +6276,7 @@ function RewardSettingsView({ dashboard }: { dashboard: ChildDashboard }) {
             onChange={(event) => updateDictationPrompt(event.target.value)}
             rows={8}
           />
-          <small>Garde les balises {`{{mots}}`}, {`{{verbes}}`} et {`{{temps}}`} : elles sont remplacées juste avant l’appel OpenAI.</small>
+          <small>Garde les balises {`{{mots}}`}, {`{{verbes}}`}, {`{{temps}}`} et {`{{longueur}}`} : elles sont remplacées juste avant l’appel OpenAI.</small>
           {dictationPromptSaveState === 'saved' ? <small className="prompt-saved-confirmation">Nouveau prompt enregistré</small> : null}
         </label>
         <div className="form-actions">
@@ -5962,9 +6443,9 @@ function ActivePage({
 }) {
   switch (page) {
     case 'path':
-      return <LearningPathView dashboard={dashboard} />;
+      return <LearningPathView dashboard={dashboard} activeProfile={activeProfile} />;
     case 'rewards':
-      return <RewardsView dashboard={dashboard} />;
+      return <RewardsView dashboard={dashboard} activeProfile={activeProfile} />;
     case 'reading':
       return <ReadingView dashboard={dashboard} onRecordExercise={onRecordExercise} />;
     case 'multiplication':

@@ -7,6 +7,7 @@ import type {
   WordDictationGenerationProvider,
   VerbTense,
   VerbTenseOption,
+  WordDictationTextLength,
   WordDictationOcrRequest,
   WordDictationOcrResult,
   WordDictationTextRequest,
@@ -22,7 +23,7 @@ import type {
   MultiplicationAnswerSubmission,
   MultiplicationSession,
 } from '../types/multiplication';
-import type { ReadingAnswerResult, ReadingAnswerSubmission, ReadingSession } from '../types/reading';
+import type { ReadingAnswerResult, ReadingAnswerSubmission, ReadingQuestion, ReadingSession } from '../types/reading';
 import { apiDelay, cloneApiPayload } from './apiClient';
 import {
   childDashboardMock,
@@ -573,15 +574,37 @@ function getDictationTenseErrors(text: string, verbTenses: VerbTense[]) {
   return errors;
 }
 
-function getDefaultDictationWordCountBounds() {
-  return extractWordCountBoundsFromPrompt(DEFAULT_OLLAMA_DICTATION_PROMPT) ?? { minimum: 45, maximum: 65 };
+const DICTATION_TEXT_LENGTH_BOUNDS: Record<WordDictationTextLength, { minimum: number; maximum: number; label: string }> = {
+  S: { minimum: 35, maximum: 55, label: 'S : 35 à 55 mots' },
+  M: { minimum: 55, maximum: 85, label: 'M : 55 à 85 mots' },
+  L: { minimum: 85, maximum: 120, label: 'L : 85 à 120 mots' },
+  XL: { minimum: 120, maximum: 180, label: 'XL : 120 à 180 mots' },
+};
+
+function getDictationTextLengthBounds(textLength: WordDictationTextLength = 'M') {
+  return DICTATION_TEXT_LENGTH_BOUNDS[textLength] ?? DICTATION_TEXT_LENGTH_BOUNDS.M;
 }
 
-function getDictationGenerationErrors(text: string, words: string[], promptTemplate = DEFAULT_OLLAMA_DICTATION_PROMPT, verbTenses: VerbTense[] = ['present']) {
+function formatDictationTextLengthForPrompt(textLength: WordDictationTextLength = 'M') {
+  const bounds = getDictationTextLengthBounds(textLength);
+  return `${bounds.minimum} à ${bounds.maximum} mots`;
+}
+
+function getDefaultDictationWordCountBounds() {
+  return getDictationTextLengthBounds('M');
+}
+
+function getDictationGenerationErrors(
+  text: string,
+  words: string[],
+  promptTemplate = DEFAULT_OLLAMA_DICTATION_PROMPT,
+  verbTenses: VerbTense[] = ['present'],
+  textLength: WordDictationTextLength = 'M',
+) {
   const errors: string[] = [];
   const cleanText = text.trim();
   if (!cleanText) errors.push('texte vide');
-  const wordCountBounds = extractWordCountBoundsFromPrompt(promptTemplate) ?? getDefaultDictationWordCountBounds();
+  const wordCountBounds = extractWordCountBoundsFromPrompt(promptTemplate) ?? getDictationTextLengthBounds(textLength);
   const wordCount = countGeneratedWords(cleanText);
   if (wordCount > wordCountBounds.maximum) {
     errors.push(`texte trop long : ${wordCount} mots (maximum ${wordCountBounds.maximum})`);
@@ -617,7 +640,53 @@ function buildGenerationTerms(words: string[]) {
   return terms;
 }
 
-const DEFAULT_OLLAMA_DICTATION_PROMPT = `Tu es un enseignant de français de CM1. Tu écris une dictée courte pour un enfant de 9-10 ans.\n\n# Résultat attendu\n\nÉcris UN SEUL texte final de dictée, naturel, fluide et cohérent, entre 45 et 65 mots.\n\n# Données à intégrer\n\nMOTS :\n{{mots}}\n\nVERBES :\n{{verbes}}\n\nTEMPS :\n{{temps}}\n\n# Règles obligatoires\n\n1. Utilise chaque élément de MOTS exactement une fois.\n2. Utilise chaque verbe de VERBES exactement une fois.\n3. Conjugue chaque verbe au temps demandé dans TEMPS, dans une vraie phrase avec un sujet clair. Si un seul temps est demandé, toute l’histoire reste à ce temps. Si TEMPS contient 'present', écris au présent de l’indicatif uniquement : 'je lave', 'je me couche'. N’utilise jamais futur proche ou passé : interdit 'je vais laver', 'je vais me coucher', 'je laverai', 'je me coucherai', 'j’ai lavé', 'j’ai dû', 'nous allons', 'hier', 'demain'.\n4. Écris 2 ou 3 phrases maximum.\n5. Si TEMPS contient 'present', utilise ce modèle de style (sans le recopier exactement) : Aujourd’hui, Emma ouvre son cartable et regarde des cartes de dragon et d’autruche. Elle lave ses mains, puis elle se couche calmement.\n6. Choisis une situation simple d’enfant : école, maison, jardin, sortie, cahier, cartes, images ou petits objets.\n7. Si les mots sont très différents entre eux (animaux, objets, aliments, lieux), rassemble-les naturellement avec des cartes, dessins, images, étiquettes, inventaire ou trésor dans un cartable. Ne fais pas rencontrer un objet ou un aliment comme une personne.\n8. Le texte doit sonner comme une petite histoire, pas comme un exercice.\n\n# Interdits\n\n- Ne commence pas par TITRE, DICTEE ou DICTÉE.\n- Ne donne pas de titre.\n- Ne donne pas de liste, d’explication, de commentaire, de markdown ou de guillemets.\n- N’écris jamais "le mot ...", "utilise le mot ...", "la liste ...", "le verbe ...".\n- N’invente pas de mots rares ou compliqués.\n\n# Réponse\n\nRéponds uniquement avec le texte final de la dictée.\n\n# Auto-vérification silencieuse\n\nAvant de répondre, vérifie sans l’écrire : tous les mots sont présents une fois, tous les verbes sont présents une fois et conjugués au bon temps, le texte fait entre 45 et 65 mots.`;
+const DEFAULT_OLLAMA_DICTATION_PROMPT = `Tu es un enseignant de français de CM1. Tu écris une dictée courte pour un enfant de 9-10 ans.
+
+# Résultat attendu
+
+Écris UN SEUL texte final de dictée, naturel, fluide et cohérent.
+
+# Données à intégrer
+
+MOTS :
+{{mots}}
+
+VERBES :
+{{verbes}}
+
+TEMPS :
+{{temps}}
+
+LONGUEUR :
+{{longueur}}
+
+# Règles obligatoires
+
+1. Utilise chaque élément de MOTS exactement une fois.
+2. Utilise chaque verbe de VERBES exactement une fois.
+3. Respecte strictement LONGUEUR : le texte final doit faire entre les deux bornes indiquées.
+4. Conjugue chaque verbe au temps demandé dans TEMPS, dans une vraie phrase avec un sujet clair. Si un seul temps est demandé, toute l’histoire reste à ce temps. Si TEMPS contient 'present', écris au présent de l’indicatif uniquement : 'je lave', 'je me couche'. N’utilise jamais futur proche ou passé : interdit 'je vais laver', 'je vais me coucher', 'je laverai', 'je me coucherai', 'j’ai lavé', 'j’ai dû', 'nous allons', 'hier', 'demain'.
+5. Écris 2 ou 3 phrases maximum pour S et M, 3 ou 4 phrases maximum pour L et XL.
+6. Si TEMPS contient 'present', utilise ce modèle de style (sans le recopier exactement) : Aujourd’hui, Emma ouvre son cartable et regarde des cartes de dragon et d’autruche. Elle lave ses mains, puis elle se couche calmement.
+7. Choisis une situation simple d’enfant : école, maison, jardin, sortie, cahier, cartes, images ou petits objets.
+8. Si les mots sont très différents entre eux (animaux, objets, aliments, lieux), rassemble-les naturellement avec des cartes, dessins, images, étiquettes, inventaire ou trésor dans un cartable. Ne fais pas rencontrer un objet ou un aliment comme une personne.
+9. Le texte doit sonner comme une petite histoire, pas comme un exercice.
+
+# Interdits
+
+- Ne commence pas par TITRE, DICTEE ou DICTÉE.
+- Ne donne pas de titre.
+- Ne donne pas de liste, d’explication, de commentaire, de markdown ou de guillemets.
+- N’écris jamais "le mot ...", "utilise le mot ...", "la liste ...", "le verbe ...".
+- N’invente pas de mots rares ou compliqués.
+
+# Réponse
+
+Réponds uniquement avec le texte final de la dictée.
+
+# Auto-vérification silencieuse
+
+Avant de répondre, vérifie sans l’écrire : tous les mots sont présents une fois, tous les verbes sont présents une fois et conjugués au bon temps, le texte respecte LONGUEUR.`;
 
 export function getDefaultOllamaDictationPromptTemplate() {
   return DEFAULT_OLLAMA_DICTATION_PROMPT;
@@ -634,18 +703,28 @@ function formatVerbTensesForPrompt(verbTenses: VerbTense[]) {
   return verbTenses.map((verbTense) => labels[verbTense] ?? verbTense).join(', ');
 }
 
-function interpolateLlamaPrompt(template: string, words: string[], verbs: string[], verbTenses: VerbTense[]) {
+function interpolateLlamaPrompt(
+  template: string,
+  words: string[],
+  verbs: string[],
+  verbTenses: VerbTense[],
+  textLength: WordDictationTextLength = 'M',
+) {
   const terms = buildGenerationTerms(words);
   const replacements = {
     mots: terms.map((word) => `- ${word}`).join('\n') || 'à définir',
     verbes: verbs.length > 0 ? verbs.map((verb) => `- ${verb}`).join('\n') : 'à définir',
     temps: verbTenses.length > 0 ? formatVerbTensesForPrompt(verbTenses) : formatVerbTensesForPrompt(['present']),
+    longueur: formatDictationTextLengthForPrompt(textLength),
   };
 
-  return template.replace(/\{\{\s*(mots|verbes|temps)\s*\}\}/gi, (match, key: string) => {
+  const prompt = template.replace(/\{\{\s*(mots|verbes|temps|longueur)\s*\}\}/gi, (match, key: string) => {
     const resolvedKey = key.toLocaleLowerCase() as keyof typeof replacements;
     return replacements[resolvedKey] ?? match;
   });
+
+  if (/\{\{\s*longueur\s*\}\}/iu.test(template)) return prompt;
+  return `${prompt}\n\nLONGUEUR : ${formatDictationTextLengthForPrompt(textLength)}`;
 }
 
 export function buildOllamaDictationPromptFromTemplate(
@@ -653,9 +732,10 @@ export function buildOllamaDictationPromptFromTemplate(
   words: string[],
   verbs: string[],
   verbTenses: VerbTense[],
+  textLength: WordDictationTextLength = 'M',
   previousErrors: string[] = [],
 ) {
-  const generatedPrompt = interpolateLlamaPrompt(template, words, verbs, verbTenses);
+  const generatedPrompt = interpolateLlamaPrompt(template, words, verbs, verbTenses, textLength);
   const correctionBlock = previousErrors.length > 0
     ? `\nLe texte précédent était refusé pour ces raisons : ${previousErrors.join('; ')}. Corrige strictement ces points.`
     : '';
@@ -663,8 +743,14 @@ export function buildOllamaDictationPromptFromTemplate(
   return `${generatedPrompt}${correctionBlock}`;
 }
 
-export function buildOllamaDictationPrompt(words: string[], verbs: string[], verbTenses: VerbTense[], previousErrors: string[] = []) {
-  return buildOllamaDictationPromptFromTemplate(DEFAULT_OLLAMA_DICTATION_PROMPT, words, verbs, verbTenses, previousErrors);
+export function buildOllamaDictationPrompt(
+  words: string[],
+  verbs: string[],
+  verbTenses: VerbTense[],
+  textLength: WordDictationTextLength = 'M',
+  previousErrors: string[] = [],
+) {
+  return buildOllamaDictationPromptFromTemplate(DEFAULT_OLLAMA_DICTATION_PROMPT, words, verbs, verbTenses, textLength, previousErrors);
 }
 
 function stripLlmEnvelope(text: string) {
@@ -676,12 +762,19 @@ function stripLlmEnvelope(text: string) {
     .trim();
 }
 
-async function callOpenAiDictation(words: string[], verbs: string[], verbTenses: VerbTense[], previousErrors: string[] = [], customPrompt?: string) {
+async function callOpenAiDictation(
+  words: string[],
+  verbs: string[],
+  verbTenses: VerbTense[],
+  textLength: WordDictationTextLength = 'M',
+  previousErrors: string[] = [],
+  customPrompt?: string,
+) {
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), 90_000);
   const generatedPrompt = customPrompt
-    ? buildOllamaDictationPromptFromTemplate(customPrompt, words, verbs, verbTenses, previousErrors)
-    : buildOllamaDictationPrompt(words, verbs, verbTenses, previousErrors);
+    ? buildOllamaDictationPromptFromTemplate(customPrompt, words, verbs, verbTenses, textLength, previousErrors)
+    : buildOllamaDictationPrompt(words, verbs, verbTenses, textLength, previousErrors);
   const correctionBlock = previousErrors.length > 0
     ? `\nLe texte précédent était refusé pour ces raisons : ${previousErrors.join('; ')}. Corrige strictement ces points.`
     : '';
@@ -725,14 +818,15 @@ async function generateOpenAiWordDictationText(
   words: string[],
   verbs: string[],
   verbTenses: VerbTense[],
+  textLength: WordDictationTextLength = 'M',
   customPrompt?: string,
 ) {
   let previousErrors: string[] = [];
   let lastText = '';
   for (let attempt = 0; attempt < 3; attempt += 1) {
-    const candidate = await callOpenAiDictation(words, verbs, verbTenses, previousErrors, customPrompt);
+    const candidate = await callOpenAiDictation(words, verbs, verbTenses, textLength, previousErrors, customPrompt);
     lastText = candidate;
-    const errors = getDictationGenerationErrors(candidate, words, customPrompt ?? DEFAULT_OLLAMA_DICTATION_PROMPT, verbTenses);
+    const errors = getDictationGenerationErrors(candidate, words, customPrompt ?? DEFAULT_OLLAMA_DICTATION_PROMPT, verbTenses, textLength);
     if (errors.length === 0) {
       return {
         text: candidate,
@@ -764,12 +858,13 @@ export async function generateWordDictationText(
 
   const selectedVerbs: string[] = request.verbs ?? [];
   const selectedVerbTenses: VerbTense[] = request.verbTenses.length > 0 ? request.verbTenses : ['present'];
+  const selectedTextLength: WordDictationTextLength = request.textLength ?? 'M';
   const unknownWords = await findUnknownDictationWords(words, request.confirmedUnknownWords ?? []);
   if (unknownWords.length > 0) {
     throw new Error(`Confirme ces mots avant de générer : ${unknownWords.join(', ')}`);
   }
 
-  const generationResult = await generateOpenAiWordDictationText(words, selectedVerbs, selectedVerbTenses, request.prompt);
+  const generationResult = await generateOpenAiWordDictationText(words, selectedVerbs, selectedVerbTenses, selectedTextLength, request.prompt);
 
   return {
     mode: 'word_dictation',
@@ -778,6 +873,7 @@ export async function generateWordDictationText(
     isHiddenByDefault: false,
     wordChecklist: words,
     selectedVerbTenses,
+    selectedTextLength,
     generationProvider: 'openai',
     readingInstruction: 'Contrôles parent sous le texte : vérifie les mots inclus, lance la lecture pour l\u2019élève ou relance OpenAI si tu veux une nouvelle proposition.',
     controlResult: {
@@ -957,6 +1053,128 @@ export async function getReadingSession(childId: string): Promise<ReadingSession
   return cloneApiPayload(readingSessionMock);
 }
 
+type GeneratedReadingFields = {
+  character: string;
+  animal: string;
+  object: string;
+  place: string;
+};
+
+type GeneratedReadingSessionRequest = {
+  childId: string;
+  storyText: string;
+  fields: GeneratedReadingFields;
+};
+
+const readingQuestionDistractors: Record<keyof GeneratedReadingFields, string[]> = {
+  character: ['Noé', 'Zoé l’inventrice', 'Milo le magicien', 'Inès l’exploratrice'],
+  animal: ['chouette savante', 'chat astronaute', 'panda ninja', 'dauphin farceur'],
+  object: ['carte au trésor', 'boussole magique', 'carnet secret', 'lampe à étoiles'],
+  place: ['bibliothèque volante', 'château nuage', 'île aux énigmes', 'station lunaire'],
+};
+
+function firstReadingChoice(value: string, fallback: string) {
+  return value.split(',').map((item) => item.trim()).filter(Boolean)[0] ?? fallback;
+}
+
+function splitGeneratedReadingStory(text: string) {
+  const normalized = text.replace(/\s+/g, ' ').trim();
+  if (!normalized) return ['Histoire générée par IA.'];
+  const sentences = normalized.match(/[^.!?]+[.!?]+|[^.!?]+$/gu) ?? [normalized];
+  return sentences.map((sentence) => sentence.trim()).filter(Boolean);
+}
+
+function buildReadingQuestion({
+  id,
+  prompt,
+  correctLabel,
+  correctOptionId,
+  distractors,
+}: {
+  id: string;
+  prompt: string;
+  correctLabel: string;
+  correctOptionId: string;
+  distractors: string[];
+}): ReadingQuestion {
+  const uniqueDistractors = distractors.filter((item) => item.toLocaleLowerCase('fr-FR') !== correctLabel.toLocaleLowerCase('fr-FR')).slice(0, 2);
+  const options = [correctLabel, ...uniqueDistractors];
+  const optionIds = [correctOptionId, `${correctOptionId}-a`, `${correctOptionId}-b`];
+
+  return { id, prompt, options, optionIds, correctOptionId };
+}
+
+export function buildGeneratedReadingSession(request: GeneratedReadingSessionRequest): ReadingSession {
+  const character = firstReadingChoice(request.fields.character, 'le personnage principal');
+  const animal = firstReadingChoice(request.fields.animal, 'l’animal de l’histoire');
+  const object = firstReadingChoice(request.fields.object, 'l’objet important');
+  const storyLines = splitGeneratedReadingStory(request.storyText);
+  const stableId = `${character}-${animal}-${object}-${request.fields.place}-${request.storyText}`
+    .toLocaleLowerCase('fr-FR')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 48) || 'story';
+
+  return {
+    childId: request.childId,
+    id: `generated-reading-${stableId}`,
+    title: 'Histoire générée par IA',
+    instruction: 'Lis l’histoire générée, puis réponds aux questions de compréhension préparées pour ce texte.',
+    audioLabel: 'Écouter l’histoire générée',
+    text: storyLines,
+    questions: [
+      buildReadingQuestion({
+        id: 'generated-reading-q1',
+        prompt: 'Quel personnage suit-on dans cette histoire ?',
+        correctLabel: character,
+        correctOptionId: 'character',
+        distractors: readingQuestionDistractors.character,
+      }),
+      buildReadingQuestion({
+        id: 'generated-reading-q2',
+        prompt: 'Quel animal apparaît dans cette histoire ?',
+        correctLabel: animal,
+        correctOptionId: 'animal',
+        distractors: readingQuestionDistractors.animal,
+      }),
+      buildReadingQuestion({
+        id: 'generated-reading-q3',
+        prompt: 'Quel objet est important dans cette histoire ?',
+        correctLabel: object,
+        correctOptionId: 'object',
+        distractors: readingQuestionDistractors.object,
+      }),
+    ],
+    rewardStars: readingSessionMock.rewardStars,
+  };
+}
+
+export function evaluateReadingAnswers(session: ReadingSession, submission: ReadingAnswerSubmission): ReadingAnswerResult {
+  if (submission.sessionId !== session.id) {
+    throw new Error(`Lecture inconnue : ${submission.sessionId}`);
+  }
+
+  const correctAnswers = submission.answers.filter((answer) => {
+    const question = session.questions.find((item) => item.id === answer.questionId);
+    return question?.correctOptionId === answer.selectedOptionId;
+  }).length;
+  const totalQuestions = session.questions.length;
+  const allCorrect = correctAnswers === totalQuestions;
+
+  return {
+    sessionId: session.id,
+    correctAnswers,
+    totalQuestions,
+    earnedStars: allCorrect ? session.rewardStars : Math.max(1, correctAnswers * 2),
+    feedbackTitle: allCorrect ? 'Bravo, tu as compris l’histoire !' : 'Tu as déjà repéré beaucoup d’indices !',
+    feedbackMessage: allCorrect
+      ? `Tu gagnes ${session.rewardStars} étoiles. Tu as bien compris l’histoire que tu viens de lire.`
+      : `Tu as ${correctAnswers} bonne(s) réponse(s) sur ${totalQuestions}. Relis l’histoire puis réessaie.`,
+  };
+}
+
 export async function submitReadingAnswers(
   childId: string,
   submission: ReadingAnswerSubmission,
@@ -964,25 +1182,5 @@ export async function submitReadingAnswers(
   await apiDelay();
   assertKnownChild(childId);
 
-  if (submission.sessionId !== readingSessionMock.id) {
-    throw new Error(`Lecture inconnue : ${submission.sessionId}`);
-  }
-
-  const correctAnswers = submission.answers.filter((answer) => {
-    const question = readingSessionMock.questions.find((item) => item.id === answer.questionId);
-    return question?.correctOptionId === answer.selectedOptionId;
-  }).length;
-  const totalQuestions = readingSessionMock.questions.length;
-  const allCorrect = correctAnswers === totalQuestions;
-
-  return {
-    sessionId: readingSessionMock.id,
-    correctAnswers,
-    totalQuestions,
-    earnedStars: allCorrect ? readingSessionMock.rewardStars : Math.max(1, correctAnswers * 2),
-    feedbackTitle: allCorrect ? 'Bravo, tu as compris l’histoire !' : 'Tu as déjà repéré beaucoup d’indices !',
-    feedbackMessage: allCorrect
-      ? `Tu gagnes ${readingSessionMock.rewardStars} étoiles. Le dragon adore lire avec toi.`
-      : `Tu as ${correctAnswers} bonne(s) réponse(s) sur ${totalQuestions}. Relis l’histoire puis réessaie.`,
-  };
+  return evaluateReadingAnswers(readingSessionMock, submission);
 }

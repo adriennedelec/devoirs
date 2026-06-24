@@ -22,22 +22,141 @@ describe('Lots 5-11 complete child interface', () => {
     await waitFor(() => expect(screen.getByText(/question 1 sur 9/i)).toBeInTheDocument());
   });
 
-  it('renders gamified path worlds and dynamic rewards', async () => {
+  it('renders gamified path worlds, global progress gauges and dynamic rewards', async () => {
     const user = userEvent.setup();
+    window.localStorage.setItem('devoirs.activityRecords.v1', JSON.stringify([
+      {
+        id: 'activity-table-7',
+        profileId: 'emma-demo',
+        profileName: 'Emma',
+        module: 'multiplication',
+        moduleLabel: 'Multiplication',
+        exerciseLabel: 'Table de 7',
+        startedAtIso: '2026-06-21T10:00:00.000Z',
+        completedAtIso: '2026-06-21T10:02:00.000Z',
+        durationSeconds: 120,
+        status: 'completed',
+        score: 8,
+        totalQuestions: 9,
+        correctCount: 8,
+        wrongCount: 1,
+        starsEarned: 10,
+        details: {
+          table: 7,
+          facts: Array.from({ length: 8 }, (_, index) => ({ rightFactor: index + 2, line: `${index + 2} × 7`, status: 'mastered' })),
+        },
+      },
+      {
+        id: 'activity-table-8',
+        profileId: 'emma-demo',
+        profileName: 'Emma',
+        module: 'multiplication',
+        moduleLabel: 'Multiplication',
+        exerciseLabel: 'Table de 8',
+        startedAtIso: '2026-06-21T11:00:00.000Z',
+        completedAtIso: '2026-06-21T11:01:00.000Z',
+        durationSeconds: 60,
+        status: 'completed',
+        score: 3,
+        totalQuestions: 9,
+        correctCount: 3,
+        wrongCount: 6,
+        starsEarned: 3,
+        details: { table: 8 },
+      },
+      {
+        id: 'activity-reading',
+        profileId: 'emma-demo',
+        profileName: 'Emma',
+        module: 'reading',
+        moduleLabel: 'Lecture',
+        exerciseLabel: 'Lecture courte',
+        startedAtIso: '2026-06-21T12:00:00.000Z',
+        completedAtIso: '2026-06-21T12:04:00.000Z',
+        durationSeconds: 240,
+        status: 'completed',
+        score: 4,
+        totalQuestions: 5,
+        correctCount: 4,
+        wrongCount: 1,
+        starsEarned: 4,
+        details: {},
+      },
+      {
+        id: 'activity-dictation',
+        profileId: 'emma-demo',
+        profileName: 'Emma',
+        module: 'dictation',
+        moduleLabel: 'Dictée',
+        exerciseLabel: 'Dictée des mots',
+        startedAtIso: '2026-06-21T13:00:00.000Z',
+        completedAtIso: '2026-06-21T13:04:00.000Z',
+        durationSeconds: 240,
+        status: 'completed',
+        score: 2,
+        totalQuestions: 3,
+        correctCount: 2,
+        wrongCount: 1,
+        starsEarned: 2,
+        details: {},
+      },
+      {
+        id: 'activity-poetry',
+        profileId: 'emma-demo',
+        profileName: 'Emma',
+        module: 'poetry',
+        moduleLabel: 'Poésie',
+        exerciseLabel: 'Récitation',
+        startedAtIso: '2026-06-21T14:00:00.000Z',
+        completedAtIso: '2026-06-21T14:04:00.000Z',
+        durationSeconds: 240,
+        status: 'completed',
+        score: 1,
+        totalQuestions: 1,
+        correctCount: 1,
+        wrongCount: 0,
+        starsEarned: 1,
+        details: {},
+      },
+    ]));
     render(<App />);
 
     await waitFor(() => expect(screen.getByRole('heading', { name: /bonjour emma/i })).toBeInTheDocument());
 
     await user.click(screen.getByRole('button', { name: /parcours/i }));
     expect(screen.getByRole('heading', { name: /mon parcours/i })).toBeInTheDocument();
-    expect(screen.getByText(/île des calculs/i)).toBeInTheDocument();
-    expect(screen.getByText(/forêt des histoires/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /progression de emma/i })).toBeInTheDocument();
+    expect(screen.getByText(/les tables sont rangées sous mathématiques/i)).toBeInTheDocument();
+    const mathRegion = screen.getByRole('region', { name: /^mathématiques$/i });
+    const frenchRegion = screen.getByRole('region', { name: /^français$/i });
+    expect(within(mathRegion).getByRole('heading', { name: /tables de multiplication/i })).toBeInTheDocument();
+    expect(within(mathRegion).getByRole('meter', { name: /mathématiques.*10 sur 10/i })).toHaveAttribute('aria-valuenow', '10');
+    expect(within(mathRegion).getByRole('meter', { name: /table de 7.*8 sur 10/i })).toHaveAttribute('aria-valuenow', '8');
+    expect(within(mathRegion).getByRole('meter', { name: /table de 8.*3 sur 10/i })).toHaveAttribute('aria-valuenow', '3');
+    expect(within(mathRegion).getByRole('meter', { name: /table de 10.*0 sur 10/i })).toHaveAttribute('aria-valuenow', '0');
+    expect(within(frenchRegion).getByRole('heading', { name: /exercices de français/i })).toBeInTheDocument();
+    expect(within(frenchRegion).getByRole('meter', { name: /français.*7 sur 10/i })).toHaveAttribute('aria-valuenow', '7');
+    expect(within(frenchRegion).getByRole('meter', { name: /lecture.*4 sur 10/i })).toHaveAttribute('aria-valuenow', '4');
+    expect(within(frenchRegion).getByRole('meter', { name: /dictée.*2 sur 10/i })).toHaveAttribute('aria-valuenow', '2');
+    expect(within(frenchRegion).getByRole('meter', { name: /poésie.*1 sur 10/i })).toHaveAttribute('aria-valuenow', '1');
+    expect(screen.queryByText(/chaque étape te rapproche de la réussite/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/aventure pédagogique/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/île des calculs/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/monde des mots/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/forêt des histoires/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/scène des poètes/i)).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /récompenses/i }));
     expect(screen.getByRole('heading', { name: /mes récompenses/i })).toBeInTheDocument();
-    expect(screen.getByText(/boutique magique/i)).toBeInTheDocument();
-    expect(screen.getByText(/tu as gagné 3 étoiles/i)).toBeInTheDocument();
-    expect(screen.getByText(/verrouillé/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/125 étoiles disponibles/i)).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: /avatar et étoiles/i })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: /rubriques de récompenses/i })).toBeInTheDocument();
+    expect(screen.getByText(/photo de profils/i)).toBeInTheDocument();
+    expect(screen.getByText(/vêtements et accessoires/i)).toBeInTheDocument();
+    expect(screen.getByText(/^lieux$/i)).toBeInTheDocument();
+    expect(screen.queryByText(/boutique magique/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/tu as gagné 3 étoiles/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/verrouillé/i)).not.toBeInTheDocument();
   });
 
   it('turns reading into a comprehension activity with feedback', async () => {

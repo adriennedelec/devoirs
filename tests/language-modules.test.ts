@@ -61,6 +61,7 @@ describe('Lot 4 dictation and poetry services', () => {
     expect(prompt).toContain('{{mots}}');
     expect(prompt).toContain('{{verbes}}');
     expect(prompt).toContain('{{temps}}');
+    expect(prompt).toContain('{{longueur}}');
     expect(prompt).not.toMatch(/TITRE\s*:\s*<|DICTEE\s*:\s*<|DICTÉE\s*:\s*</iu);
     expect(prompt).toMatch(/Réponds uniquement avec le texte final de la dictée/i);
     expect(prompt).toMatch(/cartes, dessins, images, étiquettes/i);
@@ -155,8 +156,8 @@ describe('Lot 4 dictation and poetry services', () => {
     }
   });
 
-  it('passes a custom LLM prompt and interpolates MOTS/VERBES/TEMPS placeholders', async () => {
-    const customPrompt = `Tu es un enseignant de français spécialisé dans la création de dictées pour les élèves de CM1 (9-10 ans).\n\nMOTS:\n{{mots}}\n\nVERBES:\n{{verbes}}\n\nTEMPS:\n{{temps}}`;
+  it('passes a custom LLM prompt and interpolates MOTS/VERBES/TEMPS/LONGUEUR placeholders', async () => {
+    const customPrompt = `Tu es un enseignant de français spécialisé dans la création de dictées pour les élèves de CM1 (9-10 ans).\n\nMOTS:\n{{mots}}\n\nVERBES:\n{{verbes}}\n\nTEMPS:\n{{temps}}\n\nLONGUEUR:\n{{longueur}}`;
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response(JSON.stringify({
       response: 'Aujourd’hui, Emma range un petit mot dragon dans son cartable.',
     }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
@@ -165,6 +166,7 @@ describe('Lot 4 dictation and poetry services', () => {
       words: ['dragon', 'cartable'],
       verbTenses: ['present'],
       verbs: ['courir', 'manger'],
+      textLength: 'L',
       generationProvider: 'openai',
       prompt: customPrompt,
     });
@@ -179,6 +181,24 @@ describe('Lot 4 dictation and poetry services', () => {
     expect(body.prompt).toContain('- courir');
     expect(body.prompt).toContain('- manger');
     expect(body.prompt).toContain('present');
+    expect(body.prompt).toContain('85 à 120 mots');
+  });
+
+  it('injects selected length bounds into older prompts without the length placeholder', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response(JSON.stringify({
+      response: 'Aujourd’hui, Emma range un petit dragon dans son cartable.',
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+
+    await generateWordDictationText('emma-demo', {
+      words: ['dragon', 'cartable'],
+      verbTenses: ['present'],
+      textLength: 'XL',
+      prompt: 'Crée une dictée. MOTS: {{mots}} VERBES: {{verbes}} TEMPS: {{temps}}',
+    });
+
+    const request = fetchMock.mock.calls[0]?.[1];
+    const body = request?.body ? JSON.parse(request.body as string) : {};
+    expect(body.prompt).toContain('LONGUEUR : 120 à 180 mots');
   });
 
   it('uses the custom prompt word-count bounds to reject texts above 70 words', async () => {
@@ -206,8 +226,8 @@ describe('Lot 4 dictation and poetry services', () => {
     expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
-  it('rejects default Ollama generations above the normal 65-word maximum', async () => {
-    const longText = Array.from({ length: 78 }, (_, index) => {
+  it('rejects default OpenAI generations above the normal M 85-word maximum', async () => {
+    const longText = Array.from({ length: 98 }, (_, index) => {
       if (index === 4) return 'dragon';
       if (index === 14) return 'cartable';
       return `mot${index}`;
@@ -222,7 +242,7 @@ describe('Lot 4 dictation and poetry services', () => {
     });
 
     expect(result.controlResult.isValid).toBe(false);
-    expect(result.controlResult.checks).toContain('texte trop long : 78 mots (maximum 65)');
+    expect(result.controlResult.checks).toContain('texte trop long : 98 mots (maximum 85)');
     expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 

@@ -276,6 +276,7 @@ Les bases des futurs menus `Base de données` et `Paramétrage` sont amorcées c
 - ajout d’un contrat `ActivityRecord` dans `src/types/activity.ts` pour historiser les activités de tous les profils ;
 - ajout du service local/API-ready `src/services/activityDatabase.ts` avec lecture, écriture, normalisation et ajout d’activités dans `localStorage` ;
 - branchement de la fin d’une table de multiplication sur cette base commune : profil, table, durée, score, bonnes/mauvaises réponses, étoiles gagnées et détail des calculs sont enregistrés ;
+- `Parcours` affiche uniquement le suivi global avec deux cadres matière : `Mathématiques` contient les tables de multiplication 2 à 10, et `Français` contient Lecture, Dictée et Poésie ;
 - l’historique visuel existant des tables est conservé, mais les mêmes sessions alimentent maintenant la future base globale.
 
 ## Lots `Base de données` et `Paramétrage` réalisés

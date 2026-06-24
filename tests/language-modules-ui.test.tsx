@@ -22,6 +22,39 @@ describe('Lot 4 dictation and poetry UI', () => {
     await user.click(within(readingCard!).getByRole('button', { name: /continuer/i }));
 
     const sizeSelect = await screen.findByLabelText(/taille du texte/i);
+    const generatorRegion = screen.getByRole('region', { name: /génération ia de l’histoire/i });
+    expect(generatorRegion).toHaveTextContent(/générer l’histoire/i);
+    expect(generatorRegion).not.toHaveTextContent(/bloc 1/i);
+    expect(generatorRegion).not.toHaveTextContent(/préparation ia/i);
+    expect(screen.queryByText(/bloc 2/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/définir le prompt/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/prompt de génération lecture/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/aperçu réel envoyé à l’ia/i)).not.toBeInTheDocument();
+    expect(within(generatorRegion).getByRole('button', { name: /^générer$/i })).toHaveClass('poetry-profile-button');
+    const characterSelect = within(generatorRegion).getByLabelText(/choisir un personnage/i) as HTMLSelectElement;
+    const animalSelect = within(generatorRegion).getByLabelText(/choisir un animal/i) as HTMLSelectElement;
+    const objectSelect = within(generatorRegion).getByLabelText(/choisir un objet/i) as HTMLSelectElement;
+    const placeSelect = within(generatorRegion).getByLabelText(/choisir un lieu/i) as HTMLSelectElement;
+    expect(within(generatorRegion).getByText('Personnage')).toHaveClass('reading-field-title');
+    expect(within(generatorRegion).getByText('Animal')).toHaveClass('reading-field-title');
+    expect(within(generatorRegion).getByText('Objet')).toHaveClass('reading-field-title');
+    expect(within(generatorRegion).getByText('Lieu')).toHaveClass('reading-field-title');
+    expect(within(generatorRegion).getByText('Taille du texte')).toHaveClass('reading-field-title');
+    expect(characterSelect.options.length).toBe(10);
+    expect(animalSelect.options.length).toBe(10);
+    expect(objectSelect.options.length).toBe(10);
+    expect(placeSelect.options.length).toBe(10);
+    expect(within(generatorRegion).getByText('Lina')).toHaveClass('reading-selected-choice');
+    await user.selectOptions(characterSelect, 'Noé');
+    expect(within(generatorRegion).getByText('Noé')).toHaveClass('reading-selected-choice');
+    expect(characterSelect).toBeDisabled();
+    await user.click(within(generatorRegion).getByRole('button', { name: /supprimer noé/i }));
+    expect([...generatorRegion.querySelectorAll('.reading-selected-choice')].map((chip) => chip.textContent)).not.toContain('Noé×');
+    expect(characterSelect).not.toBeDisabled();
+    await user.selectOptions(objectSelect, 'skateboard volant');
+    expect(within(generatorRegion).getByText('skateboard volant')).toBeInTheDocument();
+    await user.selectOptions(placeSelect, 'station lunaire');
+    expect(within(generatorRegion).getByText('station lunaire')).toBeInTheDocument();
     expect(sizeSelect).toHaveTextContent('XS · 60 à 90 mots');
     expect(sizeSelect).toHaveTextContent('S · 90 à 150 mots');
     expect(sizeSelect).toHaveTextContent('M · 150 à 250 mots');
@@ -42,7 +75,7 @@ describe('Lot 4 dictation and poetry UI', () => {
     expect(dictationCard).not.toBeNull();
     await user.click(within(dictationCard!).getByRole('button', { name: /continuer/i }));
 
-    expect(screen.getByRole('heading', { name: /dictée magique/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /^dictée$/i })).toBeInTheDocument();
     expect(screen.queryByRole('region', { name: /choix du type de dictée/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /dictée de mots/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /dictée normale/i })).not.toBeInTheDocument();
@@ -54,17 +87,18 @@ describe('Lot 4 dictation and poetry UI', () => {
     const entryHeading = preparationRegion.querySelector('.dictation-entry-heading');
     const fieldCards = [...preparationRegion.querySelectorAll('.dictation-entry-card')];
     const actionButtons = [...preparationRegion.querySelectorAll('.word-source-actions .poetry-icon-button')];
+    const tenseFieldset = screen.getByRole('group', { name: /temps des verbes/i });
     const tenseHeader = preparationRegion.querySelector('.verb-tense-header');
     expect(wordEntry).toBeInTheDocument();
     expect(fieldCards).toHaveLength(2);
     expect(fieldCards[0]).toHaveTextContent(/nom, adjectifs/i);
     expect(fieldCards[1]).toHaveTextContent(/verbes/i);
-    expect(entryHeading).toHaveTextContent(/saisis tes mots \(séparateurs virgule\)/i);
+    expect(entryHeading).toHaveTextContent(/saisis tes mots.*séparateur virgule/i);
     expect(entryHeading!.compareDocumentPosition(fieldCards[0])).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
     expect(actionButtons).toHaveLength(2);
     expect(actionButtons[0]).toHaveAttribute('title', 'Importer un fichier');
     expect(actionButtons[1]).toHaveAttribute('title', 'Prendre une photo');
-    expect(tenseHeader).toHaveTextContent(/temps des verbes/i);
+    expect(tenseFieldset).toHaveTextContent(/temps des verbes/i);
     expect(tenseHeader).toHaveTextContent(/sélection multiple possible/i);
     expect(screen.queryByLabelText(/série de mots/i)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/moteur de génération openai/i)).not.toBeInTheDocument();
@@ -72,15 +106,103 @@ describe('Lot 4 dictation and poetry UI', () => {
     expect(screen.queryByText(/aperçu réel envoyé à/i)).not.toBeInTheDocument();
   });
 
+  it('can automatically fill word and verb frames from count controls on the card headers', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /bonjour emma/i })).toBeInTheDocument();
+    });
+
+    const dictationCard = screen.getByRole('heading', { name: /dictée/i }).closest('article');
+    expect(dictationCard).not.toBeNull();
+    await user.click(within(dictationCard!).getByRole('button', { name: /continuer/i }));
+
+    const wordEntry = await screen.findByLabelText(/saisis tes mots \(séparateurs virgule\)/i) as HTMLTextAreaElement;
+    const verbEntry = screen.getByLabelText(/saisis tes verbes \(séparateurs virgule\)/i) as HTMLTextAreaElement;
+    const wordGenerator = screen.getByRole('group', { name: /générer automatiquement des noms, adjectifs et adverbes/i });
+    const verbGenerator = screen.getByRole('group', { name: /générer automatiquement des verbes/i });
+
+    expect(wordGenerator.compareDocumentPosition(wordEntry)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(verbGenerator.compareDocumentPosition(verbEntry)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    const wordGenerateButton = within(wordGenerator).getByRole('button', { name: /générer/i });
+    const wordCountInput = within(wordGenerator).getByLabelText(/nombre de mots à générer/i);
+    const verbGenerateButton = within(verbGenerator).getByRole('button', { name: /générer/i });
+    const verbCountInput = within(verbGenerator).getByLabelText(/nombre de verbes à générer/i);
+    const increaseWordCount = within(wordGenerator).getByRole('button', { name: /augmenter le nombre de mots/i });
+    const decreaseWordCount = within(wordGenerator).getByRole('button', { name: /diminuer le nombre de mots/i });
+    const increaseVerbCount = within(verbGenerator).getByRole('button', { name: /augmenter le nombre de verbes/i });
+    const decreaseVerbCount = within(verbGenerator).getByRole('button', { name: /diminuer le nombre de verbes/i });
+
+    expect(wordCountInput).toHaveValue(8);
+    expect(verbCountInput).toHaveValue(5);
+    expect(wordGenerateButton.compareDocumentPosition(wordCountInput)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(verbGenerateButton.compareDocumentPosition(verbCountInput)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(within(wordGenerator).getByText('mots')).toBeInTheDocument();
+    expect(within(verbGenerator).getByText('verbes')).toBeInTheDocument();
+    expect(screen.queryByLabelText(/ajouter un mot à la liste/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/choisir dans la réserve/i)).not.toBeInTheDocument();
+
+    const verbTenseFieldset = screen.getByRole('group', { name: /temps des verbes/i });
+    const verbTenseLegend = within(verbTenseFieldset).getByText('Temps des verbes');
+    expect(verbTenseLegend).toHaveClass('verb-tense-title');
+
+    const textLengthFieldset = screen.getByRole('group', { name: /longueur du texte/i });
+    expect(within(textLengthFieldset).getByRole('radio', { name: /S · 35-55 mots/i })).toBeInTheDocument();
+    expect(within(textLengthFieldset).getByRole('radio', { name: /M · 55-85 mots/i })).toBeChecked();
+    expect(within(textLengthFieldset).getByRole('radio', { name: /L · 85-120 mots/i })).toBeInTheDocument();
+    expect(within(textLengthFieldset).getByRole('radio', { name: /XL · 120-180 mots/i })).toBeInTheDocument();
+
+    await user.click(within(textLengthFieldset).getByRole('radio', { name: /XL · 120-180 mots/i }));
+    expect(within(textLengthFieldset).getByRole('radio', { name: /XL · 120-180 mots/i })).toBeChecked();
+
+    await user.click(increaseWordCount);
+    expect(wordCountInput).toHaveValue(9);
+    await user.click(decreaseWordCount);
+    expect(wordCountInput).toHaveValue(8);
+
+    await user.click(increaseVerbCount);
+    expect(verbCountInput).toHaveValue(6);
+    await user.click(decreaseVerbCount);
+    expect(verbCountInput).toHaveValue(5);
+
+    fireEvent.change(wordCountInput, { target: { value: '' } });
+    expect((wordCountInput as HTMLInputElement).value).toBe('');
+    fireEvent.blur(wordCountInput);
+    expect(wordCountInput).toHaveValue(1);
+
+    fireEvent.change(verbCountInput, { target: { value: '' } });
+    expect((verbCountInput as HTMLInputElement).value).toBe('');
+    fireEvent.blur(verbCountInput);
+    expect(verbCountInput).toHaveValue(1);
+
+    fireEvent.change(wordCountInput, { target: { value: '9' } });
+    await user.click(increaseWordCount);
+    await user.click(within(wordGenerator).getByRole('button', { name: /générer/i }));
+    const generatedWords = wordEntry.value.split(',').map((word) => word.trim()).filter(Boolean);
+    expect(generatedWords).toHaveLength(10);
+    expect(generatedWords.slice(0, 6)).toEqual(['dragon', 'cartable', 'baignoire', 'rivière', 'forêt', 'montagne']);
+    expect(generatedWords.slice(6, 9)).toEqual(['magique', 'joli', 'grand']);
+    expect(generatedWords.slice(9)).toEqual(['doucement']);
+
+    fireEvent.change(verbCountInput, { target: { value: '4' } });
+    await user.click(within(verbGenerator).getByRole('button', { name: /générer/i }));
+    expect(verbEntry.value.split(',').map((word) => word.trim()).filter(Boolean)).toHaveLength(4);
+    expect(verbEntry.value).toContain('manger');
+    expect(verbEntry.value).toContain('dormir');
+  });
+
   it('keeps the dictation prompt editable from Paramétrage instead of the dictation page', async () => {
     const user = userEvent.setup();
-    const customPrompt = 'PROMPT PARAMETRAGE {{mots}} {{verbes}} {{temps}}';
+    const customPrompt = 'PROMPT PARAMETRAGE {{mots}} {{verbes}} {{temps}} {{longueur}}';
     render(<App />);
 
     await user.click(await screen.findByRole('button', { name: /paramétrage/i }));
 
     const settingsPromptEditor = await screen.findByLabelText(/template du prompt de dictée magique/i);
     expect((settingsPromptEditor as HTMLTextAreaElement).value).toContain('{{mots}}');
+    expect((settingsPromptEditor as HTMLTextAreaElement).value).toContain('{{longueur}}');
+    expect(screen.getAllByText(/\{\{longueur\}\}/i).length).toBeGreaterThan(0);
     fireEvent.change(settingsPromptEditor, { target: { value: customPrompt } });
 
     expect(screen.getByText(/nouveau prompt enregistré/i)).toBeInTheDocument();
@@ -127,7 +249,7 @@ describe('Lot 4 dictation and poetry UI', () => {
     await waitFor(() => {
       expect(screen.getByLabelText(/saisis tes mots/i)).toBeInTheDocument();
     });
-    expect(screen.getByRole('heading', { name: /dictée magique/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /^dictée$/i })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /dictée de mots/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /dictée normale/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('group', { name: /moteur de génération/i })).not.toBeInTheDocument();
@@ -206,9 +328,10 @@ describe('Lot 4 dictation and poetry UI', () => {
       expect(screen.getByRole('heading', { name: /texte produit par ollama/i })).toBeInTheDocument();
     });
     expect(screen.queryByText(/texte masqué pour l’élève/i)).not.toBeInTheDocument();
-    expect(screen.getByText('dragon')).toBeInTheDocument();
-    expect(screen.getByText('cartable')).toBeInTheDocument();
-    expect(screen.getByText('rivière')).toBeInTheDocument();
+    const includedWords = screen.getByLabelText(/mots inclus/i);
+    expect(within(includedWords).getByText('dragon')).toBeInTheDocument();
+    expect(within(includedWords).getByText('cartable')).toBeInTheDocument();
+    expect(within(includedWords).getByText('rivière')).toBeInTheDocument();
   });
 
   it('shows an animated waiting label while the default OpenAI generation is running', async () => {
@@ -563,7 +686,8 @@ describe('Lot 4 dictation and poetry UI', () => {
     });
 
     expect((screen.getByLabelText(/transcription de l’enregistrement/i) as HTMLTextAreaElement).value).toContain('Le dragon vit dans la bibliothèque');
-    await user.click(screen.getByRole('button', { name: /arrêter et analyser/i }));
+    await user.click(screen.getByRole('button', { name: /^arrêter$/i }));
+    await user.click(screen.getByRole('button', { name: /analyser la lecture/i }));
 
     const analysis = await screen.findByRole('heading', { name: /analyse de l’enregistrement/i });
     expect(analysis).toBeInTheDocument();
@@ -621,31 +745,42 @@ describe('Lot 4 dictation and poetry UI', () => {
       expect(screen.getByRole('heading', { name: /générer l’histoire/i })).toBeInTheDocument();
     });
 
-    expect(screen.getByLabelText(/personnage/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/animal/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/objet/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/lieu/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/taille du texte/i)).toBeInTheDocument();
-    expect((screen.getByLabelText(/prompt de génération lecture/i) as HTMLTextAreaElement).value).toContain('{{personnage}}');
-
-    await user.clear(screen.getByLabelText(/personnage/i));
-    await user.type(screen.getByLabelText(/personnage/i), 'Lina');
-    await user.clear(screen.getByLabelText(/animal/i));
-    await user.type(screen.getByLabelText(/animal/i), 'renard');
-    await user.clear(screen.getByLabelText(/objet/i));
-    await user.type(screen.getByLabelText(/objet/i), 'clé dorée');
-    await user.clear(screen.getByLabelText(/lieu/i));
-    await user.type(screen.getByLabelText(/lieu/i), 'forêt');
-    await user.selectOptions(screen.getByLabelText(/taille du texte/i), 'S');
     const generationRegion = screen.getByRole('region', { name: /génération ia de l’histoire/i });
+    expect(within(generationRegion).getByLabelText(/choisir un personnage/i)).toBeInTheDocument();
+    expect(within(generationRegion).getByLabelText(/choisir un animal/i)).toBeInTheDocument();
+    expect(within(generationRegion).getByLabelText(/choisir un objet/i)).toBeInTheDocument();
+    expect(within(generationRegion).getByLabelText(/choisir un lieu/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/taille du texte/i)).toBeInTheDocument();
+    expect(screen.queryByLabelText(/prompt de génération lecture/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/bloc 3/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/lis l'histoire/i)).not.toBeInTheDocument();
+
+    const storyRegion = screen.getByRole('region', { name: /ton histoire/i });
+    expect(within(storyRegion).getByRole('heading', { name: /^ton histoire$/i })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: /le dragon qui aimait les livres/i })).not.toBeInTheDocument();
+    const storyTitle = within(storyRegion).getByText(/le dragon qui aimait les livres/i);
+    expect(storyTitle.closest('.reading-story-title')).not.toBeNull();
+    expect(storyTitle.tagName.toLowerCase()).toBe('strong');
+    expect(screen.getByRole('button', { name: /écouter l’histoire/i })).toHaveClass('poetry-profile-button');
+    expect(screen.getByRole('button', { name: /démarrer l’enregistrement/i })).toHaveClass('poetry-profile-button');
+    expect(screen.getByRole('button', { name: /^arrêter$/i })).toHaveClass('poetry-profile-button');
+    expect(screen.getByRole('button', { name: /analyser la lecture/i })).toHaveClass('poetry-profile-button');
+
+    await user.selectOptions(screen.getByLabelText(/taille du texte/i), 'S');
     await user.click(within(generationRegion).getByRole('button', { name: /^générer$/i }));
 
     expect(await screen.findByText(/Lina rencontre un renard dans la forêt/i)).toBeInTheDocument();
+    expect(within(storyRegion).getByText(/histoire générée par ia/i).closest('.reading-story-title')).not.toBeNull();
+    expect(screen.getByRole('heading', { name: /quel personnage suit-on dans cette histoire/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Lina$/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /quel animal apparaît dans cette histoire/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^renard$/i })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: /où vit le dragon/i })).not.toBeInTheDocument();
     expect(globalThis.fetch).toHaveBeenCalledWith('/api/openai/generate', expect.objectContaining({ method: 'POST' }));
 
     await user.click(screen.getByRole('button', { name: /démarrer l’enregistrement/i }));
-    expect(screen.getByText(/chrono lancé/i)).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: /arrêter et analyser/i }));
+    expect(screen.getByText(/reconnaissance vocale indisponible|écoute en cours/i)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /^arrêter$/i }));
 
     await user.type(
       screen.getByLabelText(/transcription de l’enregistrement/i),
@@ -751,7 +886,8 @@ describe('Lot 4 dictation and poetry UI', () => {
     expect(screen.queryByLabelText(/chronomètre de récitation/i)).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /j’ai récité ma poésie/i })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /démarrer l’enregistrement/i })).toHaveClass('poetry-recital-button');
-    expect(screen.getByRole('button', { name: /redémarrer/i })).toHaveClass('poetry-recital-button');
+    expect(screen.getByRole('button', { name: /^arrêter$/i })).toHaveClass('poetry-recital-button');
+    expect(screen.getByRole('button', { name: /^arrêter$/i })).toBeDisabled();
     expect(screen.getByRole('button', { name: /analyser la récitation/i })).toHaveClass('poetry-recital-button');
     await user.click(screen.getByRole('button', { name: /démarrer l’enregistrement/i }));
     expect(screen.getByRole('button', { name: /enregistrement démarré/i })).toBeDisabled();
