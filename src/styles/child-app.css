@@ -2153,11 +2153,41 @@
   box-shadow: inset 0 0 0 2px rgba(245, 180, 0, 0.34);
 }
 
+.dictation-line-help.line-error-orthography {
+  background: #ffe4df;
+  box-shadow: inset 0 0 0 2px rgba(214, 61, 36, 0.38);
+}
+
+.dictation-line-help.line-error-accent {
+  background: #ffe3c2;
+  box-shadow: inset 0 0 0 2px rgba(217, 119, 6, 0.42);
+}
+
+.dictation-line-help.line-error-punctuation {
+  background: #fff4cf;
+  box-shadow: inset 0 0 0 2px rgba(245, 180, 0, 0.34);
+}
+
 .dictation-word-error-highlight {
   border-radius: 8px;
   padding: 2px 4px;
-  background: #ffd6df;
-  color: #8f2b4a;
+  background: #ffe4df;
+  color: #9f2615;
+}
+
+.dictation-word-error-highlight.word-error-orthography {
+  background: #ffd6d0;
+  color: #8f2011;
+}
+
+.dictation-word-error-highlight.word-error-accent {
+  background: #ffd9a8;
+  color: #8a4700;
+}
+
+.dictation-word-error-highlight.word-error-punctuation {
+  background: #fff0b8;
+  color: #7c5a00;
 }
 
 .audio-button {

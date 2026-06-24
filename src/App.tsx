@@ -1649,12 +1649,16 @@ type ChildWordDictationFeedbackWord = {
   actual: string;
   expected: string;
   hasError: boolean;
+  severity: DictationMistakeSeverity;
 };
+
+type DictationMistakeSeverity = 'orthography' | 'accent' | 'punctuation';
 
 type ChildWordDictationFeedbackLine = {
   actualLine: string;
   expectedLine: string;
   hasError: boolean;
+  severity: DictationMistakeSeverity | null;
   words: ChildWordDictationFeedbackWord[];
 };
 
@@ -1733,7 +1737,59 @@ function getDictationWordIndexFromBoundary(words: string[], charIndex: number): 
 }
 
 function normalizeWordDictationAnswerToken(token: string): string {
-  return token.toLocaleLowerCase('fr-FR').replace(/^[^\p{L}\p{M}\p{N}]+|[^\p{L}\p{M}\p{N}]+$/gu, '');
+  return getDictationWordCore(token);
+}
+
+function normalizeDictationApostrophes(token: string): string {
+  return token.replace(/[’‘`´]/g, "'");
+}
+
+function getDictationWordCore(token: string): string {
+  return normalizeDictationApostrophes(token)
+    .toLocaleLowerCase('fr-FR')
+    .replace(/^[^\p{L}\p{M}\p{N}'-]+|[^\p{L}\p{M}\p{N}'-]+$/gu, '');
+}
+
+function removeDictationAccents(token: string): string {
+  return token.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
+function getDictationPunctuationSignature(token: string): string {
+  const normalized = normalizeDictationApostrophes(token).toLocaleLowerCase('fr-FR');
+  const leading = normalized.match(/^[^\p{L}\p{M}\p{N}'-]+/u)?.[0] ?? '';
+  const trailing = normalized.match(/[^\p{L}\p{M}\p{N}'-]+$/u)?.[0] ?? '';
+  return `${leading}|${trailing}`;
+}
+
+function getDictationSubstitutionSeverity(expectedToken: DictationReviewToken, actualToken: DictationReviewToken): DictationMistakeSeverity {
+  const expectedCore = getDictationWordCore(expectedToken.raw);
+  const actualCore = getDictationWordCore(actualToken.raw);
+  if (removeDictationAccents(expectedCore) === removeDictationAccents(actualCore)) return 'accent';
+  return 'orthography';
+}
+
+function getDictationMatchSeverity(expectedToken: DictationReviewToken, actualToken: DictationReviewToken): DictationMistakeSeverity | null {
+  const expectedCore = getDictationWordCore(expectedToken.raw);
+  const actualCore = getDictationWordCore(actualToken.raw);
+  if (expectedCore !== actualCore && removeDictationAccents(expectedCore) === removeDictationAccents(actualCore)) return 'accent';
+  return getDictationPunctuationSignature(expectedToken.raw) === getDictationPunctuationSignature(actualToken.raw) ? null : 'punctuation';
+}
+
+function getDictationMistakeSeverity(operation: DictationReviewOperation): DictationMistakeSeverity | null {
+  if (operation.type === 'match' && operation.expected && operation.actual) {
+    return getDictationMatchSeverity(operation.expected, operation.actual);
+  }
+  if (operation.type === 'substitute' && operation.expected && operation.actual) {
+    return getDictationSubstitutionSeverity(operation.expected, operation.actual);
+  }
+  if (operation.type === 'insert') return operation.actual?.normalized ? 'orthography' : 'punctuation';
+  if (operation.type === 'delete') return 'orthography';
+  return null;
+}
+
+function getHighestDictationSeverity(currentSeverity: DictationMistakeSeverity | null, nextSeverity: DictationMistakeSeverity): DictationMistakeSeverity {
+  const ranks: Record<DictationMistakeSeverity, number> = { punctuation: 1, accent: 2, orthography: 3 };
+  return !currentSeverity || ranks[nextSeverity] > ranks[currentSeverity] ? nextSeverity : currentSeverity;
 }
 
 function splitWordDictationLines(text: string): string[] {
@@ -1835,13 +1891,14 @@ function getLineIndexForMissingDictationWord(operation: DictationReviewOperation
   );
 }
 
-function buildChildWordDictationReview(expectedText: string, answerText: string): ChildWordDictationReview {
+export function buildChildWordDictationReview(expectedText: string, answerText: string): ChildWordDictationReview {
   const answerLines = splitWordDictationLines(answerText);
   const lineCount = Math.max(answerLines.length, 1);
   const lines: ChildWordDictationFeedbackLine[] = Array.from({ length: lineCount }, (_, lineIndex) => ({
     actualLine: answerLines[lineIndex] ?? '',
     expectedLine: '',
     hasError: false,
+    severity: null,
     words: [],
   }));
   const expectedTokens = extractDictationReviewTokens(expectedText);
@@ -1850,7 +1907,8 @@ function buildChildWordDictationReview(expectedText: string, answerText: string)
   let mistakeCount = 0;
 
   operations.forEach((operation) => {
-    const hasError = operation.type !== 'match';
+    const severity = getDictationMistakeSeverity(operation);
+    const hasError = severity !== null;
     const lineIndex = operation.actual
       ? Math.min(Math.max(operation.actual.lineIndex, 0), lineCount - 1)
       : getLineIndexForMissingDictationWord(operation, actualTokens, lineCount);
@@ -1858,12 +1916,14 @@ function buildChildWordDictationReview(expectedText: string, answerText: string)
     if (hasError) {
       mistakeCount += 1;
       lines[lineIndex].hasError = true;
+      lines[lineIndex].severity = getHighestDictationSeverity(lines[lineIndex].severity, severity);
     }
 
     lines[lineIndex].words.push({
       actual: operation.actual?.raw ?? '',
       expected: operation.expected?.raw ?? '',
       hasError,
+      severity: severity ?? 'orthography',
     });
   });
 
@@ -3824,13 +3884,13 @@ function DictationView({
       <div className="dictation-child-review" aria-label="Correction guidée de la dictée">
         {childWordDictationReview.lines.map((line, lineIndex) => (
           <p
-            className={`dictation-line-help ${dictationHelpLevel === 'line' && line.hasError ? 'line-has-error' : ''}`}
+            className={`dictation-line-help ${dictationHelpLevel === 'line' && line.hasError ? `line-has-error line-error-${line.severity}` : ''}`}
             key={`child-dictation-line-${lineIndex}`}
           >
             {dictationHelpLevel === 'word'
               ? line.words.map((word, wordIndex) => (
                 <span
-                  className={word.hasError ? 'dictation-word-error-highlight' : ''}
+                  className={word.hasError ? `dictation-word-error-highlight word-error-${word.severity}` : ''}
                   key={`child-dictation-word-${lineIndex}-${wordIndex}`}
                 >
                   {word.actual || '∅'}{wordIndex < line.words.length - 1 ? ' ' : ''}

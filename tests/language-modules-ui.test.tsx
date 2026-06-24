@@ -1,12 +1,26 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import App from '../src/App';
+import App, { buildChildWordDictationReview } from '../src/App';
 
 describe('Lot 4 dictation and poetry UI', () => {
   afterEach(() => {
     vi.restoreAllMocks();
     window.localStorage.clear();
+  });
+
+  it('classifies child dictation corrections by severity without flagging typographic apostrophes', () => {
+    const review = buildChildWordDictationReview(
+      'Je cours jusqu’à la forêt. Puis, je dors paisiblement.',
+      "Je cours jusqu'à la foret Puis je dors paisi blement.",
+    );
+
+    expect(review.mistakeCount).toBe(4);
+    expect(review.lines[0].words.find((word) => word.actual === "jusqu'à")?.hasError).toBe(false);
+    expect(review.lines[0].words.find((word) => word.actual === 'foret')?.severity).toBe('accent');
+    expect(review.lines[0].words.find((word) => word.actual === 'Puis')?.severity).toBe('punctuation');
+    expect(review.lines[0].words.find((word) => word.actual === 'paisi')?.severity).toBe('orthography');
+    expect(review.lines[0]).toMatchObject({ hasError: true, severity: 'orthography' });
   });
 
   it('shows the updated reading text-size menu ranges including XXL', async () => {
