@@ -2902,6 +2902,191 @@
   background: transparent;
 }
 
+.history-redesign-page {
+  gap: 18px;
+  background: transparent;
+}
+
+.history-hero-card,
+.history-theme-card,
+.history-skills-card {
+  border: 1px solid rgba(109, 93, 252, 0.13);
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 16px 38px rgba(76, 54, 150, 0.08);
+}
+
+.history-hero-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 24px;
+  align-items: center;
+  padding: 28px;
+  overflow: hidden;
+}
+
+.history-hero-card h1,
+.history-hero-card p,
+.history-theme-card h2,
+.history-theme-card p,
+.history-skills-card h2,
+.history-skills-card p {
+  margin: 0;
+}
+
+.history-hero-card h1 {
+  max-width: 760px;
+  color: var(--color-primary-dark);
+  font-size: clamp(2rem, 4vw, 3.25rem);
+  font-weight: 760;
+  line-height: 1.02;
+  letter-spacing: -0.055em;
+}
+
+.history-hero-card p:not(.eyebrow) {
+  max-width: 760px;
+  margin-top: 12px;
+  color: #596174;
+  font-size: 1rem;
+  font-weight: 560;
+  line-height: 1.55;
+}
+
+.history-hero-badge {
+  display: grid;
+  place-items: center;
+  width: 128px;
+  height: 128px;
+  border-radius: 38px;
+  background:
+    radial-gradient(circle at 30% 24%, rgba(255, 200, 61, 0.5), transparent 38%),
+    linear-gradient(145deg, #fff8df, #eeeaff);
+  color: #332a7c;
+  box-shadow: inset 0 0 0 1px rgba(109, 93, 252, 0.12), 0 18px 32px rgba(76, 54, 150, 0.12);
+}
+
+.history-hero-badge strong {
+  font-size: 3.5rem;
+  font-weight: 820;
+  line-height: 0.92;
+}
+
+.history-hero-badge span {
+  color: #655d7c;
+  font-size: 0.86rem;
+  font-weight: 760;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.history-programme-grid {
+  display: grid;
+  gap: 14px;
+}
+
+.history-theme-card {
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr);
+  gap: 16px;
+  padding: 22px;
+}
+
+.history-theme-index {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+  color: #fff;
+  font-weight: 820;
+  box-shadow: 0 12px 24px rgba(109, 93, 252, 0.2);
+}
+
+.history-theme-card h2 {
+  color: var(--color-primary-dark);
+  font-size: 1.28rem;
+  line-height: 1.15;
+  letter-spacing: -0.025em;
+}
+
+.history-theme-card p {
+  margin-top: 6px;
+  color: #687086;
+  font-size: 0.94rem;
+  font-weight: 560;
+  line-height: 1.45;
+}
+
+.history-theme-card ul {
+  display: grid;
+  gap: 8px;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.history-theme-card li {
+  position: relative;
+  padding-left: 26px;
+  color: #273149;
+  font-weight: 560;
+  line-height: 1.45;
+}
+
+.history-theme-card li::before {
+  content: '✦';
+  position: absolute;
+  top: 0;
+  left: 0;
+  color: #ffc83d;
+  font-size: 0.95rem;
+}
+
+.history-skills-card {
+  padding: 24px;
+}
+
+.history-skills-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.history-skills-list span {
+  border: 1px solid rgba(109, 93, 252, 0.14);
+  border-radius: 18px;
+  background: rgba(109, 93, 252, 0.06);
+  color: #332a7c;
+  padding: 12px 14px;
+  font-size: 0.94rem;
+  font-weight: 620;
+  line-height: 1.35;
+}
+
+.history-source-note {
+  margin-top: 18px !important;
+  color: #7a8192;
+  font-size: 0.84rem;
+  font-weight: 560;
+}
+
+@media (max-width: 860px) {
+  .history-hero-card {
+    grid-template-columns: 1fr;
+  }
+
+  .history-hero-badge {
+    width: 100px;
+    height: 100px;
+  }
+
+  .history-skills-list {
+    grid-template-columns: 1fr;
+  }
+}
+
 .poetry-redesign-page,
 .dictation-redesign-page,
 .reading-redesign-page,
@@ -2921,7 +3106,9 @@
 .child-app-layout:has(.dictation-redesign-page),
 .child-app-layout:has(.dictation-redesign-page) .child-app-shell,
 .child-app-layout:has(.reading-redesign-page),
-.child-app-layout:has(.reading-redesign-page) .child-app-shell {
+.child-app-layout:has(.reading-redesign-page) .child-app-shell,
+.child-app-layout:has(.history-redesign-page),
+.child-app-layout:has(.history-redesign-page) .child-app-shell {
   background:
     radial-gradient(circle at top left, rgba(255, 191, 63, 0.24), transparent 34rem),
     radial-gradient(circle at top right, rgba(76, 201, 240, 0.24), transparent 28rem),

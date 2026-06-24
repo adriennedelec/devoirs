@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode, FormEvent, CSSProperties, KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent } from 'react';
-import { BookOpen, Camera, Database, Flame, Gift, GraduationCap, Home, Library, LogOut, MapIcon, Mic, PencilLine, Settings, Sparkles, Star, Trophy, Upload, User, UserRound, Users } from 'lucide-react';
+import { BookOpen, Camera, Database, Flame, Gift, GraduationCap, Home, Landmark, Library, LogOut, MapIcon, Mic, PencilLine, Settings, Sparkles, Star, Trophy, Upload, User, UserRound, Users } from 'lucide-react';
 import type { ApiState, ChildDashboard } from './types/api';
 import type { ActivityRecord, StoredActivityModule } from './types/activity';
 import type {
@@ -70,7 +70,7 @@ import readingPageIllustrationUrl from './assets/page-illustrations/illustration
 import dictationPageIllustrationUrl from './assets/page-illustrations/illustration-dictee.png';
 import multiplicationPageIllustrationUrl from './assets/page-illustrations/illustration-multiplication.png';
 
-type ChildPage = 'home' | 'path' | 'rewards' | 'reading' | 'multiplication' | 'dictation' | 'poetry' | 'profile' | 'database' | 'settings';
+type ChildPage = 'home' | 'path' | 'rewards' | 'reading' | 'multiplication' | 'dictation' | 'poetry' | 'history' | 'profile' | 'database' | 'settings';
 
 type NavItem = {
   id: ChildPage;
@@ -1945,6 +1945,7 @@ const navItems: NavItem[] = [
   { id: 'multiplication', label: 'Tables', icon: Sparkles },
   { id: 'dictation', label: 'Dictée', icon: PencilLine },
   { id: 'poetry', label: 'Poésie', icon: Mic },
+  { id: 'history', label: 'Histoire', icon: Landmark },
   { id: 'profile', label: 'Profil', icon: UserRound },
   { id: 'database', label: 'Base de données', icon: Database },
   { id: 'settings', label: 'Paramétrage', icon: Settings },
@@ -2316,6 +2317,92 @@ function RewardsView({ dashboard, activeProfile }: { dashboard: ChildDashboard; 
             </div>
           </article>
         ))}
+      </section>
+    </main>
+  );
+}
+
+const HISTORY_CM2_PROGRAMME = [
+  {
+    theme: 'Thème 1 — Le temps de la République',
+    goal: 'Comprendre comment la République s’installe dans la durée et transforme la vie des citoyens.',
+    items: [
+      '1892 : la République fête ses cent ans.',
+      'L’école primaire au temps de Jules Ferry : une école gratuite, laïque et obligatoire.',
+      'Des républiques, une démocratie : les libertés, les droits et les devoirs des citoyens.',
+    ],
+  },
+  {
+    theme: 'Thème 2 — L’âge industriel en France',
+    goal: 'Observer les grandes transformations techniques, économiques et sociales du XIXe siècle.',
+    items: [
+      'Énergies et machines : vapeur, charbon, électricité et nouveaux moyens de production.',
+      'Le travail à la mine, à l’usine, à l’atelier et au grand magasin.',
+      'La ville industrielle : croissance urbaine, quartiers, transports et nouveaux modes de vie.',
+      'Le monde rural : campagnes, travaux agricoles et transformations progressives.',
+    ],
+  },
+  {
+    theme: 'Thème 3 — La France, des guerres mondiales à l’Union européenne',
+    goal: 'Situer la France dans les grands conflits du XXe siècle et la construction européenne.',
+    items: [
+      'Deux guerres mondiales au XXe siècle : violence de masse, occupation, Résistance et mémoire.',
+      'La construction européenne : coopérer pour construire la paix et relier les pays d’Europe.',
+    ],
+  },
+];
+
+const HISTORY_CM2_SKILLS = [
+  'Se repérer dans le temps : dates, périodes, frises chronologiques.',
+  'Lire et comprendre des documents historiques : textes, images, cartes, affiches, témoignages.',
+  'Utiliser un vocabulaire précis : République, démocratie, citoyen, industrialisation, Résistance, Europe.',
+  'Raconter et expliquer simplement un événement ou une évolution historique.',
+];
+
+function HistoryView({ dashboard }: { dashboard: ChildDashboard }) {
+  return (
+    <main className="child-main history-redesign-page">
+      <ChildTopBar dashboard={dashboard} title="Histoire CM2" />
+      <section className="history-hero-card" aria-labelledby="history-page-title">
+        <div>
+          <p className="eyebrow">Programme scolaire officiel · Cycle 3</p>
+          <h1 id="history-page-title">Tous les repères d’histoire à connaître en CM2</h1>
+          <p>
+            Une page claire pour voir les trois grands thèmes du programme, les notions importantes et les compétences à travailler toute l’année.
+          </p>
+        </div>
+        <div className="history-hero-badge" aria-label="3 thèmes officiels">
+          <strong>3</strong>
+          <span>thèmes</span>
+        </div>
+      </section>
+
+      <section className="history-programme-grid" aria-label="Éléments du programme d’histoire CM2">
+        {HISTORY_CM2_PROGRAMME.map((theme, index) => (
+          <article className="history-theme-card" key={theme.theme}>
+            <span className="history-theme-index" aria-hidden="true">{index + 1}</span>
+            <div>
+              <h2>{theme.theme}</h2>
+              <p>{theme.goal}</p>
+              <ul>
+                {theme.items.map((item) => <li key={item}>{item}</li>)}
+              </ul>
+            </div>
+          </article>
+        ))}
+      </section>
+
+      <section className="history-skills-card" aria-labelledby="history-skills-title">
+        <div className="section-heading">
+          <p className="eyebrow">Méthode d’historien</p>
+          <h2 id="history-skills-title">Ce que l’élève apprend à faire</h2>
+        </div>
+        <div className="history-skills-list">
+          {HISTORY_CM2_SKILLS.map((skill) => <span key={skill}>{skill}</span>)}
+        </div>
+        <p className="history-source-note">
+          Source : programmes d’histoire-géographie de cycle 3 de l’Éducation nationale, niveau CM2.
+        </p>
       </section>
     </main>
   );
@@ -6514,6 +6601,8 @@ function ActivePage({
       return <DictationView dashboard={dashboard} onRecordExercise={onRecordExercise} />;
     case 'poetry':
       return <PoetryView dashboard={dashboard} onRecordExercise={onRecordExercise} />;
+    case 'history':
+      return <HistoryView dashboard={dashboard} />;
     case 'profile':
       return <ProfileView
         dashboard={dashboard}

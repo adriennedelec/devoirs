@@ -37,11 +37,11 @@ describe('Lot 2 child navigation', () => {
 
     await user.click(screen.getByRole('button', { name: /parcours/i }));
     expect(screen.getByRole('heading', { name: /mon parcours/i })).toBeInTheDocument();
-    expect(screen.getByText(/chaque étape te rapproche/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /progression de emma/i })).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /récompenses/i }));
     expect(screen.getByRole('heading', { name: /mes récompenses/i })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: /exploratrice des mots/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /^emma$/i })).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /profil/i }));
     expect(screen.getByRole('heading', { name: /famille nedelec/i })).toBeInTheDocument();
@@ -82,9 +82,10 @@ describe('Lot 2 child navigation', () => {
       { button: /parcours/i, marker: /mon parcours/i },
       { button: /récompenses/i, marker: /mes récompenses/i },
       { button: /lecture/i, marker: /^lecture$/i },
-      { button: /tables/i, marker: /réussis 9 calculs/i },
-      { button: /dictée/i, marker: /dictée magique/i },
+      { button: /tables/i, marker: /tables de multiplication/i },
+      { button: /dictée/i, marker: /^dictée$/i },
       { button: /poésie/i, marker: /^poésie$/i },
+      { button: /histoire/i, marker: /histoire cm2/i },
       { button: /profil/i, marker: /famille nedelec/i },
       { button: /base de données/i, marker: /base de données/i },
       { button: /paramétrage/i, marker: /paramétrage/i },
@@ -106,6 +107,24 @@ describe('Lot 2 child navigation', () => {
       expect(within(activeUserButton).getByText('Emma')).toBeInTheDocument();
       expect(within(activeUserButton).queryByText(/CM1|profil actif|élève|connecté|administrateur/i)).not.toBeInTheDocument();
     }
+  });
+
+  it('affiche la nouvelle page Histoire avec tous les thèmes officiels CM2', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(await screen.findByRole('button', { name: /histoire/i }));
+
+    expect(screen.getByRole('heading', { name: /histoire cm2/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /le temps de la république/i })).toBeInTheDocument();
+    expect(screen.getByText(/1892 : la république fête ses cent ans/i)).toBeInTheDocument();
+    expect(screen.getByText(/l’école primaire au temps de jules ferry/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /l’âge industriel en france/i })).toBeInTheDocument();
+    expect(screen.getByText(/le travail à la mine, à l’usine, à l’atelier et au grand magasin/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /des guerres mondiales à l’union européenne/i })).toBeInTheDocument();
+    expect(screen.getByText(/deux guerres mondiales au xxe siècle/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/la construction européenne/i).length).toBeGreaterThan(0);
+    expect(screen.getByText(/se repérer dans le temps/i)).toBeInTheDocument();
   });
 
   it('ajoute un nouveau profil sans erreur', async () => {
