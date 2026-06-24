@@ -45,6 +45,74 @@ describe('Authentification administrateur', () => {
     expect(window.sessionStorage.getItem(AUTH_STORAGE_KEY)).toBe('admin');
   });
 
+  it('connecte un utilisateur déclaré avec menus limités et droit famille en visualisation', async () => {
+    window.sessionStorage.removeItem(AUTH_STORAGE_KEY);
+    window.localStorage.setItem('devoirs.users.v1', JSON.stringify([
+      {
+        id: 'user-lecture',
+        login: 'lecteur',
+        password: 'secretlecture',
+        familyId: 'famille-nedelec',
+        menuAccess: ['home', 'reading', 'profile'],
+        familyPermissions: { 'famille-nedelec': 'view' },
+      },
+    ]));
+    const user = userEvent.setup();
+
+    render(<App />);
+
+    await user.type(screen.getByRole('textbox', { name: /utilisateur/i }), 'lecteur');
+    await user.type(screen.getByLabelText(/mot de passe/i), 'secretlecture');
+    await user.click(screen.getByRole('button', { name: /se connecter/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /bonjour emma/i })).toBeInTheDocument();
+    });
+
+    const navigation = screen.getByRole('navigation', { name: /navigation enfant/i });
+    expect(within(navigation).getByRole('button', { name: /accueil/i })).toBeInTheDocument();
+    expect(within(navigation).getByRole('button', { name: /lecture/i })).toBeInTheDocument();
+    expect(within(navigation).getByRole('button', { name: /profil/i })).toBeInTheDocument();
+    expect(within(navigation).queryByRole('button', { name: /tables/i })).not.toBeInTheDocument();
+    expect(within(navigation).queryByRole('button', { name: /paramétrage/i })).not.toBeInTheDocument();
+
+    await user.click(within(navigation).getByRole('button', { name: /profil/i }));
+    expect(await screen.findByRole('heading', { name: /famille nedelec/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /ajouter un profil/i })).not.toBeInTheDocument();
+    expect(await screen.findByText(/droits sont en visualisation/i)).toBeInTheDocument();
+  });
+
+  it('permet à l’administrateur de créer un utilisateur avec menus et droits famille', async () => {
+    window.sessionStorage.removeItem(AUTH_STORAGE_KEY);
+    const user = userEvent.setup();
+
+    render(<App />);
+
+    await user.type(screen.getByRole('textbox', { name: /utilisateur/i }), 'admin');
+    await user.type(screen.getByLabelText(/mot de passe/i), 'KarineAdrien1287');
+    await user.click(screen.getByRole('button', { name: /se connecter/i }));
+    await user.click(await screen.findByRole('button', { name: /paramétrage/i }));
+
+    expect(screen.getByRole('heading', { name: /gestion des utilisateurs/i })).toBeInTheDocument();
+    await user.type(screen.getByRole('textbox', { name: /login utilisateur/i }), 'karine');
+    await user.type(screen.getByLabelText(/mot de passe utilisateur/i), 'secret');
+    await user.selectOptions(screen.getByRole('combobox', { name: /droits famille nedelec/i }), 'manage');
+    await user.click(screen.getByRole('checkbox', { name: /lecture/i }));
+    await user.click(screen.getByRole('checkbox', { name: /profil/i }));
+    await user.click(screen.getByRole('button', { name: /enregistrer l’utilisateur/i }));
+
+    expect(screen.getByText(/karine/i)).toBeInTheDocument();
+    const storedUsers = JSON.parse(window.localStorage.getItem('devoirs.users.v1') ?? '[]');
+    expect(storedUsers).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        login: 'karine',
+        familyId: 'famille-nedelec',
+        menuAccess: expect.arrayContaining(['reading', 'profile']),
+        familyPermissions: expect.objectContaining({ 'famille-nedelec': 'manage' }),
+      }),
+    ]));
+  });
+
   it('connecte les identifiants famille comme utilisateur simple', async () => {
     window.sessionStorage.removeItem(AUTH_STORAGE_KEY);
     window.localStorage.setItem('devoirs.familySettings.v1', JSON.stringify({

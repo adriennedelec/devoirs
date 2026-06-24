@@ -129,9 +129,32 @@ type FamilySettings = {
   password: string;
 };
 
+type FamilyAccessLevel = 'view' | 'manage';
+
+type ManagedUser = {
+  id: string;
+  login: string;
+  password: string;
+  familyId: string;
+  menuAccess: ChildPage[];
+  familyPermissions: Record<string, FamilyAccessLevel>;
+};
+
 type AuthenticatedSession = {
   username: string;
   role: 'admin' | 'user';
+  userId?: string;
+  familyId?: string;
+  menuAccess?: ChildPage[];
+  familyPermissions?: Record<string, FamilyAccessLevel>;
+};
+
+type NewManagedUserForm = {
+  login: string;
+  password: string;
+  familyId: string;
+  familyAccess: FamilyAccessLevel;
+  menuAccess: ChildPage[];
 };
 
 type RemoteDatabaseSyncState = {
@@ -257,7 +280,14 @@ function readAdminSessionFromStorage(): AuthenticatedSession | null {
   try {
     const parsed = JSON.parse(stored) as Partial<AuthenticatedSession>;
     if (parsed.username && (parsed.role === 'admin' || parsed.role === 'user')) {
-      return { username: parsed.username, role: parsed.role };
+      return {
+        username: parsed.username,
+        role: parsed.role,
+        userId: typeof parsed.userId === 'string' ? parsed.userId : undefined,
+        familyId: typeof parsed.familyId === 'string' ? parsed.familyId : undefined,
+        menuAccess: normalizeMenuAccess(parsed.menuAccess),
+        familyPermissions: typeof parsed.familyPermissions === 'object' && parsed.familyPermissions !== null ? parsed.familyPermissions as Record<string, FamilyAccessLevel> : undefined,
+      };
     }
   } catch {
     return null;
@@ -580,6 +610,7 @@ const PROFILE_PHOTO_OPTIONS = (() => {
 const PROFILE_STORAGE_KEY = 'devoirs.childProfiles.v1';
 const ACTIVE_PROFILE_ID_KEY = 'devoirs.activeProfileId.v1';
 const FAMILY_SETTINGS_STORAGE_KEY = 'devoirs.familySettings.v1';
+const MANAGED_USERS_STORAGE_KEY = 'devoirs.users.v1';
 const ACTIVITY_DATABASE_STORAGE_KEY = 'devoirs.activityRecords.v1';
 const MULTIPLICATION_TABLE_HISTORY_STORAGE_KEY = 'devoirs.multiplicationTableHistory.v1';
 const REWARD_SETTINGS_STORAGE_KEY = 'devoirs.rewardSettings.v1';
@@ -602,6 +633,7 @@ const LOCAL_DATABASE_TABLES: LocalDatabaseTableDefinition[] = [
   { storageKey: MULTIPLICATION_TABLE_HISTORY_STORAGE_KEY, label: 'Historique tables', primaryKey: 'id', mode: 'upsert-delete' },
   { storageKey: REWARD_SETTINGS_STORAGE_KEY, label: 'Récompenses', primaryKey: 'key', mode: 'object-records' },
   { storageKey: FAMILY_SETTINGS_STORAGE_KEY, label: 'Paramètres famille', primaryKey: 'key', mode: 'singleton', singletonKey: 'familySettings' },
+  { storageKey: MANAGED_USERS_STORAGE_KEY, label: 'Utilisateurs', primaryKey: 'id', mode: 'upsert-delete' },
   { storageKey: LLAMA_DICTATION_PROMPT_STORAGE_KEY, label: 'Prompt dictée', primaryKey: 'key', mode: 'singleton', singletonKey: 'wordDictationPrompt' },
 ];
 
@@ -1950,6 +1982,77 @@ const navItems: NavItem[] = [
   { id: 'database', label: 'Base de données', icon: Database },
   { id: 'settings', label: 'Paramétrage', icon: Settings },
 ];
+
+const ALL_MENU_PAGE_IDS = navItems.map((item) => item.id);
+const DEFAULT_FAMILY_ID = 'famille-nedelec';
+
+function normalizeMenuAccess(value: unknown): ChildPage[] {
+  if (!Array.isArray(value)) return ALL_MENU_PAGE_IDS;
+  const allowed = value.filter((item): item is ChildPage => typeof item === 'string' && ALL_MENU_PAGE_IDS.includes(item as ChildPage));
+  return Array.from(new Set(['home', ...allowed]));
+}
+
+function normalizeFamilyAccess(value: unknown): FamilyAccessLevel {
+  return value === 'manage' ? 'manage' : 'view';
+}
+
+function normalizeManagedUser(raw: unknown): ManagedUser | null {
+  if (typeof raw !== 'object' || raw === null) return null;
+  const candidate = raw as Partial<ManagedUser>;
+  const login = typeof candidate.login === 'string' ? candidate.login.trim() : '';
+  const password = typeof candidate.password === 'string' ? candidate.password : '';
+  if (!login || !password) return null;
+  const familyId = typeof candidate.familyId === 'string' && candidate.familyId.trim() ? candidate.familyId.trim() : DEFAULT_FAMILY_ID;
+  const rawPermissions = typeof candidate.familyPermissions === 'object' && candidate.familyPermissions !== null ? candidate.familyPermissions : {};
+  return {
+    id: typeof candidate.id === 'string' && candidate.id.trim() ? candidate.id : cryptoSafeId(),
+    login,
+    password,
+    familyId,
+    menuAccess: normalizeMenuAccess(candidate.menuAccess),
+    familyPermissions: { [familyId]: normalizeFamilyAccess((rawPermissions as Record<string, unknown>)[familyId]) },
+  };
+}
+
+function readManagedUsersFromStorage(): ManagedUser[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const stored = window.localStorage.getItem(MANAGED_USERS_STORAGE_KEY);
+    if (!stored) return [];
+    const parsed = JSON.parse(stored);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.map(normalizeManagedUser).filter((user): user is ManagedUser => user !== null);
+  } catch {
+    return [];
+  }
+}
+
+function writeManagedUsersToStorage(users: ManagedUser[]) {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(MANAGED_USERS_STORAGE_KEY, JSON.stringify(users));
+}
+
+function getAccessibleNavItems(session: AuthenticatedSession) {
+  if (session.role === 'admin' || !session.menuAccess) return navItems;
+  const allowed = new Set(normalizeMenuAccess(session.menuAccess));
+  return navItems.filter((item) => allowed.has(item.id));
+}
+
+function getFamilyAccessForSession(session: AuthenticatedSession | null, familyId = DEFAULT_FAMILY_ID): FamilyAccessLevel {
+  if (!session || session.role === 'admin') return 'manage';
+  return normalizeFamilyAccess(session.familyPermissions?.[familyId]);
+}
+
+function buildSessionFromManagedUser(user: ManagedUser): AuthenticatedSession {
+  return {
+    username: user.login,
+    role: 'user',
+    userId: user.id,
+    familyId: user.familyId,
+    menuAccess: user.menuAccess,
+    familyPermissions: user.familyPermissions,
+  };
+}
 
 function LoadingDots() {
   return (
@@ -5283,6 +5386,7 @@ function ProfileView({
   activeProfile,
   activeProfileId,
   activeProfileHistory,
+  familyAccessMode,
   onActivateProfile,
   onCreateProfile,
   onUpdateProfileOrders,
@@ -5292,6 +5396,7 @@ function ProfileView({
   activeProfile: ChildProfileConfig;
   activeProfileId: string;
   activeProfileHistory: ProfileExerciseHistoryRecord[];
+  familyAccessMode: FamilyAccessLevel;
   onActivateProfile: (profileId: string) => void;
   onCreateProfile: (profile: Omit<ChildProfileConfig, 'id'>, profileId?: string) => void;
   onUpdateProfileOrders: (orders: Record<string, number>) => void;
@@ -5314,6 +5419,7 @@ function ProfileView({
   const [historyPageSize, setHistoryPageSize] = useState(DEFAULT_HISTORY_PAGE_SIZE);
   const [profileOrderDraft, setProfileOrderDraft] = useState<Record<string, string>>(() => Object.fromEntries(profiles.map((profile, index) => [profile.id, String(profile.displayOrder ?? index + 1)])));
   const [profileOrderStatus, setProfileOrderStatus] = useState<{ kind: 'success' | 'error'; message: string } | null>(null);
+  const canManageFamily = familyAccessMode === 'manage';
 
   const students = profiles.filter((profile) => profile.role === 'eleve');
   const parents = profiles.filter((profile) => profile.role === 'parent');
@@ -5378,6 +5484,10 @@ function ProfileView({
   }, [detailProfile, isFamilyModalOpen, familySettings]);
 
   function openCreateModal(role: ProfileRole) {
+    if (!canManageFamily) {
+      setActivationError('Tes droits sont en visualisation : tu peux consulter cette famille, mais pas créer ou modifier de profil.');
+      return;
+    }
     setEditingProfileId(null);
     setFormState(getDefaultProfileForm(undefined, role));
     setFormError('');
@@ -5386,6 +5496,10 @@ function ProfileView({
   }
 
   function openFamilyModal() {
+    if (!canManageFamily) {
+      setActivationError('Tes droits sont en visualisation : tu peux consulter cette famille, mais pas modifier ses réglages.');
+      return;
+    }
     setFamilyForm(familySettings);
     setIsFamilyModalOpen(true);
   }
@@ -5404,6 +5518,10 @@ function ProfileView({
   }
 
   function openEditModal(profile: ChildProfileConfig) {
+    if (!canManageFamily) {
+      setActivationError('Tes droits sont en visualisation : tu peux consulter cette famille, mais pas modifier de profil.');
+      return;
+    }
     if (activeProfile.role === 'eleve' && profile.role === 'parent') {
       setActivationError('Un enfant ne peut pas modifier les droits ou le profil d’un parent.');
       return;
@@ -5645,17 +5763,19 @@ function ProfileView({
               <span>{profileActivityData.earnedStarsByProfile[profile.id] ?? 0}</span>
             </div>
           ) : <span />}
-          <button
-            type="button"
-            className="ghost-action"
-            onClick={(event) => {
-              event.stopPropagation();
-              openEditModal(profile);
-            }}
-            aria-label={`Modifier ${profile.name}`}
-          >
-            Modifier
-          </button>
+          {canManageFamily ? (
+            <button
+              type="button"
+              className="ghost-action"
+              onClick={(event) => {
+                event.stopPropagation();
+                openEditModal(profile);
+              }}
+              aria-label={`Modifier ${profile.name}`}
+            >
+              Modifier
+            </button>
+          ) : null}
         </div>
       </article>
     );
@@ -5688,6 +5808,7 @@ function ProfileView({
       </section>
 
       {activationError ? <p className="state-card error" role="alert">{activationError}</p> : null}
+      {!canManageFamily ? <p className="state-card">Tes droits sont en visualisation pour cette famille : les profils sont consultables sans modification.</p> : null}
 
       <section className="profile-section" aria-label="Profils famille">
         <div className="section-heading compact-heading family-profiles-heading">
@@ -5695,15 +5816,17 @@ function ProfileView({
             <p className="eyebrow">Profils famille</p>
             <h2>Enfants et parents</h2>
           </div>
-          <button
-            type="button"
-            className="family-add-profile-button"
-            aria-label="Ajouter un profil"
-            title="Ajouter un profil"
-            onClick={() => openCreateModal('eleve')}
-          >
-            +
-          </button>
+          {canManageFamily ? (
+            <button
+              type="button"
+              className="family-add-profile-button"
+              aria-label="Ajouter un profil"
+              title="Ajouter un profil"
+              onClick={() => openCreateModal('eleve')}
+            >
+              +
+            </button>
+          ) : null}
         </div>
         <div className="family-profiles-strip">
           {profiles.map((profile) => renderProfileCard(profile))}
@@ -6322,11 +6445,20 @@ function ActivityDatabaseView({ dashboard }: { dashboard: ChildDashboard }) {
 
 const rewardSettingOrder: RewardExerciseKey[] = ['multiplication', 'dictation', 'poetry', 'reading'];
 
-function RewardSettingsView({ dashboard }: { dashboard: ChildDashboard }) {
+function RewardSettingsView({ dashboard, authenticatedUser }: { dashboard: ChildDashboard; authenticatedUser: AuthenticatedSession }) {
   const [settings, setSettings] = useState<RewardSettings>(() => readRewardSettingsFromStorage());
   const [saveState, setSaveState] = useState<'idle' | 'saved'>('idle');
   const [dictationPrompt, setDictationPrompt] = useState(() => getSavedLlamaDictationPrompt() ?? getDefaultOllamaDictationPromptTemplate());
   const [dictationPromptSaveState, setDictationPromptSaveState] = useState<'idle' | 'saved'>('idle');
+  const [managedUsers, setManagedUsers] = useState<ManagedUser[]>(() => readManagedUsersFromStorage());
+  const [managedUserForm, setManagedUserForm] = useState<NewManagedUserForm>({
+    login: '',
+    password: '',
+    familyId: DEFAULT_FAMILY_ID,
+    familyAccess: 'view',
+    menuAccess: ['home'],
+  });
+  const [managedUserSaveState, setManagedUserSaveState] = useState<'idle' | 'saved' | 'error'>('idle');
 
   function updateSetting(key: RewardExerciseKey, field: 'starsPerCompletedExercise' | 'perfectBonusStars', value: string) {
     const stars = Math.max(0, Number(value) || 0);
@@ -6355,6 +6487,41 @@ function RewardSettingsView({ dashboard }: { dashboard: ChildDashboard }) {
     clearSavedLlamaDictationPrompt();
     setDictationPrompt(getDefaultOllamaDictationPromptTemplate());
     setDictationPromptSaveState('saved');
+  }
+
+  function toggleManagedUserMenu(page: ChildPage) {
+    setManagedUserForm((current) => {
+      const currentAccess = new Set(current.menuAccess);
+      if (page === 'home') currentAccess.add('home');
+      else if (currentAccess.has(page)) currentAccess.delete(page);
+      else currentAccess.add(page);
+      return { ...current, menuAccess: normalizeMenuAccess(Array.from(currentAccess)) };
+    });
+    setManagedUserSaveState('idle');
+  }
+
+  function saveManagedUser(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const login = managedUserForm.login.trim();
+    const password = managedUserForm.password;
+    if (!login || !password) {
+      setManagedUserSaveState('error');
+      return;
+    }
+    const familyId = managedUserForm.familyId.trim() || DEFAULT_FAMILY_ID;
+    const nextUser: ManagedUser = {
+      id: cryptoSafeId(),
+      login,
+      password,
+      familyId,
+      menuAccess: normalizeMenuAccess(managedUserForm.menuAccess),
+      familyPermissions: { [familyId]: managedUserForm.familyAccess },
+    };
+    const nextUsers = [...managedUsers.filter((user) => user.login !== login), nextUser];
+    setManagedUsers(nextUsers);
+    writeManagedUsersToStorage(nextUsers);
+    setManagedUserForm({ login: '', password: '', familyId: DEFAULT_FAMILY_ID, familyAccess: 'view', menuAccess: ['home'] });
+    setManagedUserSaveState('saved');
   }
 
   return (
@@ -6411,6 +6578,89 @@ function RewardSettingsView({ dashboard }: { dashboard: ChildDashboard }) {
         </div>
       </section>
 
+      {authenticatedUser.role === 'admin' ? (
+        <section className="admin-panel" aria-labelledby="managed-users-title">
+          <div className="section-heading compact">
+            <p className="eyebrow">Accès familles</p>
+            <h2 id="managed-users-title">Gestion des utilisateurs</h2>
+          </div>
+          <form className="managed-user-form settings-card" onSubmit={saveManagedUser}>
+            <label className="field-label">
+              Login utilisateur
+              <input
+                type="text"
+                value={managedUserForm.login}
+                onChange={(event) => { setManagedUserForm((current) => ({ ...current, login: event.target.value })); setManagedUserSaveState('idle'); }}
+              />
+            </label>
+            <label className="field-label">
+              Mot de passe utilisateur
+              <input
+                type="password"
+                value={managedUserForm.password}
+                onChange={(event) => { setManagedUserForm((current) => ({ ...current, password: event.target.value })); setManagedUserSaveState('idle'); }}
+              />
+            </label>
+            <label className="field-label">
+              Famille rattachée
+              <input
+                type="text"
+                value={managedUserForm.familyId}
+                onChange={(event) => { setManagedUserForm((current) => ({ ...current, familyId: event.target.value })); setManagedUserSaveState('idle'); }}
+              />
+            </label>
+            <label className="field-label">
+              Droits famille Nedelec
+              <select
+                value={managedUserForm.familyAccess}
+                onChange={(event) => { setManagedUserForm((current) => ({ ...current, familyAccess: event.target.value as FamilyAccessLevel })); setManagedUserSaveState('idle'); }}
+              >
+                <option value="view">Visualisation</option>
+                <option value="manage">Gestion</option>
+              </select>
+            </label>
+            <fieldset className="managed-user-menu-access" aria-label="Menus accessibles">
+              <legend>Menus accessibles</legend>
+              {navItems.map((item) => (
+                <label key={item.id}>
+                  <input
+                    type="checkbox"
+                    checked={managedUserForm.menuAccess.includes(item.id)}
+                    disabled={item.id === 'home'}
+                    onChange={() => toggleManagedUserMenu(item.id)}
+                  />
+                  <span>{item.label}</span>
+                </label>
+              ))}
+            </fieldset>
+            <div className="form-actions">
+              <button className="primary-action" type="submit">Enregistrer l’utilisateur</button>
+              {managedUserSaveState === 'saved' ? <p className="form-feedback success">Utilisateur enregistré.</p> : null}
+              {managedUserSaveState === 'error' ? <p className="form-feedback error" role="alert">Login et mot de passe obligatoires.</p> : null}
+            </div>
+          </form>
+          <div className="multiplication-history-table-wrap">
+            <table className="multiplication-history-table activity-database-table" aria-label="Utilisateurs configurés">
+              <thead>
+                <tr><th>LOGIN</th><th>FAMILLE</th><th>DROIT</th><th>MENUS</th></tr>
+              </thead>
+              <tbody>
+                {managedUsers.length === 0 ? (
+                  <tr><td colSpan={4}>Aucun utilisateur créé.</td></tr>
+                ) : managedUsers.map((user) => (
+                  <tr key={user.id}>
+                    <td>{user.login}</td>
+                    <td>{user.familyId}</td>
+                    <td>{getFamilyAccessForSession(buildSessionFromManagedUser(user), user.familyId) === 'manage' ? 'Gestion' : 'Visualisation'}</td>
+                    <td>{getAccessibleNavItems(buildSessionFromManagedUser(user)).map((item) => item.label).join(', ')}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      ) : null}
+
       <section className="admin-panel" aria-labelledby="dictation-prompt-settings-title">
         <div className="section-heading compact">
           <p className="eyebrow">Dictée magique</p>
@@ -6445,18 +6695,21 @@ function AdminLoginView({ onAuthenticated }: { onAuthenticated: (session: Authen
     event.preventDefault();
     const trimmedUsername = username.trim();
     const familySettings = readFamilySettingsFromStorage();
+    const managedUser = readManagedUsersFromStorage().find((user) => user.login === trimmedUsername && user.password === password);
     const familyUserConfigured = familySettings.username.length > 0 && familySettings.password.length > 0;
     const matchedAdmin = trimmedUsername === ADMIN_USERNAME && password === ADMIN_PASSWORD;
     const matchedFamilyUser = familyUserConfigured && trimmedUsername === familySettings.username && password === familySettings.password;
 
-    if (!matchedAdmin && !matchedFamilyUser) {
+    if (!matchedAdmin && !matchedFamilyUser && !managedUser) {
       setError('Identifiants incorrects.');
       return;
     }
 
     const nextSession: AuthenticatedSession = matchedAdmin
       ? { username: ADMIN_USERNAME, role: 'admin' }
-      : { username: familySettings.username, role: 'user' };
+      : managedUser
+        ? buildSessionFromManagedUser(managedUser)
+        : { username: familySettings.username, role: 'user' };
     writeAdminSessionToStorage(nextSession);
     onAuthenticated(nextSession);
   }
@@ -6500,6 +6753,7 @@ function ChildSideNav({
   activePage,
   isPinned,
   authenticatedUser,
+  accessibleItems,
   onNavigate,
   onTogglePinned,
   onLogout,
@@ -6507,6 +6761,7 @@ function ChildSideNav({
   activePage: ChildPage;
   isPinned: boolean;
   authenticatedUser: AuthenticatedSession;
+  accessibleItems: NavItem[];
   onNavigate: (page: ChildPage) => void;
   onTogglePinned: () => void;
   onLogout: () => void;
@@ -6530,7 +6785,7 @@ function ChildSideNav({
           📌
         </button>
       </div>
-      {navItems.map(({ id, label, icon: Icon }) => (
+      {accessibleItems.map(({ id, label, icon: Icon }) => (
         <button aria-current={activePage === id ? 'page' : undefined} aria-label={label} className={activePage === id ? 'active' : ''} key={id} onClick={() => onNavigate(id)}>
           <Icon size={18} />
           <span className="nav-label">{label}</span>
@@ -6563,6 +6818,7 @@ function ActivePage({
   profiles,
   activeProfileId,
   activeProfile,
+  authenticatedUser,
   onActivateProfile,
   onCreateProfile,
   onUpdateProfileOrders,
@@ -6575,6 +6831,7 @@ function ActivePage({
   profiles: ChildProfileConfig[];
   activeProfileId: string;
   activeProfile: ChildProfileConfig;
+  authenticatedUser: AuthenticatedSession;
   onActivateProfile: (profileId: string) => void;
   onCreateProfile: (profile: Omit<ChildProfileConfig, 'id'>, profileId?: string) => void;
   onUpdateProfileOrders: (orders: Record<string, number>) => void;
@@ -6610,6 +6867,7 @@ function ActivePage({
         activeProfile={activeProfile}
         activeProfileId={activeProfileId}
         activeProfileHistory={exerciseHistory}
+        familyAccessMode={getFamilyAccessForSession(authenticatedUser)}
         onActivateProfile={onActivateProfile}
         onCreateProfile={onCreateProfile}
         onUpdateProfileOrders={onUpdateProfileOrders}
@@ -6617,7 +6875,7 @@ function ActivePage({
     case 'database':
       return <ActivityDatabaseView dashboard={dashboard} />;
     case 'settings':
-      return <RewardSettingsView dashboard={dashboard} />;
+      return <RewardSettingsView dashboard={dashboard} authenticatedUser={authenticatedUser} />;
     case 'home':
     default:
       return <HomeView dashboard={dashboard} onNavigate={onNavigate} />;
@@ -6641,6 +6899,7 @@ export default function App() {
   }, [profiles, activeProfileId]);
 
   const activeProfileHistory = profileExerciseHistory[activeProfile.id] ?? [];
+  const accessibleNavItems = authenticatedUser ? getAccessibleNavItems(authenticatedUser) : navItems;
 
   useEffect(() => {
     if (profiles.length === 0) return;
@@ -6661,6 +6920,13 @@ export default function App() {
 
     return () => { cancelled = true; };
   }, [activeProfile.id]);
+
+  useEffect(() => {
+    if (!authenticatedUser) return;
+    if (!accessibleNavItems.some((item) => item.id === activePage)) {
+      setActivePage(accessibleNavItems[0]?.id ?? 'home');
+    }
+  }, [authenticatedUser, activePage, accessibleNavItems]);
 
   useEffect(() => {
     writeProfilesToStorage(profiles);
@@ -6765,6 +7031,7 @@ export default function App() {
           profiles={profiles}
           activeProfileId={activeProfileId}
           activeProfile={activeProfile}
+          authenticatedUser={authenticatedUser!}
           onActivateProfile={requestActivateProfile}
           onCreateProfile={createOrUpdateProfile}
           onUpdateProfileOrders={updateProfileOrders}
@@ -6776,7 +7043,7 @@ export default function App() {
     if (dashboardState.status === 'loading') return <div className="state-card">Chargement de ton aventure…</div>;
     if (dashboardState.status === 'empty') return <div className="state-card">Aucune mission pour le moment.</div>;
     return <div className="state-card error">{dashboardState.message}</div>;
-  }, [activePage, activeProfileId, activeProfile, dashboardState, profiles, activeProfileHistory]);
+  }, [activePage, activeProfileId, activeProfile, authenticatedUser, dashboardState, profiles, activeProfileHistory]);
 
   const showSideNav = dashboardState.status === 'success';
   const pendingParentProfile = profiles.find((profile) => profile.id === pendingParentProfileId) ?? null;
@@ -6805,6 +7072,7 @@ export default function App() {
           activePage={activePage}
           isPinned={isSideNavPinned}
           authenticatedUser={authenticatedUser}
+          accessibleItems={accessibleNavItems}
           onNavigate={setActivePage}
           onTogglePinned={() => setIsSideNavPinned((isPinned) => !isPinned)}
           onLogout={logout}
