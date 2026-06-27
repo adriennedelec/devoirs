@@ -100,6 +100,7 @@ describe('menus Base de données et Paramétrage', () => {
       return new Response(JSON.stringify({ error: 'Not found' }), { status: 404 });
     });
     vi.stubGlobal('fetch', fetchMock);
+    (window as unknown as { __DEVOIRS_TEST_AUTO_REMOTE_DATABASE__?: boolean }).__DEVOIRS_TEST_AUTO_REMOTE_DATABASE__ = true;
 
     render(<App />);
 

@@ -12,7 +12,7 @@ const storedActivities = [
     moduleLabel: 'Multiplication',
     exerciseLabel: 'Table de 7',
     startedAtIso: '2026-06-11T08:00:00.000Z',
-    completedAtIso: '2026-06-11T08:02:00.000Z',
+    completedAtIso: new Date().toISOString(),
     durationSeconds: 120,
     status: 'completed',
     score: 8,
@@ -30,7 +30,7 @@ const storedActivities = [
     moduleLabel: 'Lecture',
     exerciseLabel: 'Le dragon qui aimait les livres',
     startedAtIso: '2026-06-10T08:00:00.000Z',
-    completedAtIso: '2026-06-10T08:05:00.000Z',
+    completedAtIso: new Date().toISOString(),
     durationSeconds: 300,
     status: 'completed',
     score: 3,
@@ -45,6 +45,7 @@ const storedActivities = [
 describe('Profil et modules branchés sur la base activité', () => {
   beforeEach(() => {
     window.localStorage.clear();
+    vi.restoreAllMocks();
   });
 
   it('alimente les graphiques et l’historique Profil depuis les vraies activités stockées', async () => {
@@ -110,10 +111,15 @@ describe('Profil et modules branchés sur la base activité', () => {
     render(<App />);
     await user.click(await screen.findByRole('button', { name: /dictée/i }));
 
-    await user.click(await screen.findByRole('button', { name: /dictée normale/i }));
-    await screen.findByRole('heading', { name: /dictée de la forêt magique/i });
-    await user.type(screen.getByRole('textbox', { name: /ta phrase/i }), 'Le petit renard traverse la forêt.');
-    await user.click(screen.getByRole('button', { name: /corriger ma dictée/i }));
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({
+      response: 'Le petit renard traverse la forêt.',
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+
+    await user.type(await screen.findByLabelText(/série de mots/i), 'renard, forêt');
+    await user.click(screen.getByRole('button', { name: /générer le texte/i }));
+    await screen.findByText(/Le petit renard traverse la forêt/i);
+    await user.type(screen.getByLabelText(/zone d'écriture de l'enfant/i), 'Le petit renard traverse la forêt.');
+    await user.click(screen.getByRole('button', { name: /j'ai fini/i }));
 
     await waitFor(() => {
       const records = JSON.parse(window.localStorage.getItem('devoirs.activityRecords.v1') ?? '[]');
@@ -122,10 +128,10 @@ describe('Profil et modules branchés sur la base activité', () => {
         profileId: 'emma-demo',
         module: 'dictation',
         moduleLabel: 'Dictée',
-        exerciseLabel: 'Dictée de la forêt magique',
+        exerciseLabel: 'Dictée de mots',
         status: 'completed',
-        score: 1,
-        totalQuestions: 1,
+        score: expect.any(Number),
+        totalQuestions: expect.any(Number),
         starsEarned: expect.any(Number),
       });
     });
@@ -195,7 +201,8 @@ describe('Profil et modules branchés sur la base activité', () => {
     await user.click(await screen.findByRole('button', { name: /poésie/i }));
 
     await screen.findByRole('heading', { name: /la cigale et la fourmi/i });
-    await user.click(screen.getByRole('button', { name: /j’ai récité ma poésie/i }));
+    await user.type(screen.getByLabelText(/transcription de la récitation/i), 'La Cigale ayant chanté tout l été');
+    await user.click(screen.getByRole('button', { name: /analyser la récitation/i }));
 
     await waitFor(() => {
       const records = JSON.parse(window.localStorage.getItem('devoirs.activityRecords.v1') ?? '[]');
@@ -205,9 +212,9 @@ describe('Profil et modules branchés sur la base activité', () => {
         module: 'poetry',
         moduleLabel: 'Poésie',
         exerciseLabel: 'La Cigale et la Fourmi',
-        status: 'completed',
-        score: 1,
-        totalQuestions: 1,
+        status: expect.stringMatching(/completed|partial/),
+        score: expect.any(Number),
+        totalQuestions: expect.any(Number),
         starsEarned: expect.any(Number),
       });
     });

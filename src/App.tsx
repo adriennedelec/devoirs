@@ -59,8 +59,10 @@ import {
 import type { RewardExerciseKey, RewardSettings } from './services/rewardSettingsDatabase';
 import {
   fetchRemoteFamilyDatabase,
+  RemoteFamilyDatabaseConflictError,
   saveRemoteFamilyDatabase,
 } from './services/remoteFamilyDatabase';
+import { hashLegacyHexPasswordForStorage, hashPasswordForStorage } from './services/passwordHash';
 import type { RemoteDatabaseSnapshot } from './services/remoteFamilyDatabase';
 import './styles/tokens.css';
 import './styles/base.css';
@@ -93,6 +95,7 @@ type ProfileMission = {
 
 type ChildProfileConfig = {
   id: string;
+  familyId?: string;
   name: string;
   avatarEmoji: string;
   avatarPhotoUrl: string;
@@ -129,12 +132,19 @@ type FamilySettings = {
   password: string;
 };
 
+type FamilyConfig = {
+  id: string;
+  name: string;
+  illustration: FamilyIllustrationVariant;
+};
+
 type FamilyAccessLevel = 'view' | 'manage';
 
 type ManagedUser = {
   id: string;
   login: string;
-  password: string;
+  password?: string;
+  passwordHash?: string;
   familyId: string;
   menuAccess: ChildPage[];
   familyPermissions: Record<string, FamilyAccessLevel>;
@@ -154,6 +164,7 @@ type NewManagedUserForm = {
   password: string;
   familyId: string;
   familyAccess: FamilyAccessLevel;
+  familyPermissions: Record<string, FamilyAccessLevel>;
   menuAccess: ChildPage[];
 };
 
@@ -248,7 +259,6 @@ const DEFAULT_PARENT_CODE = '0000';
 const ADMIN_AUTH_STORAGE_KEY = 'devoirs.adminSession.v1';
 const RECENT_POETRY_SELECTIONS_STORAGE_KEY = 'devoirs.recentPoetrySelections.v1';
 const ADMIN_USERNAME = 'admin';
-const ADMIN_PASSWORD = 'KarineAdrien1287';
 
 function readRecentPoetrySelectionIdsFromStorage() {
   if (typeof window === 'undefined') return [];
@@ -610,6 +620,7 @@ const PROFILE_PHOTO_OPTIONS = (() => {
 const PROFILE_STORAGE_KEY = 'devoirs.childProfiles.v1';
 const ACTIVE_PROFILE_ID_KEY = 'devoirs.activeProfileId.v1';
 const FAMILY_SETTINGS_STORAGE_KEY = 'devoirs.familySettings.v1';
+const FAMILIES_STORAGE_KEY = 'devoirs.families.v1';
 const MANAGED_USERS_STORAGE_KEY = 'devoirs.users.v1';
 const ACTIVITY_DATABASE_STORAGE_KEY = 'devoirs.activityRecords.v1';
 const MULTIPLICATION_TABLE_HISTORY_STORAGE_KEY = 'devoirs.multiplicationTableHistory.v1';
@@ -633,6 +644,7 @@ const LOCAL_DATABASE_TABLES: LocalDatabaseTableDefinition[] = [
   { storageKey: MULTIPLICATION_TABLE_HISTORY_STORAGE_KEY, label: 'Historique tables', primaryKey: 'id', mode: 'upsert-delete' },
   { storageKey: REWARD_SETTINGS_STORAGE_KEY, label: 'Récompenses', primaryKey: 'key', mode: 'object-records' },
   { storageKey: FAMILY_SETTINGS_STORAGE_KEY, label: 'Paramètres famille', primaryKey: 'key', mode: 'singleton', singletonKey: 'familySettings' },
+  { storageKey: FAMILIES_STORAGE_KEY, label: 'Familles', primaryKey: 'id', mode: 'upsert-delete' },
   { storageKey: MANAGED_USERS_STORAGE_KEY, label: 'Utilisateurs', primaryKey: 'id', mode: 'upsert-delete' },
   { storageKey: LLAMA_DICTATION_PROMPT_STORAGE_KEY, label: 'Prompt dictée', primaryKey: 'key', mode: 'singleton', singletonKey: 'wordDictationPrompt' },
 ];
@@ -1004,6 +1016,7 @@ function applyRemoteDatabaseSnapshot(snapshot: RemoteDatabaseSnapshot) {
     profiles: readProfilesFromStorage(),
     activeProfileId: readActiveProfileIdFromStorage(FALLBACK_PROFILE.id),
     profileExerciseHistory: readProfileExerciseHistoryFromStorage(),
+    families: readFamiliesFromStorage(),
   };
 }
 
@@ -1151,6 +1164,7 @@ function normalizeProfile(rawProfile: unknown): ChildProfileConfig | null {
 
   const candidate = rawProfile as Partial<ChildProfileConfig & { age: unknown; }>;
   const id = typeof candidate.id === 'string' && candidate.id.trim().length > 0 ? candidate.id.trim() : cryptoSafeId();
+  const familyId = typeof candidate.familyId === 'string' && candidate.familyId.trim().length > 0 ? toSafeSlug(candidate.familyId) : DEFAULT_FAMILY_ID;
   const name = typeof candidate.name === 'string' && candidate.name.trim().length > 0 ? candidate.name.trim() : FALLBACK_PROFILE.name;
   const avatarEmoji = typeof candidate.avatarEmoji === 'string' && candidate.avatarEmoji.trim().length > 0
     ? candidate.avatarEmoji.trim()
@@ -1209,6 +1223,7 @@ function normalizeProfile(rawProfile: unknown): ChildProfileConfig | null {
 
   return {
     id,
+    familyId,
     name,
     avatarEmoji,
     avatarPhotoUrl,
@@ -1377,6 +1392,7 @@ function normalizeProfilePayload(profile: Omit<ChildProfileConfig, 'id'>): Omit<
   const age = Number(profile.age);
   const safeAge = Number.isFinite(age) && age > 0 && age <= 120 ? Math.max(3, Math.floor(age)) : undefined;
   return {
+    familyId: typeof profile.familyId === 'string' && profile.familyId.trim() ? toSafeSlug(profile.familyId) : DEFAULT_FAMILY_ID,
     name: profile.name.trim() || FALLBACK_PROFILE.name,
     avatarEmoji: profile.avatarEmoji || (role === 'parent' ? '👤' : FALLBACK_PROFILE.avatarEmoji),
     avatarPhotoUrl: sanitizeProfilePhotoUrl(profile.avatarPhotoUrl),
@@ -1986,6 +2002,86 @@ const navItems: NavItem[] = [
 const ALL_MENU_PAGE_IDS = navItems.map((item) => item.id);
 const DEFAULT_FAMILY_ID = 'famille-nedelec';
 
+function toSafeSlug(value: string) {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLocaleLowerCase('fr-FR')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || DEFAULT_FAMILY_ID;
+}
+
+function passwordMatchesManagedUser(user: ManagedUser, password: string) {
+  if (user.passwordHash) {
+    return user.passwordHash === hashPasswordForStorage(password)
+      || user.passwordHash === hashLegacyHexPasswordForStorage(password);
+  }
+  return user.password === password;
+}
+
+async function authenticateAdminSession(username: string, password: string): Promise<AuthenticatedSession> {
+  const response = await fetch('/api/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password }),
+  });
+  const payload = await response.json().catch(() => ({})) as { session?: AuthenticatedSession; error?: string };
+  if (!response.ok) {
+    throw new Error(payload.error ?? 'Identifiants incorrects.');
+  }
+  if (!payload.session || payload.session.role !== 'admin') {
+    throw new Error('Session administrateur invalide.');
+  }
+  return payload.session;
+}
+
+function logoutAdminSession() {
+  fetch('/api/auth/logout', { method: 'POST' }).catch(() => {
+    // Local logout remains effective even if the server session is already expired.
+  });
+}
+
+function getDefaultFamilies(): FamilyConfig[] {
+  const settings = getDefaultFamilySettings();
+  return [{ id: DEFAULT_FAMILY_ID, name: settings.name, illustration: settings.illustration }];
+}
+
+function normalizeFamily(raw: unknown): FamilyConfig | null {
+  if (typeof raw !== 'object' || raw === null) return null;
+  const candidate = raw as Partial<FamilyConfig>;
+  const name = typeof candidate.name === 'string' && candidate.name.trim() ? candidate.name.trim() : FAMILY_NAME;
+  const id = typeof candidate.id === 'string' && candidate.id.trim() ? toSafeSlug(candidate.id) : toSafeSlug(name);
+  const illustration = FAMILY_ILLUSTRATION_OPTIONS.some((option) => option.id === candidate.illustration) ? candidate.illustration! : 'house';
+  return { id, name, illustration };
+}
+
+function normalizeFamilies(raw: unknown): FamilyConfig[] {
+  const defaults = getDefaultFamilies();
+  const candidates = Array.isArray(raw) ? raw : defaults;
+  const map = new Map<string, FamilyConfig>();
+  defaults.forEach((family) => map.set(family.id, family));
+  candidates.forEach((item) => {
+    const family = normalizeFamily(item);
+    if (family) map.set(family.id, family);
+  });
+  return Array.from(map.values()).sort((left, right) => left.name.localeCompare(right.name, 'fr'));
+}
+
+function readFamiliesFromStorage(): FamilyConfig[] {
+  if (typeof window === 'undefined') return getDefaultFamilies();
+  try {
+    const stored = window.localStorage.getItem(FAMILIES_STORAGE_KEY);
+    return normalizeFamilies(stored ? JSON.parse(stored) : getDefaultFamilies());
+  } catch {
+    return getDefaultFamilies();
+  }
+}
+
+function writeFamiliesToStorage(families: FamilyConfig[]) {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(FAMILIES_STORAGE_KEY, JSON.stringify(normalizeFamilies(families)));
+}
+
 function normalizeMenuAccess(value: unknown): ChildPage[] {
   if (!Array.isArray(value)) return ALL_MENU_PAGE_IDS;
   const allowed = value.filter((item): item is ChildPage => typeof item === 'string' && ALL_MENU_PAGE_IDS.includes(item as ChildPage));
@@ -2001,16 +2097,25 @@ function normalizeManagedUser(raw: unknown): ManagedUser | null {
   const candidate = raw as Partial<ManagedUser>;
   const login = typeof candidate.login === 'string' ? candidate.login.trim() : '';
   const password = typeof candidate.password === 'string' ? candidate.password : '';
-  if (!login || !password) return null;
-  const familyId = typeof candidate.familyId === 'string' && candidate.familyId.trim() ? candidate.familyId.trim() : DEFAULT_FAMILY_ID;
-  const rawPermissions = typeof candidate.familyPermissions === 'object' && candidate.familyPermissions !== null ? candidate.familyPermissions : {};
+  const passwordHash = typeof candidate.passwordHash === 'string' && candidate.passwordHash.startsWith('sha256:')
+    ? candidate.passwordHash
+    : password ? hashPasswordForStorage(password) : '';
+  if (!login || !passwordHash) return null;
+  const familyId = typeof candidate.familyId === 'string' && candidate.familyId.trim() ? toSafeSlug(candidate.familyId) : DEFAULT_FAMILY_ID;
+  const rawPermissions = typeof candidate.familyPermissions === 'object' && candidate.familyPermissions !== null ? candidate.familyPermissions as Record<string, unknown> : {};
+  const familyPermissions: Record<string, FamilyAccessLevel> = {};
+  Object.entries(rawPermissions).forEach(([key, value]) => {
+    const familyKey = toSafeSlug(key);
+    familyPermissions[familyKey] = normalizeFamilyAccess(value);
+  });
+  if (!familyPermissions[familyId]) familyPermissions[familyId] = normalizeFamilyAccess(rawPermissions[familyId]);
   return {
     id: typeof candidate.id === 'string' && candidate.id.trim() ? candidate.id : cryptoSafeId(),
     login,
-    password,
+    passwordHash,
     familyId,
     menuAccess: normalizeMenuAccess(candidate.menuAccess),
-    familyPermissions: { [familyId]: normalizeFamilyAccess((rawPermissions as Record<string, unknown>)[familyId]) },
+    familyPermissions,
   };
 }
 
@@ -2041,6 +2146,12 @@ function getAccessibleNavItems(session: AuthenticatedSession) {
 function getFamilyAccessForSession(session: AuthenticatedSession | null, familyId = DEFAULT_FAMILY_ID): FamilyAccessLevel {
   if (!session || session.role === 'admin') return 'manage';
   return normalizeFamilyAccess(session.familyPermissions?.[familyId]);
+}
+
+function getAccessibleFamilyIds(session: AuthenticatedSession | null, families: FamilyConfig[]) {
+  if (!session || session.role === 'admin') return families.map((family) => family.id);
+  const ids = Object.keys(session.familyPermissions ?? {}).filter((familyId) => session.familyPermissions?.[familyId]);
+  return ids.length > 0 ? ids : [session.familyId ?? DEFAULT_FAMILY_ID];
 }
 
 function buildSessionFromManagedUser(user: ManagedUser): AuthenticatedSession {
@@ -3120,7 +3231,7 @@ function ReadingView({
   return (
     <main className="child-main reading-ai-page reading-redesign-page">
       <header className="poetry-page-hero reading-page-hero" aria-labelledby="reading-page-title">
-        <img src={readingPageIllustrationUrl} alt="Illustration lecture" />
+        <img src={readingPageIllustrationUrl} alt="Illustration lecture" loading="lazy" />
         <h1 id="reading-page-title">Lecture</h1>
       </header>
       {sessionState.status === 'loading' ? <div className="state-card">Préparation de la page Lecture…</div> : null}
@@ -3156,7 +3267,7 @@ function ReadingView({
               <h2 id="reading-title">Ton histoire</h2>
               <button className="poetry-profile-button reading-action-button" type="button">🔊 Écouter l’histoire</button>
               <div className="story-lines generated-reading-story">
-                <p className="reading-story-title"><strong>{storyTitle}</strong></p>
+                <h2 className="reading-story-title">{storyTitle}</h2>
                 {storyText.split(/\n+/).filter(Boolean).map((line, index) => <p key={`${line}-${index}`}>{line}</p>)}
               </div>
               <div className="reading-recorder-controls" role="group" aria-label="Enregistrement de lecture">
@@ -3242,6 +3353,7 @@ function ReadingView({
 
           <section className="quiz-stack reading-comprehension-card" aria-label="Questions de compréhension">
             <div className="section-heading compact">
+              <p className="eyebrow">Mission compréhension</p>
               <h2>As-tu compris ton histoire ?</h2>
             </div>
             {sessionState.data.questions.map((question) => (
@@ -3494,7 +3606,7 @@ function MultiplicationView({
       {sessionState.status === 'success' && currentQuestion ? (
         <>
           <header className="multiplication-page-hero" aria-labelledby="multiplication-page-title">
-            <img src={multiplicationPageIllustrationUrl} alt="Illustration multiplication" />
+            <img src={multiplicationPageIllustrationUrl} alt="Illustration multiplication" loading="lazy" />
             <h1 id="multiplication-page-title">Tables de multiplication</h1>
           </header>
 
@@ -4134,7 +4246,7 @@ function DictationView({
   return (
     <main className="child-main dictation-redesign-page">
       <header className="poetry-page-hero dictation-page-hero" aria-labelledby="dictation-page-title">
-        <img src={dictationPageIllustrationUrl} alt="Illustration dictée" />
+        <img src={dictationPageIllustrationUrl} alt="Illustration dictée" loading="lazy" />
         <h1 id="dictation-page-title">Dictée</h1>
       </header>
       {sessionState.status === 'loading' ? <div className="state-card">Préparation de la dictée…</div> : null}
@@ -4145,13 +4257,13 @@ function DictationView({
               <div className="dictation-preparation-block">
               <div className="dictation-preparation-stack">
                 <div className="dictation-entry-heading">
-                  <span>Saisis tes mots</span>
+                  <span>Série de mots</span>
                   <small>Séparateur virgule</small>
                 </div>
                 <div className="dictation-entry-grid">
                   <div className="answer-field dictation-entry-card">
                     <div className="dictation-entry-card-header">
-                      <label htmlFor="dictation-word-series">Nom, adjectifs …</label>
+                      <label htmlFor="dictation-word-series">Série de mots</label>
                       <div className="dictation-auto-generate-controls" role="group" aria-label="Générer automatiquement des noms, adjectifs et adverbes">
                         <button type="button" onClick={generateAutomaticWordSeries}>Générer</button>
                         <div className="dictation-auto-count-field">
@@ -4188,7 +4300,7 @@ function DictationView({
                       </div>
                     </div>
                     <textarea
-                      aria-label="Saisis tes mots (séparateurs virgule)"
+                      aria-label="Série de mots"
                       id="dictation-word-series"
                       placeholder="Ex. dragon, cartable, rivière"
                       value={wordSeries}
@@ -5012,7 +5124,8 @@ function PoetryView({
   return (
     <main className="child-main poetry-redesign-page">
       <header className="poetry-page-hero" aria-labelledby="poetry-page-title">
-        <img src={poetryPageIllustrationUrl} alt="Illustration poésie" />
+        <img src={poetryPageIllustrationUrl} alt="Illustration poésie" loading="lazy" />
+        <p className="eyebrow">Mission mémoire</p>
         <h1 id="poetry-page-title">Poésie</h1>
       </header>
 
@@ -5077,7 +5190,7 @@ function PoetryView({
             <section className="poetry-text-card" aria-labelledby="poetry-title">
               <div className="poetry-text-card-header">
                 <div>
-                  <h2 id="poetry-title">Texte de la poésie</h2>
+                  <h2 id="poetry-title">{displayedPoetryTitle}</h2>
                   <p>{displayedPoetryTitle} · {displayedPoetryAuthor} · {displayedPoetryLines.length} ligne{displayedPoetryLines.length > 1 ? 's' : ''}</p>
                 </div>
                 <button className="ghost-action poetry-profile-button" type="button" onClick={listenToPoetry}>{isPoetryListening ? 'Arrêter l’écoute' : 'Écouter'}</button>
@@ -5383,20 +5496,26 @@ function ActiveProfileSwitcher({
 
 function ProfileView({
   profiles,
+  families,
+  activeFamilyId,
   activeProfile,
   activeProfileId,
   activeProfileHistory,
   familyAccessMode,
+  onActivateFamily,
   onActivateProfile,
   onCreateProfile,
   onUpdateProfileOrders,
 }: {
   dashboard: ChildDashboard;
   profiles: ChildProfileConfig[];
+  families: FamilyConfig[];
+  activeFamilyId: string;
   activeProfile: ChildProfileConfig;
   activeProfileId: string;
   activeProfileHistory: ProfileExerciseHistoryRecord[];
   familyAccessMode: FamilyAccessLevel;
+  onActivateFamily: (familyId: string) => void;
   onActivateProfile: (profileId: string) => void;
   onCreateProfile: (profile: Omit<ChildProfileConfig, 'id'>, profileId?: string) => void;
   onUpdateProfileOrders: (orders: Record<string, number>) => void;
@@ -5420,13 +5539,18 @@ function ProfileView({
   const [profileOrderDraft, setProfileOrderDraft] = useState<Record<string, string>>(() => Object.fromEntries(profiles.map((profile, index) => [profile.id, String(profile.displayOrder ?? index + 1)])));
   const [profileOrderStatus, setProfileOrderStatus] = useState<{ kind: 'success' | 'error'; message: string } | null>(null);
   const canManageFamily = familyAccessMode === 'manage';
+  const storedActiveFamily = families.find((family) => family.id === activeFamilyId) ?? families[0] ?? getDefaultFamilies()[0]!;
+  const activeFamily = storedActiveFamily.id === DEFAULT_FAMILY_ID
+    ? { ...storedActiveFamily, name: familySettings.name, illustration: familySettings.illustration }
+    : storedActiveFamily;
+  const visibleProfiles = profiles.filter((profile) => (profile.familyId ?? DEFAULT_FAMILY_ID) === activeFamily.id);
 
-  const students = profiles.filter((profile) => profile.role === 'eleve');
-  const parents = profiles.filter((profile) => profile.role === 'parent');
+  const students = visibleProfiles.filter((profile) => profile.role === 'eleve');
+  const parents = visibleProfiles.filter((profile) => profile.role === 'parent');
   const isStudent = formState.role === 'eleve';
   const photoSource = PROFILE_PHOTO_OPTIONS.find((photo) => photo.url === formState.avatarPhotoUrl);
   const detailProfile = profiles.find((profile) => profile.id === detailProfileId) ?? null;
-  const profileActivityData = useMemo(() => buildProfileActivityData(profiles, students, Number(activityPeriodDays)), [profiles, students, activityPeriodDays]);
+  const profileActivityData = useMemo(() => buildProfileActivityData(visibleProfiles, students, Number(activityPeriodDays)), [visibleProfiles, students, activityPeriodDays]);
   const activityStats = profileActivityData.stats;
   const historyRows = profileActivityData.historyRows;
   const activityOptions = useMemo(() => Array.from(new Set(historyRows.map((row) => row.activity))).sort((a, b) => a.localeCompare(b, 'fr')), [historyRows]);
@@ -5570,7 +5694,7 @@ function ProfileView({
       return;
     }
 
-    onCreateProfile(buildProfilePayloadFromForm(formState), editingProfileId ?? undefined);
+    onCreateProfile({ ...buildProfilePayloadFromForm(formState), familyId: activeFamily.id }, editingProfileId ?? undefined);
     closeModal();
   }
 
@@ -5800,12 +5924,21 @@ function ProfileView({
         <div className="family-banner-content">
           <div className="family-title-row">
             <button type="button" className="family-title-edit-button" onClick={openFamilyModal} aria-label="Modifier le nom de la famille">
-              <h2>{familySettings.name}</h2>
+              <h2>{activeFamily.name}</h2>
             </button>
             <span className="family-level-tag">Niveau {FAMILY_LEVEL} <Star size={14} aria-hidden="true" /></span>
           </div>
         </div>
       </section>
+
+      {families.length > 1 ? (
+        <label className="field-label compact-field family-active-selector">
+          Famille active
+          <select aria-label="Famille active" value={activeFamily.id} onChange={(event) => onActivateFamily(event.target.value)}>
+            {families.map((family) => <option value={family.id} key={family.id}>{family.name}</option>)}
+          </select>
+        </label>
+      ) : null}
 
       {activationError ? <p className="state-card error" role="alert">{activationError}</p> : null}
       {!canManageFamily ? <p className="state-card">Tes droits sont en visualisation pour cette famille : les profils sont consultables sans modification.</p> : null}
@@ -5829,7 +5962,7 @@ function ProfileView({
           ) : null}
         </div>
         <div className="family-profiles-strip">
-          {profiles.map((profile) => renderProfileCard(profile))}
+          {visibleProfiles.map((profile) => renderProfileCard(profile))}
         </div>
       </section>
 
@@ -5893,7 +6026,7 @@ function ProfileView({
                     </button>
                     <select className="history-column-filter" aria-label="Filtrer par profil" value={historyFilters.profileId} onChange={(event) => setHistoryFilters((current) => ({ ...current, profileId: event.target.value }))}>
                       <option value="all">Tous les profils</option>
-                      {profiles.map((profile) => <option value={profile.id} key={profile.id}>{profile.name}</option>)}
+                      {visibleProfiles.map((profile) => <option value={profile.id} key={profile.id}>{profile.name}</option>)}
                     </select>
                   </div>
                 </th>
@@ -6151,7 +6284,7 @@ function ProfileView({
                     )}
                   </span>
                   <span>
-                    {photoSource ? `Photo sélectionnée : ${photoSource.label}` : 'Cliquer pour choisir une des 15 photos'}
+                    {photoSource ? 'Photo sélectionnée' : 'Cliquer pour choisir une des 15 photos'}
                   </span>
                 </button>
 
@@ -6297,7 +6430,7 @@ function formatActivityDateTime(dateIso: string) {
   }).format(new Date(dateIso));
 }
 
-function ActivityDatabaseView({ dashboard }: { dashboard: ChildDashboard }) {
+function ActivityDatabaseView({ dashboard, remoteSyncState }: { dashboard: ChildDashboard; remoteSyncState: RemoteDatabaseSyncState }) {
   const [moduleFilter, setModuleFilter] = useState<StoredActivityModule | 'all'>('all');
   const [records] = useState<ActivityRecord[]>(() => readActivityRecordsFromStorage());
   const [exportText, setExportText] = useState('');
@@ -6345,6 +6478,16 @@ function ActivityDatabaseView({ dashboard }: { dashboard: ChildDashboard }) {
           <strong>{filteredRecords.length}</strong>
           <span>activité{filteredRecords.length > 1 ? 's' : ''}</span>
           <small>{totalStars} ⭐ · {formatDuration(totalDuration)}</small>
+        </div>
+      </section>
+
+      <section className="admin-panel" aria-labelledby="remote-database-title">
+        <div className="section-heading compact">
+          <p className="eyebrow">Base distante</p>
+          <h2 id="remote-database-title">Synchronisation en ligne</h2>
+          <p>{remoteSyncState.message}</p>
+          {remoteSyncState.updatedAtIso ? <small>Dernière synchronisation : {formatActivityDateTime(remoteSyncState.updatedAtIso)}</small> : null}
+          <p>Les modifications sont enregistrées automatiquement en ligne.</p>
         </div>
       </section>
 
@@ -6450,12 +6593,16 @@ function RewardSettingsView({ dashboard, authenticatedUser }: { dashboard: Child
   const [saveState, setSaveState] = useState<'idle' | 'saved'>('idle');
   const [dictationPrompt, setDictationPrompt] = useState(() => getSavedLlamaDictationPrompt() ?? getDefaultOllamaDictationPromptTemplate());
   const [dictationPromptSaveState, setDictationPromptSaveState] = useState<'idle' | 'saved'>('idle');
+  const [families, setFamilies] = useState<FamilyConfig[]>(() => readFamiliesFromStorage());
+  const [familyForm, setFamilyForm] = useState({ id: '', name: '', illustration: 'house' as FamilyIllustrationVariant });
+  const [familySaveState, setFamilySaveState] = useState<'idle' | 'saved' | 'error'>('idle');
   const [managedUsers, setManagedUsers] = useState<ManagedUser[]>(() => readManagedUsersFromStorage());
   const [managedUserForm, setManagedUserForm] = useState<NewManagedUserForm>({
     login: '',
     password: '',
     familyId: DEFAULT_FAMILY_ID,
     familyAccess: 'view',
+    familyPermissions: { [DEFAULT_FAMILY_ID]: 'view' },
     menuAccess: ['home'],
   });
   const [managedUserSaveState, setManagedUserSaveState] = useState<'idle' | 'saved' | 'error'>('idle');
@@ -6500,6 +6647,40 @@ function RewardSettingsView({ dashboard, authenticatedUser }: { dashboard: Child
     setManagedUserSaveState('idle');
   }
 
+  function saveFamily(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const name = familyForm.name.trim();
+    const id = toSafeSlug(familyForm.id || name);
+    if (!name || !id) {
+      setFamilySaveState('error');
+      return;
+    }
+    const nextFamily = normalizeFamily({ id, name, illustration: familyForm.illustration });
+    if (!nextFamily) {
+      setFamilySaveState('error');
+      return;
+    }
+    const nextFamilies = normalizeFamilies([...families.filter((family) => family.id !== nextFamily.id), nextFamily]);
+    setFamilies(nextFamilies);
+    writeFamiliesToStorage(nextFamilies);
+    setManagedUserForm((current) => ({
+      ...current,
+      familyId: nextFamily.id,
+      familyPermissions: { ...current.familyPermissions, [nextFamily.id]: 'view' },
+    }));
+    setFamilyForm({ id: '', name: '', illustration: 'house' });
+    setFamilySaveState('saved');
+  }
+
+  function updateManagedUserFamilyPermission(familyId: string, access: FamilyAccessLevel) {
+    setManagedUserForm((current) => ({
+      ...current,
+      familyPermissions: { ...current.familyPermissions, [familyId]: access },
+      familyAccess: familyId === current.familyId ? access : current.familyAccess,
+    }));
+    setManagedUserSaveState('idle');
+  }
+
   function saveManagedUser(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const login = managedUserForm.login.trim();
@@ -6508,19 +6689,24 @@ function RewardSettingsView({ dashboard, authenticatedUser }: { dashboard: Child
       setManagedUserSaveState('error');
       return;
     }
-    const familyId = managedUserForm.familyId.trim() || DEFAULT_FAMILY_ID;
+    const familyId = toSafeSlug(managedUserForm.familyId || DEFAULT_FAMILY_ID);
+    const familyPermissions = families.reduce<Record<string, FamilyAccessLevel>>((permissions, family) => {
+      permissions[family.id] = normalizeFamilyAccess(managedUserForm.familyPermissions[family.id]);
+      return permissions;
+    }, {});
+    if (!familyPermissions[familyId]) familyPermissions[familyId] = managedUserForm.familyAccess;
     const nextUser: ManagedUser = {
       id: cryptoSafeId(),
       login,
-      password,
+      passwordHash: hashPasswordForStorage(password),
       familyId,
       menuAccess: normalizeMenuAccess(managedUserForm.menuAccess),
-      familyPermissions: { [familyId]: managedUserForm.familyAccess },
+      familyPermissions,
     };
     const nextUsers = [...managedUsers.filter((user) => user.login !== login), nextUser];
     setManagedUsers(nextUsers);
     writeManagedUsersToStorage(nextUsers);
-    setManagedUserForm({ login: '', password: '', familyId: DEFAULT_FAMILY_ID, familyAccess: 'view', menuAccess: ['home'] });
+    setManagedUserForm({ login: '', password: '', familyId: DEFAULT_FAMILY_ID, familyAccess: 'view', familyPermissions: Object.fromEntries(families.map((family) => [family.id, 'view' as FamilyAccessLevel])), menuAccess: ['home'] });
     setManagedUserSaveState('saved');
   }
 
@@ -6579,6 +6765,50 @@ function RewardSettingsView({ dashboard, authenticatedUser }: { dashboard: Child
       </section>
 
       {authenticatedUser.role === 'admin' ? (
+        <section className="admin-panel" aria-labelledby="managed-families-title">
+          <div className="section-heading compact">
+            <p className="eyebrow">Familles</p>
+            <h2 id="managed-families-title">Gestion des familles</h2>
+          </div>
+          <form className="managed-user-form settings-card" onSubmit={saveFamily}>
+            <label className="field-label">
+              Nom de la famille
+              <input
+                type="text"
+                value={familyForm.name}
+                onChange={(event) => { setFamilyForm((current) => ({ ...current, name: event.target.value })); setFamilySaveState('idle'); }}
+              />
+            </label>
+            <label className="field-label">
+              Identifiant famille
+              <input
+                type="text"
+                value={familyForm.id}
+                onChange={(event) => { setFamilyForm((current) => ({ ...current, id: event.target.value })); setFamilySaveState('idle'); }}
+              />
+            </label>
+            <label className="field-label">
+              Illustration
+              <select value={familyForm.illustration} onChange={(event) => setFamilyForm((current) => ({ ...current, illustration: event.target.value as FamilyIllustrationVariant }))}>
+                {FAMILY_ILLUSTRATION_OPTIONS.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}
+              </select>
+            </label>
+            <div className="form-actions">
+              <button className="primary-action" type="submit">Enregistrer la famille</button>
+              {familySaveState === 'saved' ? <p className="form-feedback success">Famille enregistrée.</p> : null}
+              {familySaveState === 'error' ? <p className="form-feedback error" role="alert">Nom de famille obligatoire.</p> : null}
+            </div>
+          </form>
+          <div className="multiplication-history-table-wrap">
+            <table className="multiplication-history-table activity-database-table" aria-label="Familles configurées">
+              <thead><tr><th>FAMILLE</th><th>IDENTIFIANT</th></tr></thead>
+              <tbody>{families.map((family) => <tr key={family.id}><td>{family.name}</td><td>{family.id}</td></tr>)}</tbody>
+            </table>
+          </div>
+        </section>
+      ) : null}
+
+      {authenticatedUser.role === 'admin' ? (
         <section className="admin-panel" aria-labelledby="managed-users-title">
           <div className="section-heading compact">
             <p className="eyebrow">Accès familles</p>
@@ -6602,23 +6832,35 @@ function RewardSettingsView({ dashboard, authenticatedUser }: { dashboard: Child
               />
             </label>
             <label className="field-label">
-              Famille rattachée
-              <input
-                type="text"
-                value={managedUserForm.familyId}
-                onChange={(event) => { setManagedUserForm((current) => ({ ...current, familyId: event.target.value })); setManagedUserSaveState('idle'); }}
-              />
-            </label>
-            <label className="field-label">
-              Droits famille Nedelec
+              Famille principale
               <select
-                value={managedUserForm.familyAccess}
-                onChange={(event) => { setManagedUserForm((current) => ({ ...current, familyAccess: event.target.value as FamilyAccessLevel })); setManagedUserSaveState('idle'); }}
+                aria-label="Famille principale"
+                value={managedUserForm.familyId}
+                onChange={(event) => {
+                  const familyId = event.target.value;
+                  setManagedUserForm((current) => ({ ...current, familyId, familyAccess: normalizeFamilyAccess(current.familyPermissions[familyId]) }));
+                  setManagedUserSaveState('idle');
+                }}
               >
-                <option value="view">Visualisation</option>
-                <option value="manage">Gestion</option>
+                {families.map((family) => <option key={family.id} value={family.id}>{family.name}</option>)}
               </select>
             </label>
+            <fieldset className="managed-user-family-rights" aria-label="Droits par famille">
+              <legend>Droits par famille</legend>
+              {families.map((family) => (
+                <label className="field-label compact-field" key={family.id}>
+                  Droit famille {family.name}
+                  <select
+                    aria-label={`Droit famille ${family.name}`}
+                    value={normalizeFamilyAccess(managedUserForm.familyPermissions[family.id])}
+                    onChange={(event) => updateManagedUserFamilyPermission(family.id, event.target.value as FamilyAccessLevel)}
+                  >
+                    <option value="view">Visualisation</option>
+                    <option value="manage">Gestion</option>
+                  </select>
+                </label>
+              ))}
+            </fieldset>
             <fieldset className="managed-user-menu-access" aria-label="Menus accessibles">
               <legend>Menus accessibles</legend>
               {navItems.map((item) => (
@@ -6690,24 +6932,36 @@ function AdminLoginView({ onAuthenticated }: { onAuthenticated: (session: Authen
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  function submitLogin(event: FormEvent<HTMLFormElement>) {
+  async function submitLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const trimmedUsername = username.trim();
     const familySettings = readFamilySettingsFromStorage();
-    const managedUser = readManagedUsersFromStorage().find((user) => user.login === trimmedUsername && user.password === password);
+    const managedUser = readManagedUsersFromStorage().find((user) => user.login === trimmedUsername && passwordMatchesManagedUser(user, password));
     const familyUserConfigured = familySettings.username.length > 0 && familySettings.password.length > 0;
-    const matchedAdmin = trimmedUsername === ADMIN_USERNAME && password === ADMIN_PASSWORD;
     const matchedFamilyUser = familyUserConfigured && trimmedUsername === familySettings.username && password === familySettings.password;
 
-    if (!matchedAdmin && !matchedFamilyUser && !managedUser) {
+    if (trimmedUsername === ADMIN_USERNAME) {
+      setIsSubmitting(true);
+      try {
+        const nextSession = await authenticateAdminSession(trimmedUsername, password);
+        writeAdminSessionToStorage(nextSession);
+        onAuthenticated(nextSession);
+      } catch (loginError: unknown) {
+        setError(loginError instanceof Error ? loginError.message : 'Identifiants incorrects.');
+      } finally {
+        setIsSubmitting(false);
+      }
+      return;
+    }
+
+    if (!matchedFamilyUser && !managedUser) {
       setError('Identifiants incorrects.');
       return;
     }
 
-    const nextSession: AuthenticatedSession = matchedAdmin
-      ? { username: ADMIN_USERNAME, role: 'admin' }
-      : managedUser
+    const nextSession: AuthenticatedSession = managedUser
         ? buildSessionFromManagedUser(managedUser)
         : { username: familySettings.username, role: 'user' };
     writeAdminSessionToStorage(nextSession);
@@ -6742,7 +6996,7 @@ function AdminLoginView({ onAuthenticated }: { onAuthenticated: (session: Authen
               onChange={(event) => { setPassword(event.target.value); setError(''); }}
             />
           </label>
-          <button className="primary-action" type="submit">Se connecter</button>
+          <button className="primary-action" type="submit" disabled={isSubmitting}>{isSubmitting ? 'Connexion…' : 'Se connecter'}</button>
         </form>
       </section>
     </main>
@@ -6816,9 +7070,13 @@ function ActivePage({
   dashboard,
   onNavigate,
   profiles,
+  families,
+  activeFamilyId,
   activeProfileId,
   activeProfile,
   authenticatedUser,
+  remoteSyncState,
+  onActivateFamily,
   onActivateProfile,
   onCreateProfile,
   onUpdateProfileOrders,
@@ -6829,9 +7087,13 @@ function ActivePage({
   dashboard: ChildDashboard;
   onNavigate: (page: ChildPage) => void;
   profiles: ChildProfileConfig[];
+  families: FamilyConfig[];
+  activeFamilyId: string;
   activeProfileId: string;
   activeProfile: ChildProfileConfig;
   authenticatedUser: AuthenticatedSession;
+  remoteSyncState: RemoteDatabaseSyncState;
+  onActivateFamily: (familyId: string) => void;
   onActivateProfile: (profileId: string) => void;
   onCreateProfile: (profile: Omit<ChildProfileConfig, 'id'>, profileId?: string) => void;
   onUpdateProfileOrders: (orders: Record<string, number>) => void;
@@ -6864,16 +7126,19 @@ function ActivePage({
       return <ProfileView
         dashboard={dashboard}
         profiles={profiles}
+        families={families}
+        activeFamilyId={activeFamilyId}
         activeProfile={activeProfile}
         activeProfileId={activeProfileId}
         activeProfileHistory={exerciseHistory}
-        familyAccessMode={getFamilyAccessForSession(authenticatedUser)}
+        familyAccessMode={getFamilyAccessForSession(authenticatedUser, activeFamilyId)}
+        onActivateFamily={onActivateFamily}
         onActivateProfile={onActivateProfile}
         onCreateProfile={onCreateProfile}
         onUpdateProfileOrders={onUpdateProfileOrders}
       />;
     case 'database':
-      return <ActivityDatabaseView dashboard={dashboard} />;
+      return <ActivityDatabaseView dashboard={dashboard} remoteSyncState={remoteSyncState} />;
     case 'settings':
       return <RewardSettingsView dashboard={dashboard} authenticatedUser={authenticatedUser} />;
     case 'home':
@@ -6887,16 +7152,27 @@ export default function App() {
   const [authenticatedUser, setAuthenticatedUser] = useState<AuthenticatedSession | null>(() => readAdminSessionFromStorage());
   const [isSideNavPinned, setIsSideNavPinned] = useState(true);
   const [profiles, setProfiles] = useState<ChildProfileConfig[]>(() => readProfilesFromStorage());
+  const [families, setFamilies] = useState<FamilyConfig[]>(() => readFamiliesFromStorage());
+  const [activeFamilyId, setActiveFamilyId] = useState<string>(() => DEFAULT_FAMILY_ID);
   const [activeProfileId, setActiveProfileId] = useState<string>(() => readActiveProfileIdFromStorage(FALLBACK_PROFILE.id));
   const [dashboardState, setDashboardState] = useState<ApiState<ChildDashboard>>({ status: 'loading' });
   const [profileExerciseHistory, setProfileExerciseHistory] = useState<ProfileExerciseHistoryMap>(() => readProfileExerciseHistoryFromStorage());
+  const [remoteSyncState, setRemoteSyncState] = useState<RemoteDatabaseSyncState>({ status: 'idle', message: 'Base distante en attente.' });
+  const remoteHydratedRef = useRef(false);
+  const remoteSaveTimerRef = useRef<number | null>(null);
+  const remoteBaseUpdatedAtIsoRef = useRef<string | undefined>(undefined);
   const [pendingParentProfileId, setPendingParentProfileId] = useState<string | null>(null);
   const [parentCodeAttempt, setParentCodeAttempt] = useState('');
   const [parentCodeError, setParentCodeError] = useState('');
 
+  const accessibleFamilyIds = useMemo(() => getAccessibleFamilyIds(authenticatedUser, families), [authenticatedUser, families]);
+  const activeFamily = families.find((family) => family.id === activeFamilyId) ?? families.find((family) => accessibleFamilyIds.includes(family.id)) ?? families[0] ?? getDefaultFamilies()[0]!;
+  const accessibleProfiles = useMemo(() => profiles.filter((profile) => accessibleFamilyIds.includes(profile.familyId ?? DEFAULT_FAMILY_ID)), [profiles, accessibleFamilyIds]);
+
   const activeProfile = useMemo(() => {
-    return profiles.find((profile) => profile.id === activeProfileId) ?? profiles[0] ?? FALLBACK_PROFILE;
-  }, [profiles, activeProfileId]);
+    const sameFamilyProfile = accessibleProfiles.find((profile) => profile.id === activeProfileId && (profile.familyId ?? DEFAULT_FAMILY_ID) === activeFamily.id);
+    return sameFamilyProfile ?? accessibleProfiles.find((profile) => (profile.familyId ?? DEFAULT_FAMILY_ID) === activeFamily.id) ?? accessibleProfiles[0] ?? profiles[0] ?? FALLBACK_PROFILE;
+  }, [profiles, accessibleProfiles, activeProfileId, activeFamily.id]);
 
   const activeProfileHistory = profileExerciseHistory[activeProfile.id] ?? [];
   const accessibleNavItems = authenticatedUser ? getAccessibleNavItems(authenticatedUser) : navItems;
@@ -6904,8 +7180,14 @@ export default function App() {
   useEffect(() => {
     if (profiles.length === 0) return;
 
-    if (!profiles.some((profile) => profile.id === activeProfileId)) {
-      setActiveProfileId(profiles[0]!.id);
+    if (!accessibleFamilyIds.includes(activeFamily.id)) {
+      const nextFamilyId = accessibleFamilyIds[0] ?? DEFAULT_FAMILY_ID;
+      setActiveFamilyId(nextFamilyId);
+    }
+
+    if (!accessibleProfiles.some((profile) => profile.id === activeProfileId)) {
+      const nextProfile = accessibleProfiles.find((profile) => (profile.familyId ?? DEFAULT_FAMILY_ID) === activeFamily.id) ?? accessibleProfiles[0] ?? profiles[0];
+      if (nextProfile) setActiveProfileId(nextProfile.id);
     }
 
     let cancelled = false;
@@ -6919,7 +7201,7 @@ export default function App() {
       });
 
     return () => { cancelled = true; };
-  }, [activeProfile.id]);
+  }, [activeProfile.id, activeFamily.id, activeProfileId, accessibleFamilyIds, accessibleProfiles, profiles]);
 
   useEffect(() => {
     if (!authenticatedUser) return;
@@ -6927,6 +7209,72 @@ export default function App() {
       setActivePage(accessibleNavItems[0]?.id ?? 'home');
     }
   }, [authenticatedUser, activePage, accessibleNavItems]);
+
+  useEffect(() => {
+    writeFamiliesToStorage(families);
+  }, [families]);
+
+  useEffect(() => {
+    const shouldSkipRemoteSyncInTest = import.meta.env.MODE === 'test'
+      && !(window as unknown as { __DEVOIRS_TEST_AUTO_REMOTE_DATABASE__?: boolean }).__DEVOIRS_TEST_AUTO_REMOTE_DATABASE__;
+    if (shouldSkipRemoteSyncInTest) {
+      remoteHydratedRef.current = true;
+      setRemoteSyncState({ status: 'idle', message: 'Base distante désactivée pendant les tests.' });
+      return;
+    }
+    let cancelled = false;
+    setRemoteSyncState({ status: 'loading', message: 'Chargement de la base distante…' });
+    fetchRemoteFamilyDatabase(DEFAULT_FAMILY_ID)
+      .then((remote) => {
+        if (cancelled) return;
+        if (remote.found && remote.snapshot) {
+          const applied = applyRemoteDatabaseSnapshot(remote.snapshot);
+          setProfiles(applied.profiles);
+          setFamilies(applied.families);
+          setActiveProfileId(applied.activeProfileId);
+          setProfileExerciseHistory(applied.profileExerciseHistory);
+          remoteBaseUpdatedAtIsoRef.current = remote.updatedAtIso;
+          setRemoteSyncState({ status: 'synced', message: 'Base distante synchronisée.', updatedAtIso: remote.updatedAtIso });
+        } else {
+          remoteBaseUpdatedAtIsoRef.current = undefined;
+          setRemoteSyncState({ status: 'synced', message: 'Base distante prête, aucun snapshot existant.' });
+        }
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) setRemoteSyncState({ status: 'offline', message: error instanceof Error ? error.message : 'Base distante indisponible.' });
+      })
+      .finally(() => {
+        if (!cancelled) remoteHydratedRef.current = true;
+      });
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    const shouldSkipRemoteSyncInTest = import.meta.env.MODE === 'test'
+      && !(window as unknown as { __DEVOIRS_TEST_AUTO_REMOTE_DATABASE__?: boolean }).__DEVOIRS_TEST_AUTO_REMOTE_DATABASE__;
+    if (shouldSkipRemoteSyncInTest) return;
+    if (!remoteHydratedRef.current) return;
+    if (remoteSaveTimerRef.current !== null) window.clearTimeout(remoteSaveTimerRef.current);
+    remoteSaveTimerRef.current = window.setTimeout(() => {
+      const snapshot = buildLocalDatabaseExport();
+      saveRemoteFamilyDatabase(snapshot, DEFAULT_FAMILY_ID, remoteBaseUpdatedAtIsoRef.current)
+        .then((result) => {
+          remoteBaseUpdatedAtIsoRef.current = result.updatedAtIso;
+          setRemoteSyncState({ status: 'synced', message: 'Base distante synchronisée.', updatedAtIso: result.updatedAtIso });
+        })
+        .catch((error: unknown) => {
+          if (error instanceof RemoteFamilyDatabaseConflictError) {
+            remoteBaseUpdatedAtIsoRef.current = error.updatedAtIso;
+            setRemoteSyncState({ status: 'offline', message: 'Conflit de synchronisation : recharge la page avant de réessayer.', updatedAtIso: error.updatedAtIso });
+            return;
+          }
+          setRemoteSyncState({ status: 'offline', message: error instanceof Error ? error.message : 'Sauvegarde distante indisponible.' });
+        });
+    }, 25);
+    return () => {
+      if (remoteSaveTimerRef.current !== null) window.clearTimeout(remoteSaveTimerRef.current);
+    };
+  }, [profiles, families, activeProfileId, profileExerciseHistory]);
 
   useEffect(() => {
     writeProfilesToStorage(profiles);
@@ -6940,9 +7288,17 @@ export default function App() {
     writeProfileExerciseHistoryToStorage(profileExerciseHistory);
   }, [profileExerciseHistory]);
 
+  function requestActivateFamily(familyId: string) {
+    if (!accessibleFamilyIds.includes(familyId)) return;
+    setActiveFamilyId(familyId);
+    const firstProfile = profiles.find((profile) => (profile.familyId ?? DEFAULT_FAMILY_ID) === familyId);
+    if (firstProfile) setActiveProfileId(firstProfile.id);
+  }
+
   function requestActivateProfile(profileId: string) {
     if (profileId === activeProfileId) return;
     const targetProfile = profiles.find((profile) => profile.id === profileId);
+    if (!targetProfile || !accessibleFamilyIds.includes(targetProfile.familyId ?? DEFAULT_FAMILY_ID)) return;
     if (targetProfile?.role === 'parent') {
       setPendingParentProfileId(profileId);
       setParentCodeAttempt('');
@@ -7028,10 +7384,14 @@ export default function App() {
           page={activePage}
           dashboard={dashboardState.data}
           onNavigate={setActivePage}
-          profiles={profiles}
+          profiles={accessibleProfiles}
+          families={families.filter((family) => accessibleFamilyIds.includes(family.id))}
+          activeFamilyId={activeFamily.id}
           activeProfileId={activeProfileId}
           activeProfile={activeProfile}
           authenticatedUser={authenticatedUser!}
+          remoteSyncState={remoteSyncState}
+          onActivateFamily={requestActivateFamily}
           onActivateProfile={requestActivateProfile}
           onCreateProfile={createOrUpdateProfile}
           onUpdateProfileOrders={updateProfileOrders}
@@ -7043,7 +7403,7 @@ export default function App() {
     if (dashboardState.status === 'loading') return <div className="state-card">Chargement de ton aventure…</div>;
     if (dashboardState.status === 'empty') return <div className="state-card">Aucune mission pour le moment.</div>;
     return <div className="state-card error">{dashboardState.message}</div>;
-  }, [activePage, activeProfileId, activeProfile, authenticatedUser, dashboardState, profiles, activeProfileHistory]);
+  }, [activePage, activeFamily.id, activeProfileId, activeProfile, authenticatedUser, dashboardState, accessibleProfiles, families, accessibleFamilyIds, activeProfileHistory]);
 
   const showSideNav = dashboardState.status === 'success';
   const pendingParentProfile = profiles.find((profile) => profile.id === pendingParentProfileId) ?? null;
@@ -7057,10 +7417,14 @@ export default function App() {
   ].filter(Boolean).join(' ');
 
   if (!authenticatedUser) {
-    return <AdminLoginView onAuthenticated={setAuthenticatedUser} />;
+    return <AdminLoginView onAuthenticated={(session) => {
+      setAuthenticatedUser(session);
+      if (session.familyId) setActiveFamilyId(session.familyId);
+    }} />;
   }
 
   function logout() {
+    if (authenticatedUser?.role === 'admin') logoutAdminSession();
     clearAdminSessionFromStorage();
     setAuthenticatedUser(null);
   }
@@ -7080,7 +7444,7 @@ export default function App() {
       ) : null}
       {showSideNav ? (
         <ActiveProfileSwitcher
-          profiles={profiles}
+          profiles={accessibleProfiles}
           activeProfile={activeProfile}
           onActivateProfile={requestActivateProfile}
         />

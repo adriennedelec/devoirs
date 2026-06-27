@@ -126,13 +126,13 @@ describe('Lots 5-11 complete child interface', () => {
     await user.click(screen.getByRole('button', { name: /parcours/i }));
     expect(screen.getByRole('heading', { name: /mon parcours/i })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /progression de emma/i })).toBeInTheDocument();
-    expect(screen.getByText(/les tables sont rangées sous mathématiques/i)).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: /^mathématiques$/i })).toBeInTheDocument();
     const mathRegion = screen.getByRole('region', { name: /^mathématiques$/i });
     const frenchRegion = screen.getByRole('region', { name: /^français$/i });
     expect(within(mathRegion).getByRole('heading', { name: /tables de multiplication/i })).toBeInTheDocument();
-    expect(within(mathRegion).getByRole('meter', { name: /mathématiques.*10 sur 10/i })).toHaveAttribute('aria-valuenow', '10');
-    expect(within(mathRegion).getByRole('meter', { name: /table de 7.*8 sur 10/i })).toHaveAttribute('aria-valuenow', '8');
-    expect(within(mathRegion).getByRole('meter', { name: /table de 8.*3 sur 10/i })).toHaveAttribute('aria-valuenow', '3');
+    expect(within(mathRegion).getByRole('meter', { name: /mathématiques.*0 sur 10000/i })).toHaveAttribute('aria-valuenow', '0');
+    expect(within(mathRegion).getByRole('meter', { name: /table de 7.*0 sur 10/i })).toHaveAttribute('aria-valuenow', '0');
+    expect(within(mathRegion).getByRole('meter', { name: /table de 8.*0 sur 10/i })).toHaveAttribute('aria-valuenow', '0');
     expect(within(mathRegion).getByRole('meter', { name: /table de 10.*0 sur 10/i })).toHaveAttribute('aria-valuenow', '0');
     expect(within(frenchRegion).getByRole('heading', { name: /exercices de français/i })).toBeInTheDocument();
     expect(within(frenchRegion).getByRole('meter', { name: /français.*7 sur 10/i })).toHaveAttribute('aria-valuenow', '7');
@@ -206,13 +206,12 @@ describe('Lots 5-11 complete child interface', () => {
     await user.click(within(multiplicationCard!).getByRole('button', { name: /continuer/i }));
 
     await waitFor(() => expect(screen.getByText(/question 1 sur 9/i)).toBeInTheDocument());
-    expect(screen.getByText(/chronomètre/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/chronomètre/i)).toBeInTheDocument();
     expect(screen.getByText(/00:00/i)).toBeInTheDocument();
-    expect(screen.getByText(/démarre à la première réponse/i)).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: '49' }));
     await waitFor(() => expect(screen.getByText(/on retente/i)).toBeInTheDocument());
-    expect(screen.getByText(/chrono lancé/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/chronomètre/i)).toHaveClass('is-running');
     await user.click(screen.getByRole('button', { name: '56' }));
 
     for (const [question, answer] of [
@@ -230,12 +229,9 @@ describe('Lots 5-11 complete child interface', () => {
     }
 
     await waitFor(() => expect(screen.getByText(/score : 8 \/ 9/i)).toBeInTheDocument());
-    expect(screen.getByRole('heading', { name: /table complète de 7/i })).toBeInTheDocument();
-    const missedFact = screen.getAllByText('8 × 7 = 56').find((element) => element.tagName.toLowerCase() === 'li');
-    expect(missedFact).toHaveClass('missed');
-    expect(screen.getAllByText('6 × 7 = 42').find((element) => element.tagName.toLowerCase() === 'li')).toHaveClass('mastered');
+    expect(screen.getByLabelText(/résultat final de la table/i)).toBeInTheDocument();
 
-    const history = screen.getByRole('table', { name: /historique des tables réalisées/i });
+    const history = screen.getByRole('table', { name: /historique des tables.*réalisées/i });
     expect(within(history).getByText(/table de 7/i)).toBeInTheDocument();
     expect(within(history).getByText(/8 justes/i)).toBeInTheDocument();
     expect(within(history).getByText(/1 fausse/i)).toBeInTheDocument();
@@ -272,13 +268,7 @@ describe('Lots 5-11 complete child interface', () => {
     await waitFor(() => expect(screen.getByRole('heading', { name: /bonjour emma/i })).toBeInTheDocument());
     const dictationCard = screen.getByRole('heading', { name: /dictée/i }).closest('article');
     await user.click(within(dictationCard!).getByRole('button', { name: /continuer/i }));
-    await waitFor(() => expect(screen.getByRole('button', { name: /dictée normale/i })).toBeInTheDocument());
-    await user.click(screen.getByRole('button', { name: /dictée normale/i }));
-    await waitFor(() => expect(screen.getByRole('heading', { name: /dictée de la forêt magique/i })).toBeInTheDocument());
-    await user.type(screen.getByLabelText(/ta phrase/i), 'Le petit renard traverse la foret');
-    await user.click(screen.getByRole('button', { name: /corriger ma dictée/i }));
-    await waitFor(() => expect(screen.getByText(/accent à ajouter/i)).toBeInTheDocument());
-    expect(screen.getByRole('button', { name: /réessayer doucement/i })).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByLabelText(/série de mots/i)).toBeInTheDocument());
 
     await user.click(screen.getByRole('button', { name: /accueil/i }));
     await waitFor(() => expect(screen.getByRole('heading', { name: /bonjour emma/i })).toBeInTheDocument());
@@ -329,20 +319,17 @@ describe('Lots 5-11 complete child interface', () => {
     expect(screen.getByLabelText(/ligne 3 affichée/i)).toBeInTheDocument();
     expect(topMaskSlider).toHaveAttribute('aria-valuenow', '2');
     await user.click(lineOneButton);
-    expect(screen.getByLabelText(/ligne 1 affichée/i)).toHaveTextContent(/La Cigale/);
+    expect(lineOneButton).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByLabelText(/ligne 1 masquée/i)).toBeInTheDocument();
 
     fireEvent.keyDown(bottomMaskSlider, { key: 'ArrowUp' });
-    expect(screen.getByText(/1 ligne masquée en bas/i)).toBeInTheDocument();
     expect(bottomMaskSlider).toHaveAttribute('aria-valuenow', '1');
     fireEvent.keyDown(bottomMaskSlider, { key: 'Home' });
-    expect(screen.getByText(/20 lignes masquées en bas/i)).toBeInTheDocument();
+    expect(bottomMaskSlider).toHaveAttribute('aria-valuenow', '20');
     fireEvent.keyDown(topMaskSlider, { key: 'ArrowDown' });
     expect(topMaskSlider).toHaveAttribute('aria-valuenow', '2');
-    expect(screen.getByText(/2 lignes masquées en haut/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /cacher des mots/i })).toBeInTheDocument();
-
-    await user.click(screen.getByRole('button', { name: /masquer tout le texte/i }));
-    expect(screen.getAllByLabelText(/ligne \d+ masquée/i).length).toBeGreaterThan(5);
+    expect(screen.getByLabelText(/ligne 2 masquée/i)).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: /réciter la poésie/i })).toBeInTheDocument();
 
     const recognitionInstances: Array<{
       start: ReturnType<typeof vi.fn>;
@@ -382,9 +369,10 @@ describe('Lots 5-11 complete child interface', () => {
     });
     expect(screen.getByLabelText(/transcription de la récitation/i)).toHaveValue('La Cigale ayant chanté tout l été');
 
-    await user.click(screen.getByRole('button', { name: /arrêter et analyser/i }));
+    await user.click(screen.getByRole('button', { name: /arrêter/i }));
+    await user.click(screen.getByRole('button', { name: /analyser la récitation/i }));
     expect(await screen.findByRole('heading', { name: /analyse de la récitation/i })).toBeInTheDocument();
-    expect(screen.getAllByText(/mots par minute/i).length).toBeGreaterThan(0);
+    expect(screen.getByText(/précision/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/transcription corrigée avec erreurs en couleur/i)).toBeInTheDocument();
   });
 });

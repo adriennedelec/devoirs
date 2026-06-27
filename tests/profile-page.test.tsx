@@ -127,7 +127,7 @@ describe('Page Profil famille', () => {
     expect(screen.queryByText(/aucune donnée trouvée/i)).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /dictée/i }));
-    expect(await screen.findByRole('button', { name: /dictée normale/i })).toBeInTheDocument();
+    expect(await screen.findByLabelText(/série de mots/i)).toBeInTheDocument();
     expect(screen.queryByText(/aucune donnée trouvée/i)).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /poésie/i }));

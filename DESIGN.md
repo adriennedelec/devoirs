@@ -474,12 +474,12 @@ Rules:
 
 - Word input splits on common separators: spaces, lines, commas, periods, semicolons, slashes, dashes, apostrophes and punctuation.
 - Unknown words show a parent confirmation card.
-- Ollama/local LLM is mandatory for word-dictation text generation when that flow is used; no deterministic “local secours” copy.
+- OpenAI server-side generation is mandatory for word-dictation text generation when that flow is used; no deterministic “local secours” copy.
 - Generated text must be a natural, age-appropriate mini-story, not mechanical “le mot…” sentences.
 - Prompt editor remains a reusable template with `{{mots}}`, `{{verbes}}`, `{{temps}}` visible.
-- Real prompt preview shows the interpolated prompt sent to Ollama.
+- Real prompt preview shows the interpolated prompt sent to the server-side model.
 - Do not auto-regenerate when options change; generation is deliberate.
-- Show generated text to the parent under `Texte produit par Ollama` when requested by current UX, but child delivery remains controlled through reading/audio controls.
+- Show generated text to the parent when requested by current UX, but child delivery remains controlled through reading/audio controls.
 - Child text can be masked with bullets while preserving state.
 - Reading controls: read text, stop, previous segment, slow child tempo, repeat each phrase twice.
 - Always show validation checks (`bons ✅` / `mauvais ⚠️`) even when generated output is imperfect.

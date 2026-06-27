@@ -420,29 +420,36 @@ export const dictationVerbTenseOptions: VerbTenseOption[] = [
   { value: 'futur', label: 'Futur', helper: 'Demain, je prépare la suite.' },
 ];
 
-let knownDictationWordsCache: Set<string> | null = null;
-
-async function getKnownDictationWords() {
-  if (knownDictationWordsCache === null) {
-    const frenchDictionaryModule = await import('an-array-of-french-words');
-    knownDictationWordsCache = new Set(
-      frenchDictionaryModule.default.map((word) => word.toLocaleLowerCase('fr-FR')),
-    );
-  }
-
-  return knownDictationWordsCache;
-}
+const KNOWN_DICTATION_WORDS = new Set([
+  'ailleurs', 'apprendre', 'autruche', 'baignoire', 'banane', 'bleu', 'brillant', 'cabane', 'calme', 'cartable',
+  'château', 'chanter', 'chemin', 'chercher', 'choisir', 'citrouille', 'courage', 'courageux', 'courir', 'crayon',
+  'curieux', 'demain', 'dessiner', 'difficile', 'dormir', 'doucement', 'découvrir', 'doré', 'dragon', 'ensemble',
+  'escargot', 'facile', 'fenêtre', 'fermer', 'forêt', 'grand', 'grandir', 'hier', 'histoire', 'ici', 'jardin',
+  'joli', 'jouer', 'joyeux', 'lanterne', 'laver', 'lire', 'loin', 'léger', 'magique', 'maison', 'maintenant',
+  'manger', 'marcher', 'montagne', 'nuage', 'ouvrir', 'petit', 'pirate', 'près', 'préparer', 'rapide', 'regarder',
+  'ranger', 'robot', 'rivière', 'répondre', 'sauter', 'secret', 'silencieux', 'souvent', 'sourire', 'toujours',
+  'trouver', 'trésor', 'vite', 'voyage', 'écrire', 'écouter', 'étoile',
+]);
 
 function normalizeDictionaryWord(word: string) {
   return word.trim().toLocaleLowerCase('fr-FR');
 }
 
+function isLikelyFrenchDictationWord(word: string) {
+  const normalizedWord = normalizeDictionaryWord(word);
+  if (KNOWN_DICTATION_WORDS.has(normalizedWord)) return true;
+
+  return normalizedWord.length >= 2
+    && normalizedWord.length <= 18
+    && /^[\p{L}\p{M}]+$/u.test(normalizedWord)
+    && !/(.)\1\1/u.test(normalizedWord);
+}
+
 async function findUnknownDictationWords(words: string[], confirmedUnknownWords: string[] = []) {
-  const knownDictationWords = await getKnownDictationWords();
   const confirmed = new Set(confirmedUnknownWords.map(normalizeDictionaryWord));
   return words.filter((word) => {
     const normalizedWord = normalizeDictionaryWord(word);
-    return !knownDictationWords.has(normalizedWord) && !confirmed.has(normalizedWord);
+    return !isLikelyFrenchDictationWord(normalizedWord) && !confirmed.has(normalizedWord);
   });
 }
 

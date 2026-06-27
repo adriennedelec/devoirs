@@ -5501,26 +5501,27 @@
   gap: 10px;
 }
 
-.profile-photo-trigger {
+.profile-form .profile-photo-trigger {
   display: flex;
   align-items: center;
   gap: 14px;
   width: 100%;
-  border: 1px solid rgba(109, 93, 252, 0.2);
-  border-radius: 20px;
-  background: linear-gradient(135deg, #ffffff, #f8f9ff);
+  border: 1px solid rgba(109, 93, 252, 0.18);
+  border-radius: 999px;
+  background: rgba(109, 93, 252, 0.08);
   color: var(--color-primary-dark);
-  padding: 10px 12px;
+  padding: 10px 14px;
   text-align: left;
-  font-weight: 1000;
-  box-shadow: 0 10px 24px rgba(31, 42, 68, 0.06);
+  font-weight: 400;
+  box-shadow: none;
 }
 
-.profile-photo-trigger:hover,
-.profile-photo-trigger:focus-visible {
-  border-color: rgba(109, 93, 252, 0.46);
+.profile-form .profile-photo-trigger:hover,
+.profile-form .profile-photo-trigger:focus-visible {
+  border-color: rgba(109, 93, 252, 0.34);
   outline: none;
-  box-shadow: 0 0 0 4px rgba(109, 93, 252, 0.12), 0 10px 24px rgba(31, 42, 68, 0.08);
+  background: rgba(109, 93, 252, 0.12);
+  box-shadow: 0 0 0 4px rgba(109, 93, 252, 0.12);
 }
 
 .profile-photo-preview img,
@@ -5528,9 +5529,9 @@
   display: inline-block;
   width: 58px;
   height: 58px;
-  border-radius: 18px;
-  border: 1px solid rgba(109, 93, 252, 0.24);
-  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  border-radius: 999px;
+  border: 1px solid rgba(109, 93, 252, 0.18);
+  background: rgba(109, 93, 252, 0.08);
   object-fit: cover;
 }
 
@@ -5545,14 +5546,15 @@
   box-shadow: 0 18px 44px rgba(31, 42, 68, 0.12);
 }
 
-.profile-photo-choice {
-  border: 3px solid transparent;
+.profile-form .profile-photo-choice {
+  border: 1px solid rgba(109, 93, 252, 0.18);
   border-radius: 999px;
-  background: #f8f9ff;
-  padding: 3px;
+  background: rgba(109, 93, 252, 0.08);
+  padding: 8px;
   aspect-ratio: 1;
   overflow: hidden;
   cursor: pointer;
+  box-shadow: none;
 }
 
 .profile-photo-choice img {
@@ -5563,11 +5565,12 @@
   object-fit: cover;
 }
 
-.profile-photo-choice:hover,
-.profile-photo-choice:focus-visible,
-.profile-photo-choice.selected {
-  border-color: var(--color-primary);
+.profile-form .profile-photo-choice:hover,
+.profile-form .profile-photo-choice:focus-visible,
+.profile-form .profile-photo-choice.selected {
+  border-color: rgba(109, 93, 252, 0.34);
   outline: none;
+  background: rgba(109, 93, 252, 0.12);
   box-shadow: 0 0 0 4px rgba(109, 93, 252, 0.12);
 }
 
